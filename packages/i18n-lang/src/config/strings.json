@@ -4531,7 +4531,11 @@
     "space_seats_limit": "The maximum number of seats to be used in the \"<a class=\"spaceName\"></a>\" Space is <a class=\"specification\"></a> . So far, <a class=\"usage\"></a> has been used, and you can upgrade to get higher usage.",
     "space_seats_limit_email_title": "Usage reminders for the number of seats in the \"${SPACE_NAME}\" space",
     "space_setting": "Space settings",
+<<<<<<< HEAD
     "space_setting_social_ad_btn": "Learn more",
+=======
+    "space_setting_social_ad_btn": "Learn mode",
+>>>>>>> 29caf6135b5557bd4b3183072585c1d08ff250a7
     "space_setting_social_ad_decs": "Click here to learn more",
     "space_subscription_notify": "Congratulations! You have successfully subscribed \"<a class=\"planName\"></a>\". The expiration time is <a class=\"expireAt\"></a>.",
     "space_template": "Custom",
@@ -10882,7 +10886,11 @@
     "add_role_success_message": "Role created successfully",
     "add_role_title": "Add role",
     "add_row_button_tip": "Insert a record",
+<<<<<<< HEAD
     "add_row_created_by_tip": "You have been automatically watched the updates for this record",
+=======
+    "add_row_created_by_tip": "We have automatically followed you for updates on this row of data",
+>>>>>>> 29caf6135b5557bd4b3183072585c1d08ff250a7
     "add_sort": "Pick another field to Sort",
     "add_sort_current_user": "Me",
     "add_sort_current_user_tips": "Current visitor",
@@ -12386,10 +12394,16 @@
     "field_member_property_multi": "Allow adding multiple members",
     "field_member_property_notify": "Notify members once they're selected",
     "field_member_property_notify_tip": "Due to the option of 'selected members will automatically follow updates to row data' being enabled, the members under this member column will automatically cancel the following records after closing it",
+<<<<<<< HEAD
     "field_member_property_subscription": "Selected members auto-watch data updates",
     "field_member_property_subscription_close_tip": "After closing, the members under the member column will automatically cancel the records they have followed",
     "field_member_property_subscription_open_tip": "This option only applies to newly selected members",
     "field_member_property_subscription_tip": "Selected members in the cell auto-watch data updates in that row",
+=======
+    "field_member_property_subscription": "The selected members will automatically follow updates to row data",
+    "field_member_property_subscription_close_tip": "After closing, the members under the member column will automatically cancel the records they have followed",
+    "field_member_property_subscription_open_tip": "This option only applies to newly selected members",
+>>>>>>> 29caf6135b5557bd4b3183072585c1d08ff250a7
     "field_name_formula": "Formula",
     "field_name_setting": "Field name setting",
     "field_permission": "Field permissions",
@@ -50154,7 +50168,10 @@
     "field_member_property_subscription": "被选择的成员将自动关注行数据的更新",
     "field_member_property_subscription_close_tip": "关闭后，该成员列下的成员将会自动取消已关注的记录",
     "field_member_property_subscription_open_tip": "该选项仅对新选择的成员生效",
+<<<<<<< HEAD
     "field_member_property_subscription_tip": "单元格里被选择的成员将自动关注该行数据的更新",
+=======
+>>>>>>> 29caf6135b5557bd4b3183072585c1d08ff250a7
     "field_name_formula": "公式",
     "field_name_setting": "列名配置",
     "field_permission": "列权限",
