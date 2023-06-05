@@ -1,4 +1,4 @@
-/*
+/**
  * APITable <https://github.com/apitable/apitable>
  * Copyright (C) 2022 APITable Ltd. <https://apitable.com>
  *
@@ -15,9 +15,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import dynamic from 'next/dynamic';
+import React from 'react';
 
-/**
- *
- * @author Chambers
- */
-package com.apitable.interfaces.notification;
+// @ts-ignore
+const WoaCallbackWithNoSSR = dynamic(() => import('enterprise').then((components) => {
+  return components.WoaCallback;
+}), { ssr: false });
+
+const App = () => {
+  return WoaCallbackWithNoSSR && <WoaCallbackWithNoSSR />;
+};
+
+export default App;
