@@ -42,6 +42,12 @@ const _renderValue = (option: IOption) => {
 const _Highlighter: any = Highlighter;
 const _GlobalStyle: any = GlobalStyle;
 
+/**
+ * @deprecated
+ * please use DropdownSelect instead ,  rc-trigger is deprecated
+ * @param props
+ * @constructor
+ */
 export const Select: FC<React.PropsWithChildren<ISelectProps>> & {
   Option: React.FC<React.PropsWithChildren<Omit<IListItemProps, 'wrapperComponent'> & Pick<IOption, 'value' | 'prefixIcon' | 'suffixIcon'>>>
 } = (props) => {
