@@ -21,6 +21,8 @@ public class AiCreateParam {
 
     private String aiId;
 
+    private AiType type;
+
     private String aiName;
 
     private List<AiDataSource> dataSources;
