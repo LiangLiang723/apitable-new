@@ -15,7 +15,7 @@ package com.apitable.databusclient.model;
 
 import java.util.Objects;
 import com.apitable.databusclient.model.AutomationActionIntroductionPO;
-import com.apitable.databusclient.model.AutomationRobotPO;
+import com.apitable.databusclient.model.AutomationRobotIntroductionPO;
 import com.apitable.databusclient.model.AutomationTriggerIntroductionPO;
 import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.JsonAdapter;
@@ -55,7 +55,7 @@ import com.apitable.databusclient.JSON;
 /**
  * AutomationRobotIntroductionSO
  */
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-09-06T19:03:51.398869+08:00[Asia/Shanghai]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2023-09-08T12:26:03.751525+08:00[Asia/Shanghai]")
 public class AutomationRobotIntroductionSO {
   public static final String SERIALIZED_NAME_ACTIONS = "actions";
   @SerializedName(SERIALIZED_NAME_ACTIONS)
@@ -63,7 +63,7 @@ public class AutomationRobotIntroductionSO {
 
   public static final String SERIALIZED_NAME_ROBOTS = "robots";
   @SerializedName(SERIALIZED_NAME_ROBOTS)
-  private List<AutomationRobotPO> robots = new ArrayList<>();
+  private List<AutomationRobotIntroductionPO> robots = new ArrayList<>();
 
   public static final String SERIALIZED_NAME_TRIGGERS = "triggers";
   @SerializedName(SERIALIZED_NAME_TRIGGERS)
@@ -101,13 +101,13 @@ public class AutomationRobotIntroductionSO {
   }
 
 
-  public AutomationRobotIntroductionSO robots(List<AutomationRobotPO> robots) {
+  public AutomationRobotIntroductionSO robots(List<AutomationRobotIntroductionPO> robots) {
     
     this.robots = robots;
     return this;
   }
 
-  public AutomationRobotIntroductionSO addRobotsItem(AutomationRobotPO robotsItem) {
+  public AutomationRobotIntroductionSO addRobotsItem(AutomationRobotIntroductionPO robotsItem) {
     if (this.robots == null) {
       this.robots = new ArrayList<>();
     }
@@ -120,12 +120,12 @@ public class AutomationRobotIntroductionSO {
    * @return robots
   **/
   @javax.annotation.Nonnull
-  public List<AutomationRobotPO> getRobots() {
+  public List<AutomationRobotIntroductionPO> getRobots() {
     return robots;
   }
 
 
-  public void setRobots(List<AutomationRobotPO> robots) {
+  public void setRobots(List<AutomationRobotIntroductionPO> robots) {
     this.robots = robots;
   }
 
@@ -265,7 +265,7 @@ public class AutomationRobotIntroductionSO {
       JsonArray jsonArrayrobots = jsonObj.getAsJsonArray("robots");
       // validate the required field `robots` (array)
       for (int i = 0; i < jsonArrayrobots.size(); i++) {
-        AutomationRobotPO.validateJsonElement(jsonArrayrobots.get(i));
+        AutomationRobotIntroductionPO.validateJsonElement(jsonArrayrobots.get(i));
       };
       // ensure the json data is an array
       if (!jsonObj.get("triggers").isJsonArray()) {
