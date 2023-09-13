@@ -1,6 +1,6 @@
 import { useAtomValue } from 'jotai';
 import * as React from 'react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { Modal } from '@apitable/components';
 import { Strings, t } from '@apitable/core';
@@ -8,6 +8,7 @@ import { Modal as ConfirmModal } from 'pc/components/common/modal/modal/modal';
 import { useRobotListState } from '../../robot/robot_list';
 import { automationModifiedAtom } from '../controller';
 import { AutomationPanel } from '../index';
+import { DrawerWrapper } from './drawer';
 import style from './styles.module.less';
 
 const StyledModal = styled(Modal)`
@@ -83,4 +84,4 @@ const AutomationModal: React.FC<{
     </StyledModal>
   );
 };
-export default AutomationModal;
+export default memo(DrawerWrapper);
