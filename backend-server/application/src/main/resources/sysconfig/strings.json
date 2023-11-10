@@ -7235,6 +7235,7 @@
     "decimal": "decimal (1.0)",
     "default": "Default",
     "default_create_ai_chat_bot": "New AI agent",
+    "default_create_airagent": "New Agent",
     "default_create_automation": "New automation",
     "default_create_dashboard": "New dashboard",
     "default_create_datasheet": "New datasheet",
