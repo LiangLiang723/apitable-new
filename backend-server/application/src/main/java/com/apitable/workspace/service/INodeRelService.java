@@ -84,4 +84,12 @@ public interface INodeRelService {
      * @return NodeRelEntity
      */
     NodeRelEntity getByRelNodeId(String relNodeId);
+
+    /**
+     * check the rel.
+     *
+     * @param mainNodeId main node id
+     * @return boolean
+     */
+    boolean relExists(String mainNodeId);
 }

@@ -61,4 +61,10 @@
             </trim>
         </foreach>
     </insert>
+
+    <select id="selectCountByMainNodeId" resultType="java.lang.Integer">
+        SELECT count(*)
+        FROM ${tablePrefix}node_rel
+        WHERE main_node_id = #{mainNodeId}
+    </select>
 </mapper>

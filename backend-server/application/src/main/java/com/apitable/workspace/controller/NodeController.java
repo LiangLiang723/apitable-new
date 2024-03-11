@@ -69,6 +69,7 @@ import com.apitable.shared.util.information.ClientOriginInfo;
 import com.apitable.shared.util.information.InformationUtil;
 import com.apitable.space.enums.AuditSpaceAction;
 import com.apitable.space.enums.SpaceException;
+import com.apitable.template.enums.TemplateException;
 import com.apitable.template.service.ITemplateService;
 import com.apitable.user.mapper.UserMapper;
 import com.apitable.workspace.dto.NodeCopyEffectDTO;
@@ -663,6 +664,11 @@ public class NodeController {
         // if node is private check foreign link
         if (iNodeService.nodePrivate(nodeOpRo.getNodeId()) && null == nodeOpRo.getUnitId()) {
             iTemplateService.checkTemplateForeignNode(memberId, nodeOpRo.getNodeId());
+        }
+        // check datasheet, move to team space
+        if (iNodeService.nodePrivate(nodeOpRo.getNodeId()) && null == nodeOpRo.getUnitId()
+            && iNodeRelService.relExists(nodeOpRo.getNodeId())) {
+            throw new BusinessException(TemplateException.NODE_LINK_FOREIGN_NODE);
         }
         List<String> nodeIds = iNodeService.move(userId, nodeOpRo);
         List<NodeInfoVo> nodes = iNodeService.getNodeInfoByNodeIds(spaceId, memberId, nodeIds);

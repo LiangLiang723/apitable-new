@@ -156,4 +156,9 @@ public class NodeRelServiceImpl implements INodeRelService {
         log.info("Gets the node association relationship with the associated node [{}]", relNodeId);
         return nodeRelMapper.selectByRelNodeId(relNodeId);
     }
+
+    @Override
+    public boolean relExists(String mainNodeId) {
+        return SqlHelper.retBool(nodeRelMapper.selectCountByMainNodeId(mainNodeId));
+    }
 }
