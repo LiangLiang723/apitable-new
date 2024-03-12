@@ -18,6 +18,7 @@
 
 package com.apitable.workspace.controller;
 
+import static com.apitable.template.enums.TemplateException.NODE_LINK_FOREIGN_NODE;
 import static com.apitable.workspace.enums.NodeException.DUPLICATE_NODE_NAME;
 
 import cn.hutool.core.collection.CollUtil;
@@ -69,7 +70,6 @@ import com.apitable.shared.util.information.ClientOriginInfo;
 import com.apitable.shared.util.information.InformationUtil;
 import com.apitable.space.enums.AuditSpaceAction;
 import com.apitable.space.enums.SpaceException;
-import com.apitable.template.enums.TemplateException;
 import com.apitable.template.service.ITemplateService;
 import com.apitable.user.mapper.UserMapper;
 import com.apitable.workspace.dto.NodeCopyEffectDTO;
@@ -663,12 +663,11 @@ public class NodeController {
         Long userId = SessionContext.getUserId();
         // if node is private check foreign link
         if (iNodeService.nodePrivate(nodeOpRo.getNodeId()) && null == nodeOpRo.getUnitId()) {
+            ExceptionUtil.isFalse(iNodeRelService.relExists(nodeOpRo.getNodeId()),
+                NODE_LINK_FOREIGN_NODE);
+            ExceptionUtil.isFalse(iNodeService.linkByOutsideWidgets(nodeOpRo.getNodeId()),
+                NODE_LINK_FOREIGN_NODE);
             iTemplateService.checkTemplateForeignNode(memberId, nodeOpRo.getNodeId());
-        }
-        // check datasheet, move to team space
-        if (iNodeService.nodePrivate(nodeOpRo.getNodeId()) && null == nodeOpRo.getUnitId()
-            && iNodeRelService.relExists(nodeOpRo.getNodeId())) {
-            throw new BusinessException(TemplateException.NODE_LINK_FOREIGN_NODE);
         }
         List<String> nodeIds = iNodeService.move(userId, nodeOpRo);
         List<NodeInfoVo> nodes = iNodeService.getNodeInfoByNodeIds(spaceId, memberId, nodeIds);

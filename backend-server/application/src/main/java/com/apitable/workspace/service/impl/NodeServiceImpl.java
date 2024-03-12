@@ -2032,6 +2032,19 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
         return nodeUnit.equals(unitId);
     }
 
+    @Override
+    public boolean linkByOutsideWidgets(String nodeId) {
+        if (nodeId.startsWith(IdRulePrefixEnum.DST.getIdRulePrefixEnum())) {
+            List<String> widgetIds = iWidgetService.getNodeWidgetIds(nodeId);
+            if (!widgetIds.isEmpty()) {
+                List<String> resourceIds = iWidgetService.getWidgetNodeIds(widgetIds);
+                return !resourceIds.isEmpty() && resourceIds.size() > 1;
+            }
+        }
+
+        return false;
+    }
+
     private List<NodeSearchResult> formatNodeSearchResults(List<NodeInfoVo> nodeInfoList) {
         if (CollUtil.isEmpty(nodeInfoList)) {
             return new ArrayList<>();
