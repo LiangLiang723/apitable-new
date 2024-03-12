@@ -105,7 +105,7 @@ export const MoveTo: React.FC<
 
     const move = () => {
       setConfirmLoading(true);
-      const unitId = ConfigConstant.Modules.PRIVATE ? userUnitId : undefined;
+      const unitId = catalog === ConfigConstant.Modules.PRIVATE ? userUnitId : undefined;
       Api.nodeMove(nodeId, selectedNodeId, undefined, unitId).then((res) => {
         setConfirmLoading(false);
         const { data, success } = res.data;
