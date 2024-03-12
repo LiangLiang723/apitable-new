@@ -1353,7 +1353,7 @@
   "create_mirror_guide_content": "镜像具有隐藏部分数据的功能，你可以在原表的视图中设置“筛选条件”和“隐藏字段”来控制镜像中需要展示的记录和字段。\n</br>\n</br>\n如果配合「视图锁」功能一起使用，可以防止其他人修改。\n</br>\n</br>\n另外，前往「原表>隐藏字段」可以修改“镜像中允许查看隐藏字段”的配置",
   "create_mirror_guide_title": "镜像将隐藏部分记录和字段",
   "create_new_button_field": "新建一个按钮列字段",
-  "create_private_node_tip": "个人或者临时类的草稿文件可以在这里创建，${link}",
+  "create_private_node_tip": "个人或者临时类的草稿文件可以在这里创建 ${link}",
   "create_public_invitation_link": "创建公开的邀请链接",
   "create_space_sub_title": "Hi，给你的空间站起个名字吧",
   "create_team_fail": "添加小组失败",

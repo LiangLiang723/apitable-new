@@ -1353,7 +1353,7 @@
   "create_mirror_guide_content": "La función de espejo tiene la capacidad de ocultar ciertos datos. Puede establecer \"condiciones de filtro\" y \"campos ocultos\" en la vista de hoja de datos original para controlar qué registros y campos se muestran en el espejo.\n</br>\n</br>\nSi se usa junto con la función de \"bloqueo de vista\", puede evitar que otros realicen modificaciones.\n</br>\n</br>\nAdemás, puede ir a \"Tabla original>Campos ocultos\" para modificar la configuración de \"Mostrar todos los campos en espejos\".",
   "create_mirror_guide_title": "El espejo esconde algunos registros y campos",
   "create_new_button_field": "Crear un nuevo campo de columna de botón",
-  "create_private_node_tip": "Personal or temporary draft documents can be created here, ${link}",
+  "create_private_node_tip": "Personal or temporary draft documents can be created here ${link}",
   "create_public_invitation_link": "Crear enlaces de invitación pública",
   "create_space_sub_title": "Hola, por favor, nombra tu espacio compartido.",
   "create_team_fail": "Falló la creación del equipo",

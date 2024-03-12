@@ -1353,7 +1353,7 @@
   "create_mirror_guide_content": "La funzione mirror ha la capacità di nascondere determinati dati. È possibile impostare \"condizioni di filtro\" e \"campi nascosti\" nella visualizzazione del foglio dati originale per controllare quali record e campi vengono visualizzati nel mirror.\n</br>\n</br>\nSe utilizzato insieme alla funzione \"Visualizza blocco\", può impedire ad altri di apportare modifiche.\n</br>\n</br>\nInoltre, puoi andare su \"Tabella originale>Campi nascosti\" per modificare la configurazione per \"Mostra tutti i campi nei mirror\".",
   "create_mirror_guide_title": "Specchio nasconde alcuni record e campi",
   "create_new_button_field": "Crea un nuovo campo colonna pulsante",
-  "create_private_node_tip": "Personal or temporary draft documents can be created here, ${link}",
+  "create_private_node_tip": "Personal or temporary draft documents can be created here ${link}",
   "create_public_invitation_link": "Crea link di invito pubblico",
   "create_space_sub_title": "Ciao, si prega di dare un nome al vostro spazio~",
   "create_team_fail": "Crea team fallito",

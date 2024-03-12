@@ -1353,7 +1353,7 @@
   "create_mirror_guide_content": "La fonction miroir a la capacité de masquer certaines données. Vous pouvez définir des \"conditions de filtre\" et des \"champs masqués\" dans la vue de feuille de données d'origine pour contrôler les enregistrements et les champs affichés dans le miroir.\n</br>\n</br>\nS'il est utilisé en conjonction avec la fonction \"verrouiller la vue\", il peut empêcher les autres d'apporter des modifications.\n</br>\n</br>\nDe plus, vous pouvez aller dans \"Table d'origine>Champs cachés\" pour modifier la configuration pour \"Afficher tous les champs dans les miroirs\".",
   "create_mirror_guide_title": "Le miroir masque certains enregistrements et champs",
   "create_new_button_field": "Créer un nouveau champ de colonne de bouton",
-  "create_private_node_tip": "Personal or temporary draft documents can be created here, ${link}",
+  "create_private_node_tip": "Personal or temporary draft documents can be created here ${link}",
   "create_public_invitation_link": "Créer le(s) lien(s) d'invitation publique",
   "create_space_sub_title": "Bonjour, veuillez donner un nom à votre espace~",
   "create_team_fail": "La création de l'équipe a échoué",

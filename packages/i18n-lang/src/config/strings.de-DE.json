@@ -1353,7 +1353,7 @@
   "create_mirror_guide_content": "Die Spiegelfunktion bietet die Möglichkeit, bestimmte Daten auszublenden. Sie können in der ursprünglichen Datenblattansicht „Filterbedingungen“ und „ausgeblendete Felder“ festlegen, um zu steuern, welche Datensätze und Felder im Spiegel angezeigt werden.\n</br>\n</br>\nIn Verbindung mit der Funktion „Ansichtssperre“ kann sie andere daran hindern, Änderungen vorzunehmen.\n</br>\n</br>\nDarüber hinaus können Sie zu „Originaltabelle > Ausgeblendete Felder“ gehen, um die Konfiguration für „Alle Felder in Spiegeln anzeigen“ zu ändern.",
   "create_mirror_guide_title": "Spiegel blendet einige Datensätze und Felder aus",
   "create_new_button_field": "Erstellen Sie ein neues Schaltflächenspaltenfeld",
-  "create_private_node_tip": "Personal or temporary draft documents can be created here, ${link}",
+  "create_private_node_tip": "Personal or temporary draft documents can be created here ${link}",
   "create_public_invitation_link": "Öffentliche Einladungslinks erstellen",
   "create_space_sub_title": "Hallo, bitte geben Sie Ihrem Space einen Namen~",
   "create_team_fail": "Team erstellen fehlgeschlagen",

@@ -558,7 +558,7 @@ export const useCatalogTreeRequest = () => {
       if (id === nodeId) {
         return true;
       }
-      if (treeNodesMap[id].children.length) {
+      if (nodeMaps[id].children.length) {
         return isFindNodeInTree(nodeMaps[id], nodeId, module);
       }
       return false;

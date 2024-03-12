@@ -131,7 +131,9 @@ export const MoveTo: React.FC<
         // private => team should reload
         if (isPrivate && catalog === ConfigConstant.Modules.CATALOG) {
           moveSuccess(nodeId);
-          window.location.reload();
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
         } else {
           dispatch(StoreActions.moveTo(nodeId, selectedNodeId, 0, catalog));
           dispatch(StoreActions.addNodeToMap(data, true, catalog));
