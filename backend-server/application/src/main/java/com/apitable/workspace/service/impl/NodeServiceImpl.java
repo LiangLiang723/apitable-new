@@ -1035,8 +1035,12 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
                 }
                 // Update the information of this node (the ID of the previous
                 // node may be updated to null, so update By id is not used)
-                baseMapper.updateInfoByNodeId(nodeEntity.getNodeId(), parentId, preNodeId, name,
-                    NumberUtil.parseLong(opRo.getUnitId()));
+                baseMapper.updateInfoByNodeId(nodeEntity.getNodeId(), parentId, preNodeId, name);
+                List<String> subNodeIds = getNodeIdsInNodeTree(nodeEntity.getNodeId(), -1);
+                if (!subNodeIds.isEmpty()) {
+                    baseMapper.updateUnitIdByNodeIds(subNodeIds,
+                        NumberUtil.parseLong(opRo.getUnitId()));
+                }
             } else {
                 throw new BusinessException("Frequent operations");
             }

@@ -982,6 +982,68 @@ public class NodeServiceImplTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void testMovePrivateFolderToTeamWorkspace() {
+        // mock user
+        MockUserSpace userSpace = createUserSpaceForFreeSubscription();
+        Long unitId = iUnitService.getUnitIdByRefId(userSpace.getMemberId());
+        // create node
+        String rootNodeId = iNodeService.getRootNodeIdBySpaceId(userSpace.getSpaceId());
+        NodeOpRo ro = new NodeOpRo().toBuilder()
+            .parentId(rootNodeId)
+            .unitId(unitId.toString())
+            .type(NodeType.FOLDER.getNodeType())
+            .build();
+        String folderId =
+            iNodeService.createNode(userSpace.getUserId(), userSpace.getSpaceId(), ro);
+        ro.setType(NodeType.DATASHEET.getNodeType());
+        ro.setParentId(folderId);
+        iNodeService.createNode(userSpace.getUserId(), userSpace.getSpaceId(), ro);
+        NodeMoveOpRo moveOpRo = new NodeMoveOpRo();
+        moveOpRo.setParentId(rootNodeId);
+        moveOpRo.setNodeId(folderId);
+        iNodeService.move(userSpace.getUserId(), moveOpRo);
+        List<NodeInfoVo> childNodes =
+            iNodeService.getChildNodesByNodeId(userSpace.getSpaceId(), userSpace.getMemberId(),
+                folderId, null);
+        assertThat(childNodes.get(0).getNodePrivate()).isFalse();
+    }
+
+
+    @Test
+    void testMovePrivateFolderToTeamWorkspace2() {
+        // mock user
+        MockUserSpace userSpace = createUserSpaceForFreeSubscription();
+        Long unitId = iUnitService.getUnitIdByRefId(userSpace.getMemberId());
+        // create node
+        String rootNodeId = iNodeService.getRootNodeIdBySpaceId(userSpace.getSpaceId());
+        NodeOpRo ro = new NodeOpRo().toBuilder()
+            .parentId(rootNodeId)
+            .unitId(unitId.toString())
+            .type(NodeType.FOLDER.getNodeType())
+            .build();
+        String folderId1 =
+            iNodeService.createNode(userSpace.getUserId(), userSpace.getSpaceId(), ro);
+        ro.setParentId(folderId1);
+        String folderId2 =
+            iNodeService.createNode(userSpace.getUserId(), userSpace.getSpaceId(), ro);
+        ro.setType(NodeType.DATASHEET.getNodeType());
+        ro.setParentId(folderId2);
+        iNodeService.createNode(userSpace.getUserId(), userSpace.getSpaceId(), ro);
+        NodeMoveOpRo moveOpRo = new NodeMoveOpRo();
+        moveOpRo.setParentId(rootNodeId);
+        moveOpRo.setNodeId(folderId1);
+        iNodeService.move(userSpace.getUserId(), moveOpRo);
+        List<NodeInfoVo> childNodes1 =
+            iNodeService.getChildNodesByNodeId(userSpace.getSpaceId(), userSpace.getMemberId(),
+                folderId1, null);
+        assertThat(childNodes1.get(0).getHasChildren()).isTrue();
+        List<NodeInfoVo> childNodes2 =
+            iNodeService.getChildNodesByNodeId(userSpace.getSpaceId(), userSpace.getMemberId(),
+                folderId1, null);
+        assertThat(childNodes2.get(0).getNodePrivate()).isFalse();
+    }
+
+    @Test
     void testCopyPrivateNode() {
         // mock user
         MockUserSpace userSpace = createUserSpaceForFreeSubscription();

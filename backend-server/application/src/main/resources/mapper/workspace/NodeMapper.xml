@@ -373,7 +373,6 @@
         SET pre_node_id = #{preNodeId},
         parent_id = #{parentId},
         node_name = #{name},
-        unit_id = #{unitId},
         is_rubbish = 0
         WHERE node_id = #{nodeId}
     </update>
@@ -732,4 +731,15 @@
         FROM ${tablePrefix}node
         WHERE node_id = #{nodeId}
     </select>
+
+    <update id="updateUnitIdByNodeIds">
+        UPDATE ${tablePrefix}node
+        SET unit_id = #{unitId}
+        WHERE node_id IN
+        <foreach collection="nodeIds" item="unitId" index="index" open="(" close=")" separator=",">
+            #{unitId}
+        </foreach>
+        AND is_rubbish = 0
+        AND is_deleted = 0
+    </update>
 </mapper>
