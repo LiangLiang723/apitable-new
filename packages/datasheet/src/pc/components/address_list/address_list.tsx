@@ -86,7 +86,7 @@ export const AddressList: React.FC<React.PropsWithChildren<unknown>> = () => {
             <div className={styles.title}>{selectedTeamInfo.teamTitle}</div>
           </ComponentDisplay>
           <span>
-            （{memberListTotal}
+            （{memberListTotal}/{memberList.length}
             {t(Strings.person)}）
           </span>
         </div>
