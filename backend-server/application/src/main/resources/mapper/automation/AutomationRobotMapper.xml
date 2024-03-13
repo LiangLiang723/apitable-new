@@ -119,14 +119,13 @@
         AND is_deleted = 0
     </update>
 
-    <select id="selectCountByRobotIdsAndExclusiveResourceId" resultType="java.lang.Integer">
-        SELECT count(*)
+    <select id="selectResourceIdsByRobotIds" resultType="java.lang.String">
+        SELECT DISTINCT resource_id
         FROM ${tablePrefix}automation_robot
         WHERE robot_id IN
         <foreach item="item" index="index" collection="robotIds" open="(" separator="," close=")">
             #{item}
         </foreach>
-        AND resource_id != #{resourceId}
         AND is_deleted = 0
     </select>
 </mapper>

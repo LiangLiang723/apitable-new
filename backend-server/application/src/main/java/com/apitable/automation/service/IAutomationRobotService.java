@@ -158,8 +158,8 @@ public interface IAutomationRobotService {
     /**
      * get robot count.
      *
-     * @param nodeId dst id
+     * @param nodeIds dst id
      * @return count
      */
-    Integer getCountByTriggerResourceId(String nodeId);
+    boolean linkByOutsideAutomation(List<String> nodeIds);
 }

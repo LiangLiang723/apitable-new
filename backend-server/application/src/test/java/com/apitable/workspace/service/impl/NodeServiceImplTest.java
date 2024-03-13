@@ -1534,6 +1534,118 @@ public class NodeServiceImplTest extends AbstractIntegrationTest {
         assertEquals(430, exception.getCode());
     }
 
+    @Test
+    public void testMoveOriginalDstInFolderLinkedByOutsideMirror() {
+        MockUserSpace user = createUserSpaceForFreeSubscription();
+        Long unitId = iUnitService.getUnitIdByRefId(user.getMemberId());
+        String rootNodeId = iNodeService.getRootNodeIdBySpaceId(user.getSpaceId());
+        // create node
+        NodeOpRo ro = new NodeOpRo().toBuilder()
+            .unitId(unitId.toString())
+            .parentId(rootNodeId)
+            .type(NodeType.FOLDER.getNodeType())
+            .build();
+        String folderId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        ro.setType(NodeType.DATASHEET.getNodeType());
+        ro.setParentId(folderId);
+        String dstId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        NodeRelRo relRo = new NodeRelRo();
+        relRo.setDatasheetId(dstId);
+        relRo.setViewId(IdUtil.createViewId());
+        ro.setType(NodeType.MIRROR.getNodeType());
+        ro.setExtra(relRo);
+        ro.setParentId(rootNodeId);
+        iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        BusinessException exception =
+            assertThrows(BusinessException.class,
+                () -> iNodeService.linkByOutsideResource(folderId));
+        assertEquals(430, exception.getCode());
+    }
+
+    @Test
+    public void testMoveOriginalDstInAndMirrorInSameFolder() {
+        MockUserSpace user = createUserSpaceForFreeSubscription();
+        Long unitId = iUnitService.getUnitIdByRefId(user.getMemberId());
+        String rootNodeId = iNodeService.getRootNodeIdBySpaceId(user.getSpaceId());
+        // create node
+        NodeOpRo ro = new NodeOpRo().toBuilder()
+            .unitId(unitId.toString())
+            .parentId(rootNodeId)
+            .type(NodeType.FOLDER.getNodeType())
+            .build();
+        String folderId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        ro.setType(NodeType.DATASHEET.getNodeType());
+        ro.setParentId(folderId);
+        String dstId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        NodeRelRo relRo = new NodeRelRo();
+        relRo.setDatasheetId(dstId);
+        relRo.setViewId(IdUtil.createViewId());
+        ro.setType(NodeType.MIRROR.getNodeType());
+        ro.setExtra(relRo);
+        iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        assertDoesNotThrow(() -> iNodeService.linkByOutsideResource(folderId));
+    }
+
+
+    @Test
+    public void testMoveOriginalDstInAndFormInSameFolder() {
+        MockUserSpace user = createUserSpaceForFreeSubscription();
+        Long unitId = iUnitService.getUnitIdByRefId(user.getMemberId());
+        String rootNodeId = iNodeService.getRootNodeIdBySpaceId(user.getSpaceId());
+        // create node
+        NodeOpRo ro = new NodeOpRo().toBuilder()
+            .unitId(unitId.toString())
+            .parentId(rootNodeId)
+            .type(NodeType.FOLDER.getNodeType())
+            .build();
+        String folderId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        ro.setType(NodeType.DATASHEET.getNodeType());
+        ro.setParentId(folderId);
+        String dstId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        NodeRelRo relRo = new NodeRelRo();
+        relRo.setDatasheetId(dstId);
+        relRo.setViewId(IdUtil.createViewId());
+        ro.setType(NodeType.FORM.getNodeType());
+        ro.setExtra(relRo);
+        iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        assertDoesNotThrow(() -> iNodeService.linkByOutsideResource(folderId));
+    }
+
+    @Test
+    public void testMoveOriginalDstInAndFormNotInSameFolder() {
+        MockUserSpace user = createUserSpaceForFreeSubscription();
+        Long unitId = iUnitService.getUnitIdByRefId(user.getMemberId());
+        String rootNodeId = iNodeService.getRootNodeIdBySpaceId(user.getSpaceId());
+        // create node
+        NodeOpRo ro = new NodeOpRo().toBuilder()
+            .unitId(unitId.toString())
+            .parentId(rootNodeId)
+            .type(NodeType.FOLDER.getNodeType())
+            .build();
+        String folderId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        ro.setType(NodeType.DATASHEET.getNodeType());
+        ro.setParentId(folderId);
+        String dstId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        NodeRelRo relRo = new NodeRelRo();
+        relRo.setDatasheetId(dstId);
+        relRo.setViewId(IdUtil.createViewId());
+        ro.setType(NodeType.FORM.getNodeType());
+        ro.setExtra(relRo);
+        ro.setParentId(rootNodeId);
+        iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        BusinessException exception =
+            assertThrows(BusinessException.class,
+                () -> iNodeService.linkByOutsideResource(folderId));
+        assertEquals(430, exception.getCode());
+    }
 
     private MockUserSpace createUserSpaceForFreeSubscription() {
         // mock user

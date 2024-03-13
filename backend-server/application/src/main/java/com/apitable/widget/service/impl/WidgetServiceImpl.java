@@ -491,7 +491,7 @@ public class WidgetServiceImpl implements IWidgetService {
     }
 
     @Override
-    public List<String> getNodeWidgetIds(String nodeId) {
-        return datasheetWidgetMapper.selectWidgetIdByDstId(nodeId);
+    public List<String> getNodeWidgetIds(List<String> nodeIds) {
+        return datasheetWidgetMapper.selectWidgetIdByDstIds(nodeIds);
     }
 }

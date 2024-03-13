@@ -111,9 +111,9 @@ public interface IAutomationTriggerService {
     /**
      * get node linked robot id list.
      *
-     * @param nodeId node id
+     * @param nodeIds node id
      * @return robot id list
      */
-    List<String> getRobotIdsByResourceId(String nodeId);
+    List<String> getRobotIdsByResourceIds(List<String> nodeIds);
 
 }

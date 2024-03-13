@@ -222,6 +222,7 @@
             #{item}
         </foreach>
         AND is_rubbish = 0
+        AND is_deleted = 0
     </select>
 
     <select id="selectNodeIdBySpaceIdAndType" resultType="java.lang.String">

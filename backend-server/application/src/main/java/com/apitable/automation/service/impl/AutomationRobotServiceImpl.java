@@ -75,6 +75,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -451,12 +452,13 @@ public class AutomationRobotServiceImpl implements IAutomationRobotService {
     }
 
     @Override
-    public Integer getCountByTriggerResourceId(String nodeId) {
-        List<String> robotIds = iAutomationTriggerService.getRobotIdsByResourceId(nodeId);
+    public boolean linkByOutsideAutomation(List<String> nodeIds) {
+        List<String> robotIds = iAutomationTriggerService.getRobotIdsByResourceIds(nodeIds);
         if (CollUtil.isNotEmpty(robotIds)) {
-            return robotMapper.selectCountByRobotIdsAndExclusiveResourceId(robotIds, nodeId);
+            List<String> resourceIds = robotMapper.selectResourceIdsByRobotIds(robotIds);
+            return !new HashSet<>(nodeIds).containsAll(resourceIds);
         }
-        return 0;
+        return false;
     }
 
     @Override

@@ -252,8 +252,8 @@ public class AutomationTriggerServiceImpl implements IAutomationTriggerService {
     }
 
     @Override
-    public List<String> getRobotIdsByResourceId(String nodeId) {
-        return triggerMapper.selectRobotIdByResourceId(nodeId);
+    public List<String> getRobotIdsByResourceIds(List<String> nodeIds) {
+        return triggerMapper.selectRobotIdByResourceIds(nodeIds);
     }
 
     private List<TriggerVO> handleTriggerResponse(List<AutomationTriggerSO> data) {

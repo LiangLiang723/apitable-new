@@ -2038,27 +2038,36 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
     }
 
     @Override
-    public boolean linkByOutsideWidgets(String nodeId) {
-        List<String> widgetIds = iWidgetService.getNodeWidgetIds(nodeId);
+    public boolean linkByOutsideWidgets(List<String> nodeIds) {
+        List<String> widgetIds = iWidgetService.getNodeWidgetIds(nodeIds);
         if (!widgetIds.isEmpty()) {
             List<String> resourceIds = iWidgetService.getWidgetNodeIds(widgetIds);
-            return !resourceIds.isEmpty() && resourceIds.size() > 1;
+            if (!resourceIds.isEmpty()) {
+                resourceIds = getExistNodeIdsBySelf(resourceIds);
+                return !new HashSet<>(nodeIds).containsAll(resourceIds);
+            }
         }
         return false;
     }
 
     @Override
     public void linkByOutsideResource(String nodeId) {
-        if (!nodeId.startsWith(IdRulePrefixEnum.DST.getIdRulePrefixEnum())) {
+        List<String> nodeIds = new ArrayList<>();
+        if (nodeId.startsWith(IdRulePrefixEnum.FOD.getIdRulePrefixEnum())) {
+            nodeIds = getNodeIdsInNodeTree(nodeId, -1);
+        }
+        if (nodeId.startsWith(IdRulePrefixEnum.DST.getIdRulePrefixEnum())) {
+            nodeIds.add(nodeId);
+        }
+        if (nodeIds.isEmpty()) {
             return;
         }
         // check mirror
-        ExceptionUtil.isFalse(iNodeRelService.relExists(nodeId), NODE_LINK_FOREIGN_NODE);
+        ExceptionUtil.isTrue(iNodeRelService.relInTheSameFolder(nodeIds), NODE_LINK_FOREIGN_NODE);
         // check widgets
-        ExceptionUtil.isFalse(linkByOutsideWidgets(nodeId), NODE_LINK_FOREIGN_NODE);
+        ExceptionUtil.isFalse(linkByOutsideWidgets(nodeIds), NODE_LINK_FOREIGN_NODE);
         // check automation
-        ExceptionUtil.isFalse(
-            SqlHelper.retBool(iAutomationRobotService.getCountByTriggerResourceId(nodeId)),
+        ExceptionUtil.isFalse(iAutomationRobotService.linkByOutsideAutomation(nodeIds),
             NODE_LINK_FOREIGN_NODE);
     }
 

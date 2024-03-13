@@ -149,8 +149,8 @@ public interface IWidgetService {
     /**
      * get node widgets.
      *
-     * @param nodeId node id.
+     * @param nodeIds node id.
      * @return list of widget id
      */
-    List<String> getNodeWidgetIds(String nodeId);
+    List<String> getNodeWidgetIds(List<String> nodeIds);
 }

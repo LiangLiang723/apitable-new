@@ -126,10 +126,8 @@ public interface AutomationRobotMapper extends BaseMapper<AutomationRobotEntity>
     /**
      * query robot id exists.
      *
-     * @param robotIds   robot id
-     * @param resourceId resource id
-     * @return count of robot
+     * @param robotIds    robot id
+     * @return resource id of robot
      */
-    Integer selectCountByRobotIdsAndExclusiveResourceId(@Param("robotIds") List<String> robotIds,
-                                                        @Param("resourceId") String resourceId);
+    List<String> selectResourceIdsByRobotIds(@Param("robotIds") List<String> robotIds);
 }
