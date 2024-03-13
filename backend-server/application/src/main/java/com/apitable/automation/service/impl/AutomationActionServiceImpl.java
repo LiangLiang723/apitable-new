@@ -24,6 +24,10 @@ import static com.apitable.automation.model.ActionSimpleVO.actionComparator;
 import static java.util.stream.Collectors.toList;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.Dict;
+import cn.hutool.json.JSON;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.apitable.automation.entity.AutomationActionEntity;
 import com.apitable.automation.mapper.AutomationActionMapper;
@@ -178,6 +182,28 @@ public class AutomationActionServiceImpl implements IAutomationActionService {
         }
     }
 
+    @Override
+    public JSON handleActionInput(String input) {
+        if (null == input) {
+            return null;
+        }
+        JSONObject inputObj = JSONUtil.parseObj(input);
+        if (inputObj.containsKey("value")) {
+            JSONObject inputValue = JSONUtil.parseObj(inputObj.get("value"));
+            if (inputValue.containsKey("operands")) {
+                JSONArray operands = JSONUtil.parseArray(inputValue.get("operands"));
+                if (operands.contains("password")) {
+                    int passwordIndex = operands.indexOf("password");
+                    Dict passwordValue = new Dict().set("value", "******").set("type", "Literal");
+                    operands.set(passwordIndex + 1, JSONUtil.toJsonStr(passwordValue));
+                }
+                inputValue.set("operands", JSONUtil.toJsonStr(operands));
+            }
+            inputObj.set("value", JSONUtil.toJsonStr(inputValue));
+        }
+        return inputObj;
+    }
+
     private List<ActionVO> formatVoFromDatabusResponse(List<AutomationActionPO> data) {
         if (null != data) {
             return data.stream().map(i -> {
@@ -185,11 +211,12 @@ public class AutomationActionServiceImpl implements IAutomationActionService {
                 vo.setActionId(i.getActionId());
                 vo.setActionTypeId(i.getActionTypeId());
                 vo.setPrevActionId(i.getPrevActionId());
-                vo.setInput(i.getInput());
+                vo.setInput(handleActionInput(i.getInput()));
                 return vo;
             }).sorted(actionComparator).collect(toList());
         }
         return new ArrayList<>();
     }
+
 
 }
