@@ -662,7 +662,7 @@ public class NodeController {
         Long userId = SessionContext.getUserId();
         // if node is private check foreign link
         if (iNodeService.nodePrivate(nodeOpRo.getNodeId()) && null == nodeOpRo.getUnitId()) {
-            iNodeService.linkByOutsideResource(nodeOpRo.getPreNodeId());
+            iNodeService.linkByOutsideResource(nodeOpRo.getNodeId());
             iTemplateService.checkTemplateForeignNode(memberId, nodeOpRo.getNodeId());
         }
         List<String> nodeIds = iNodeService.move(userId, nodeOpRo);
