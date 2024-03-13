@@ -20,6 +20,7 @@ package com.apitable.workspace.service.impl;
 
 import static com.apitable.core.constants.RedisConstants.getTemplateQuoteKey;
 import static com.apitable.shared.constants.AssetsPublicConstants.SPACE_PREFIX;
+import static com.apitable.template.enums.TemplateException.NODE_LINK_FOREIGN_NODE;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
@@ -2038,15 +2039,27 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
 
     @Override
     public boolean linkByOutsideWidgets(String nodeId) {
-        if (nodeId.startsWith(IdRulePrefixEnum.DST.getIdRulePrefixEnum())) {
-            List<String> widgetIds = iWidgetService.getNodeWidgetIds(nodeId);
-            if (!widgetIds.isEmpty()) {
-                List<String> resourceIds = iWidgetService.getWidgetNodeIds(widgetIds);
-                return !resourceIds.isEmpty() && resourceIds.size() > 1;
-            }
+        List<String> widgetIds = iWidgetService.getNodeWidgetIds(nodeId);
+        if (!widgetIds.isEmpty()) {
+            List<String> resourceIds = iWidgetService.getWidgetNodeIds(widgetIds);
+            return !resourceIds.isEmpty() && resourceIds.size() > 1;
         }
-
         return false;
+    }
+
+    @Override
+    public void linkByOutsideResource(String nodeId) {
+        if (!nodeId.startsWith(IdRulePrefixEnum.DST.getIdRulePrefixEnum())) {
+            return;
+        }
+        // check mirror
+        ExceptionUtil.isFalse(iNodeRelService.relExists(nodeId), NODE_LINK_FOREIGN_NODE);
+        // check widgets
+        ExceptionUtil.isFalse(linkByOutsideWidgets(nodeId), NODE_LINK_FOREIGN_NODE);
+        // check automation
+        ExceptionUtil.isFalse(
+            SqlHelper.retBool(iAutomationRobotService.getCountByTriggerResourceId(nodeId)),
+            NODE_LINK_FOREIGN_NODE);
     }
 
     private List<NodeSearchResult> formatNodeSearchResults(List<NodeInfoVo> nodeInfoList) {

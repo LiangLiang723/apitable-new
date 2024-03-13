@@ -122,4 +122,14 @@ public interface AutomationRobotMapper extends BaseMapper<AutomationRobotEntity>
      */
     int updateUpdatedByRobotId(@Param("robotId") String robotId,
                                @Param("updatedBy") Long updatedBy);
+
+    /**
+     * query robot id exists.
+     *
+     * @param robotIds   robot id
+     * @param resourceId resource id
+     * @return count of robot
+     */
+    Integer selectCountByRobotIdsAndExclusiveResourceId(@Param("robotIds") List<String> robotIds,
+                                                        @Param("resourceId") String resourceId);
 }

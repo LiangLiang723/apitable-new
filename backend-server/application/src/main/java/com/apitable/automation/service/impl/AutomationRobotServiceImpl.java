@@ -451,6 +451,15 @@ public class AutomationRobotServiceImpl implements IAutomationRobotService {
     }
 
     @Override
+    public Integer getCountByTriggerResourceId(String nodeId) {
+        List<String> robotIds = iAutomationTriggerService.getRobotIdsByResourceId(nodeId);
+        if (CollUtil.isNotEmpty(robotIds)) {
+            return robotMapper.selectCountByRobotIdsAndExclusiveResourceId(robotIds, nodeId);
+        }
+        return 0;
+    }
+
+    @Override
     public void updateUpdaterByRobotId(String robotId, Long updatedBy) {
         robotMapper.updateUpdatedByRobotId(robotId, updatedBy);
     }

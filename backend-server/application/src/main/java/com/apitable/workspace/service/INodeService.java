@@ -734,4 +734,11 @@ public interface INodeService extends IService<NodeEntity> {
      * @return boolean
      */
     boolean linkByOutsideWidgets(String nodeId);
+
+    /**
+     * whether the node linked by outside resource.
+     *
+     * @param nodeId node id node
+     */
+    void linkByOutsideResource(String nodeId);
 }

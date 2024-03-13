@@ -18,7 +18,6 @@
 
 package com.apitable.workspace.controller;
 
-import static com.apitable.template.enums.TemplateException.NODE_LINK_FOREIGN_NODE;
 import static com.apitable.workspace.enums.NodeException.DUPLICATE_NODE_NAME;
 
 import cn.hutool.core.collection.CollUtil;
@@ -663,10 +662,7 @@ public class NodeController {
         Long userId = SessionContext.getUserId();
         // if node is private check foreign link
         if (iNodeService.nodePrivate(nodeOpRo.getNodeId()) && null == nodeOpRo.getUnitId()) {
-            ExceptionUtil.isFalse(iNodeRelService.relExists(nodeOpRo.getNodeId()),
-                NODE_LINK_FOREIGN_NODE);
-            ExceptionUtil.isFalse(iNodeService.linkByOutsideWidgets(nodeOpRo.getNodeId()),
-                NODE_LINK_FOREIGN_NODE);
+            iNodeService.linkByOutsideResource(nodeOpRo.getPreNodeId());
             iTemplateService.checkTemplateForeignNode(memberId, nodeOpRo.getNodeId());
         }
         List<String> nodeIds = iNodeService.move(userId, nodeOpRo);

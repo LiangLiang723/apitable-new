@@ -92,7 +92,14 @@ public interface AutomationTriggerMapper extends BaseMapper<AutomationTriggerEnt
      * @param triggerId trigger
      * @return AutomationTriggerEntity
      */
-    AutomationTriggerEntity selectByTriggerId(
-        @Param("triggerId") String triggerId);
+    AutomationTriggerEntity selectByTriggerId(@Param("triggerId") String triggerId);
+
+    /**
+     * query trigger.
+     *
+     * @param resourceId resource id
+     * @return AutomationTriggerDto
+     */
+    List<String> selectRobotIdByResourceId(@Param("resourceId") String resourceId);
 
 }

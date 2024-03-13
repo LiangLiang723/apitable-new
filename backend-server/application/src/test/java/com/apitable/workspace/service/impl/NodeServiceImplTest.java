@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.util.Lists.list;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -31,6 +32,8 @@ import cn.hutool.core.util.NumberUtil;
 import cn.hutool.json.JSONUtil;
 import com.apitable.AbstractIntegrationTest;
 import com.apitable.FileHelper;
+import com.apitable.automation.entity.AutomationRobotEntity;
+import com.apitable.automation.entity.AutomationTriggerEntity;
 import com.apitable.core.exception.BusinessException;
 import com.apitable.interfaces.billing.facade.EntitlementServiceFacade;
 import com.apitable.interfaces.billing.model.DefaultSubscriptionFeature;
@@ -39,6 +42,7 @@ import com.apitable.mock.bean.MockSubscriptionFeature;
 import com.apitable.mock.bean.MockSubscriptionInfo;
 import com.apitable.mock.bean.MockUserSpace;
 import com.apitable.organization.enums.UnitType;
+import com.apitable.shared.util.IdUtil;
 import com.apitable.shared.util.page.PageHelper;
 import com.apitable.shared.util.page.PageInfo;
 import com.apitable.space.vo.SpaceGlobalFeature;
@@ -1475,6 +1479,61 @@ public class NodeServiceImplTest extends AbstractIntegrationTest {
             iNodeService.createNode(userSpace.getUserId(), userSpace.getSpaceId(), ro);
         assertThat(mirrorId).isNotNull();
     }
+
+    @Test
+    public void testLinkOutsideAutomationWithInside() {
+        MockUserSpace user = createUserSpaceForFreeSubscription();
+        String rootNodeId = iNodeService.getRootNodeIdBySpaceId(user.getSpaceId());
+        // create node
+        NodeOpRo ro = new NodeOpRo().toBuilder()
+            .parentId(rootNodeId)
+            .type(NodeType.DATASHEET.getNodeType())
+            .build();
+        String nodeId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        AutomationRobotEntity robot = AutomationRobotEntity.builder()
+            .robotId(IdUtil.createAutomationRobotId())
+            .resourceId(nodeId)
+            .build();
+        iAutomationRobotService.create(robot);
+        AutomationTriggerEntity trigger =
+            AutomationTriggerEntity.builder().robotId(robot.getRobotId()).resourceId(nodeId)
+                .triggerTypeId(IdUtil.createAutomationTriggerTypeId())
+                .triggerId(IdUtil.createAutomationTriggerId()).build();
+        iAutomationTriggerService.create(trigger);
+        assertDoesNotThrow(() -> iNodeService.linkByOutsideResource(nodeId));
+    }
+
+    @Test
+    public void testLinkOutsideAutomationWithAutomationResource() {
+        MockUserSpace user = createUserSpaceForFreeSubscription();
+        String rootNodeId = iNodeService.getRootNodeIdBySpaceId(user.getSpaceId());
+        // create node
+        NodeOpRo ro = new NodeOpRo().toBuilder()
+            .parentId(rootNodeId)
+            .type(NodeType.AUTOMATION.getNodeType())
+            .build();
+        String automationId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        ro.setType(NodeType.DATASHEET.getNodeType());
+        String dstId =
+            iNodeService.createNode(user.getUserId(), user.getSpaceId(), ro);
+        AutomationRobotEntity robot = AutomationRobotEntity.builder()
+            .robotId(IdUtil.createAutomationRobotId())
+            .resourceId(automationId)
+            .build();
+        iAutomationRobotService.create(robot);
+        AutomationTriggerEntity trigger =
+            AutomationTriggerEntity.builder().robotId(robot.getRobotId()).resourceId(dstId)
+                .triggerTypeId(IdUtil.createAutomationTriggerTypeId())
+                .triggerId(IdUtil.createAutomationTriggerId()).build();
+        iAutomationTriggerService.create(trigger);
+        BusinessException exception =
+            assertThrows(BusinessException.class,
+                () -> iNodeService.linkByOutsideResource(dstId));
+        assertEquals(430, exception.getCode());
+    }
+
 
     private MockUserSpace createUserSpaceForFreeSubscription() {
         // mock user

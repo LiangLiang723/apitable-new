@@ -154,4 +154,12 @@ public interface IAutomationRobotService {
      * @param robotId robot id
      */
     void checkRobotExists(String robotId);
+
+    /**
+     * get robot count.
+     *
+     * @param nodeId dst id
+     * @return count
+     */
+    Integer getCountByTriggerResourceId(String nodeId);
 }
