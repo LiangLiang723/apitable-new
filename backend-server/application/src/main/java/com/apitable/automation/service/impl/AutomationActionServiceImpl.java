@@ -195,11 +195,11 @@ public class AutomationActionServiceImpl implements IAutomationActionService {
                 if (operands.contains("password")) {
                     int passwordIndex = operands.indexOf("password");
                     Dict passwordValue = new Dict().set("value", "******").set("type", "Literal");
-                    operands.set(passwordIndex + 1, JSONUtil.toJsonStr(passwordValue));
+                    operands.set(passwordIndex + 1, passwordValue);
                 }
-                inputValue.set("operands", JSONUtil.toJsonStr(operands));
+                inputValue.set("operands", operands);
             }
-            inputObj.set("value", JSONUtil.toJsonStr(inputValue));
+            inputObj.set("value", inputValue);
         }
         return inputObj;
     }
