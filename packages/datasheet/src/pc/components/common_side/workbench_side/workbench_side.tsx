@@ -189,12 +189,13 @@ export const WorkbenchSide: FC<React.PropsWithChildren<unknown>> = () => {
     let activeNode = treeNodesMap[activeNodeId];
     const cacheKey = updateActiveKey('get');
     const isCurrentFavorite = cacheKey === ConfigConstant.Modules.FAVORITE || activeKey === ConfigConstant.Modules.FAVORITE;
+    isCurrentFavorite && changeHandler(ConfigConstant.Modules.FAVORITE);
     if (!activeNode) {
       activeNode = privateTreeNodesMap[activeNodeId];
       if (activeNode) {
         nodeMaps = privateTreeNodesMap;
         isPrivate = true;
-        changeHandler(isCurrentFavorite ? ConfigConstant.Modules.FAVORITE : ConfigConstant.Modules.PRIVATE);
+        !isCurrentFavorite && changeHandler(ConfigConstant.Modules.PRIVATE);
       }
     }
     const _module = isPrivate ? ConfigConstant.Modules.PRIVATE : undefined;

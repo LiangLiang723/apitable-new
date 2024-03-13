@@ -21,7 +21,6 @@ import { colorVars } from '@apitable/components';
 import { ConfigConstant } from '@apitable/core';
 import { makeNodeIconComponent } from 'pc/components/catalog/node_context_menu/node_icons';
 import { ScreenSize } from 'pc/components/common/component_display';
-import { Emoji } from 'pc/components/common/emoji/emoji';
 import { useResponsive } from 'pc/hooks/use_responsive';
 import { nodeConfigData } from 'pc/utils/catalog';
 import { emojiUrl } from 'pc/utils/emoji_url';
@@ -99,9 +98,10 @@ export const getNodeIcon = (
         }}
         alt=""
       />
-    ) : (
-      <Emoji emoji={icon} size={emojiSize} set="apple" />
-    );
+    ) : getNodeIcon(icon, ConfigConstant.NodeType.DATASHEET, {
+      size: emojiSize,
+      emojiSize,
+    });
   }
   const nodeConfig = nodeConfigData.find((item) => item.type === type);
   if (!nodeConfig) return;
