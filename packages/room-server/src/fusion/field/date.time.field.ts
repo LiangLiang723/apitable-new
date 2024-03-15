@@ -18,6 +18,7 @@
 
 import { ApiTipConstant, DEFAULT_TIME_ZONE, ICellValue, IField } from '@apitable/core';
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { isISO8601 } from 'class-validator';
 import { BaseField } from 'fusion/field/base.field';
 import { isNumber } from 'lodash';
 import moment from 'moment-timezone';
@@ -40,22 +41,15 @@ export class DateTimeField extends BaseField implements OnApplicationBootstrap {
   }
 
   // eslint-disable-next-line require-await
-  override async roTransform(fieldValue: IFieldValue, field: IField): Promise<ICellValue> {
-    const dateTime = moment.tz(fieldValue!.toString(), DEFAULT_TIME_ZONE);
-    let zoneTime = dateTime.clone();
-    if (field.property.timeZone) {
-      zoneTime = dateTime.clone().tz(field.property.timeZone);
+  override async roTransform(fieldValue: IFieldValue, _field: IField): Promise<ICellValue> {
+    if (isISO8601(fieldValue, { strict: true, strictSeparator: true })) {
+      return new Date(fieldValue as string).getTime();
     }
-
-    if (zoneTime && zoneTime.isValid()) {
-      // Original time
-      if (zoneTime.hasOwnProperty('_tzm') && zoneTime.isUtcOffset()) {
-        return zoneTime.valueOf() - zoneTime.utcOffset() * 60 * 1000;
-      }
-      return zoneTime.valueOf();
+    const date = moment.tz(fieldValue!.toString(), DEFAULT_TIME_ZONE);
+    if (date.isValid()) {
+      return date.valueOf();
     }
-    // Uniform conversion to milliseconds
-    return new Date(fieldValue as number).getTime();
+    return new Date(fieldValue as number).valueOf();
   }
 
   onApplicationBootstrap() {
