@@ -73,7 +73,6 @@ export const WorkbenchSide: FC<React.PropsWithChildren<unknown>> = () => {
   const { addTreeNode } = useCatalog();
   const {
     spaceId,
-    activeKey,
     treeNodesMap,
     privateTreeNodesMap,
     rootId,
@@ -88,7 +87,6 @@ export const WorkbenchSide: FC<React.PropsWithChildren<unknown>> = () => {
   } = useAppSelector((state: IReduxState) => {
     return {
       spaceId: state.space.activeId,
-      activeKey: state.catalogTree.activeType || ConfigConstant.Modules.CATALOG,
       treeNodesMap: state.catalogTree.treeNodesMap,
       privateTreeNodesMap: state.catalogTree.privateTreeNodesMap,
       rootId: state.catalogTree.rootId,
@@ -180,6 +178,38 @@ export const WorkbenchSide: FC<React.PropsWithChildren<unknown>> = () => {
     // eslint-disable-next-line
   }, [err, dispatch]);
 
+  const updateActiveKey = React.useCallback(
+    (key: string = 'get') => {
+      const defaultActiveKeyString = localStorage.getItem('vika_workbench_active_key');
+      let defaultActiveKey = defaultActiveKeyString ? JSON.parse(defaultActiveKeyString) : ConfigConstant.Modules.CATALOG;
+      if ('get' === key) {
+        // Compatible with older versions, which is arrayed
+        if (typeof defaultActiveKey[0] === 'string') defaultActiveKey = ConfigConstant.Modules.CATALOG;
+        if (Array.isArray(defaultActiveKey)) {
+          defaultActiveKey = defaultActiveKey.find((i: { spaceId: string }) => i.spaceId === spaceId);
+          defaultActiveKey = defaultActiveKey ? defaultActiveKey.activeKey : ConfigConstant.Modules.CATALOG;
+        }
+        return defaultActiveKey;
+      }
+      if (typeof defaultActiveKey[0] === 'string') defaultActiveKey = [{ spaceId, activeKey: key }];
+      if (Array.isArray(defaultActiveKey)) {
+        let noSpaceId = true;
+        for (const item of defaultActiveKey) {
+          if (item.spaceId === spaceId) {
+            noSpaceId = false;
+            item.activeKey = key;
+            break;
+          }
+        }
+        if (noSpaceId) defaultActiveKey.push({ spaceId, activeKey: key });
+        localStorage.setItem('vika_workbench_active_key', JSON.stringify(defaultActiveKey));
+      }
+    },
+    [spaceId],
+  );
+
+  const activeKey = useAppSelector(state => state.catalogTree.activeType || updateActiveKey('get'));
+
   useEffect(() => {
     if (!activeNodeId || !rootId) {
       return;
@@ -239,36 +269,6 @@ export const WorkbenchSide: FC<React.PropsWithChildren<unknown>> = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId]);
-
-  const updateActiveKey = React.useCallback(
-    (key: string = 'get') => {
-      const defaultActiveKeyString = localStorage.getItem('vika_workbench_active_key');
-      let defaultActiveKey = defaultActiveKeyString ? JSON.parse(defaultActiveKeyString) : ConfigConstant.Modules.CATALOG;
-      if ('get' === key) {
-        // Compatible with older versions, which is arrayed
-        if (typeof defaultActiveKey[0] === 'string') defaultActiveKey = ConfigConstant.Modules.CATALOG;
-        if (Array.isArray(defaultActiveKey)) {
-          defaultActiveKey = defaultActiveKey.find((i: { spaceId: string }) => i.spaceId === spaceId);
-          defaultActiveKey = defaultActiveKey ? defaultActiveKey.activeKey : ConfigConstant.Modules.CATALOG;
-        }
-        return defaultActiveKey;
-      }
-      if (typeof defaultActiveKey[0] === 'string') defaultActiveKey = [{ spaceId, activeKey: key }];
-      if (Array.isArray(defaultActiveKey)) {
-        let noSpaceId = true;
-        for (const item of defaultActiveKey) {
-          if (item.spaceId === spaceId) {
-            noSpaceId = false;
-            item.activeKey = key;
-            break;
-          }
-        }
-        if (noSpaceId) defaultActiveKey.push({ spaceId, activeKey: key });
-        localStorage.setItem('vika_workbench_active_key', JSON.stringify(defaultActiveKey));
-      }
-    },
-    [spaceId],
-  );
 
   useEffect(() => {
     dispatch(StoreActions.setActiveTreeType(updateActiveKey()));
