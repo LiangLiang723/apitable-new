@@ -1549,9 +1549,6 @@ public class MemberServiceImpl extends ExpandServiceImpl<MemberMapper, MemberEnt
                 unitMember.setUnitId(memberUnitMap.get(member.getId()));
                 String teamName = StrUtil.join(" & ", memberTeamMap.get(member.getId()));
                 unitMember.setTeamName(teamName);
-                UserEntity user = users.get(member.getUserId());
-                unitMember.setAvatar(user.getAvatar());
-                unitMember.setAvatarColor(user.getColor());
             }
             UserEntity user = users.get(userId);
             unitMember.setUserId(userId);
