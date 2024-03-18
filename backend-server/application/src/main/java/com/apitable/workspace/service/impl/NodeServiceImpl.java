@@ -1995,11 +1995,17 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
 
     @Override
     public void deleteMembersNodes(List<Long> unitIds) {
+        if (unitIds.isEmpty()) {
+            return;
+        }
         baseMapper.updateIsDeletedByUnitIds(unitIds, true);
     }
 
     @Override
     public void restoreMembersNodes(List<Long> unitIds) {
+        if (unitIds.isEmpty()) {
+            return;
+        }
         baseMapper.updateIsDeletedByUnitIds(unitIds, false);
     }
 
