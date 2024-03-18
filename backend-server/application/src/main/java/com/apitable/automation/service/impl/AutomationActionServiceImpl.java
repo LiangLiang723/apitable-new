@@ -61,6 +61,8 @@ import org.springframework.web.client.RestClientException;
 @Service
 public class AutomationActionServiceImpl implements IAutomationActionService {
 
+    public static final String EMAIL_SHOW_PASSWORD = "******";
+
     @Resource
     private AutomationActionMapper actionMapper;
 
@@ -194,7 +196,8 @@ public class AutomationActionServiceImpl implements IAutomationActionService {
                 JSONArray operands = JSONUtil.parseArray(inputValue.get("operands"));
                 if (operands.contains("password")) {
                     int passwordIndex = operands.indexOf("password");
-                    Dict passwordValue = new Dict().set("value", "******").set("type", "Literal");
+                    Dict passwordValue =
+                        new Dict().set("value", EMAIL_SHOW_PASSWORD).set("type", "Literal");
                     operands.set(passwordIndex + 1, passwordValue);
                 }
                 inputValue.set("operands", operands);
