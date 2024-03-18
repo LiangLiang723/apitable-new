@@ -18,8 +18,8 @@
 
 package com.apitable.workspace.controller;
 
-import static com.apitable.template.enums.TemplateException.NODE_LINK_FOREIGN_NODE;
 import static com.apitable.workspace.enums.NodeException.DUPLICATE_NODE_NAME;
+import static com.apitable.workspace.enums.PermissionException.NODE_ACCESS_DENIED;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.ListUtil;
@@ -492,6 +492,8 @@ public class NodeController {
         // check node permissions
         controlTemplate.checkNodePermission(memberId, nodeId, NodePermission.READ_NODE,
             status -> ExceptionUtil.isTrue(status, PermissionException.NODE_OPERATION_DENIED));
+        Long userId = SessionContext.getUserId();
+        ExceptionUtil.isTrue(iNodeService.privateNodeOperation(userId, nodeId), NODE_ACCESS_DENIED);
         NodeInfoTreeVo treeVo = iNodeService.position(spaceId, memberId, nodeId);
         return ResponseData.success(treeVo);
     }
@@ -663,10 +665,7 @@ public class NodeController {
         Long userId = SessionContext.getUserId();
         // if node is private check foreign link
         if (iNodeService.nodePrivate(nodeOpRo.getNodeId()) && null == nodeOpRo.getUnitId()) {
-            ExceptionUtil.isFalse(iNodeRelService.relExists(nodeOpRo.getNodeId()),
-                NODE_LINK_FOREIGN_NODE);
-            ExceptionUtil.isFalse(iNodeService.linkByOutsideWidgets(nodeOpRo.getNodeId()),
-                NODE_LINK_FOREIGN_NODE);
+            iNodeService.linkByOutsideResource(nodeOpRo.getNodeId());
             iTemplateService.checkTemplateForeignNode(memberId, nodeOpRo.getNodeId());
         }
         List<String> nodeIds = iNodeService.move(userId, nodeOpRo);

@@ -88,8 +88,8 @@ public interface INodeRelService {
     /**
      * check the rel.
      *
-     * @param mainNodeId main node id
+     * @param mainNodeIds main node id
      * @return boolean
      */
-    boolean relExists(String mainNodeId);
+    boolean relInTheSameFolder(List<String> mainNodeIds);
 }

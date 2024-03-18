@@ -73,8 +73,8 @@ public interface NodeRelMapper extends BaseMapper<NodeRelEntity> {
     /**
      * get count by main node id.
      *
-     * @param mainNodeId main node id
+     * @param mainNodeIds main node id
      * @return total amount
      */
-    Integer selectCountByMainNodeId(@Param("mainNodeId") String mainNodeId);
+    List<String> selectRelNodeIdsByMainNodeIds(@Param("mainNodeIds") List<String> mainNodeIds);
 }

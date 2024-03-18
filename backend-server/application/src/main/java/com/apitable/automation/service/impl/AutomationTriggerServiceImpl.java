@@ -266,6 +266,11 @@ public class AutomationTriggerServiceImpl implements IAutomationTriggerService {
         triggerMapper.updateTriggerInputByRobotIdsAndTriggerType(robotIds, triggerTypeId, input);
     }
 
+    @Override
+    public List<String> getRobotIdsByResourceIds(List<String> nodeIds) {
+        return triggerMapper.selectRobotIdByResourceIds(nodeIds);
+    }
+
     private List<TriggerVO> handleTriggerResponse(List<AutomationTriggerSO> data) {
         if (null != data) {
             return data.stream().map(i -> {

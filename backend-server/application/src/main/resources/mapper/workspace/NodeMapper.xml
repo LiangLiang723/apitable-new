@@ -222,6 +222,7 @@
             #{item}
         </foreach>
         AND is_rubbish = 0
+        AND is_deleted = 0
     </select>
 
     <select id="selectNodeIdBySpaceIdAndType" resultType="java.lang.String">
@@ -707,7 +708,7 @@
         AND is_rubbish = 0
         AND is_deleted = 0
         AND type not in (0, 1)
-        AND created_by is not null
+        AND created_by > 0
         GROUP BY created_by
         ORDER BY node_count desc
     </select>

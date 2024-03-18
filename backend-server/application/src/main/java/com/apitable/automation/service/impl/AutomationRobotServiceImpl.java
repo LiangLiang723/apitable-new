@@ -75,6 +75,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -448,6 +449,16 @@ public class AutomationRobotServiceImpl implements IAutomationRobotService {
     public void checkRobotExists(String robotId) {
         ExceptionUtil.isTrue(SqlHelper.retBool(robotMapper.selectCountByRobotId(robotId)),
             AUTOMATION_ROBOT_NOT_EXIST);
+    }
+
+    @Override
+    public boolean linkByOutsideAutomation(List<String> nodeIds) {
+        List<String> robotIds = iAutomationTriggerService.getRobotIdsByResourceIds(nodeIds);
+        if (CollUtil.isNotEmpty(robotIds)) {
+            List<String> resourceIds = robotMapper.selectResourceIdsByRobotIds(robotIds);
+            return !new HashSet<>(nodeIds).containsAll(resourceIds);
+        }
+        return false;
     }
 
     @Override

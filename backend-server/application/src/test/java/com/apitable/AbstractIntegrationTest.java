@@ -72,6 +72,7 @@ import com.apitable.user.entity.UserEntity;
 import com.apitable.user.service.IUserService;
 import com.apitable.user.task.UserTasks;
 import com.apitable.widget.service.IWidgetPackageService;
+import com.apitable.widget.service.IWidgetService;
 import com.apitable.widget.service.IWidgetUploadService;
 import com.apitable.workspace.dto.CreateNodeDto;
 import com.apitable.workspace.entity.NodeEntity;
@@ -229,6 +230,9 @@ public abstract class AbstractIntegrationTest extends TestSuiteWithDB {
 
     @Autowired
     protected IWidgetPackageService iWidgetPackageService;
+
+    @Autowired
+    protected IWidgetService iWidgetService;
 
     @Autowired
     protected IFieldRoleService iFieldRoleService;

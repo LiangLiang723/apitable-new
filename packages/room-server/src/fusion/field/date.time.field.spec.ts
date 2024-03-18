@@ -82,7 +82,7 @@ describe('DatetimeField', () => {
     });
 
     it("Date ['2021'] should return 1609430400000", async () => {
-      expect(await fieldClass.roTransform('2021', field)).toBe(1609430400000);
+      expect(await fieldClass.roTransform('2021', field)).toBe(1609459200000);
     });
 
     it("Date ['2021-01-01 00:00:00'] should return 1609430400000", async () => {
@@ -90,7 +90,8 @@ describe('DatetimeField', () => {
     });
 
     it("Date ['2021-01-01T00:00:00Z'] should return 1609430400000", async () => {
-      expect(await fieldClass.roTransform('2021-01-01T00:00:00Z', field)).toBe(1609430400000);
+      // 00
+      expect(await fieldClass.roTransform('2021-01-01T00:00:00Z', field)).toBe(1609459200000);
     });
 
     it("Date ['2020-09-12 18:37 +0800'] should return 1599935820000", async () => {

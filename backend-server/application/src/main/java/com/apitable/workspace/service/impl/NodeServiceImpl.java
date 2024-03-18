@@ -20,6 +20,7 @@ package com.apitable.workspace.service.impl;
 
 import static com.apitable.core.constants.RedisConstants.getTemplateQuoteKey;
 import static com.apitable.shared.constants.AssetsPublicConstants.SPACE_PREFIX;
+import static com.apitable.template.enums.TemplateException.NODE_LINK_FOREIGN_NODE;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
@@ -2037,16 +2038,37 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
     }
 
     @Override
-    public boolean linkByOutsideWidgets(String nodeId) {
-        if (nodeId.startsWith(IdRulePrefixEnum.DST.getIdRulePrefixEnum())) {
-            List<String> widgetIds = iWidgetService.getNodeWidgetIds(nodeId);
-            if (!widgetIds.isEmpty()) {
-                List<String> resourceIds = iWidgetService.getWidgetNodeIds(widgetIds);
-                return !resourceIds.isEmpty() && resourceIds.size() > 1;
+    public boolean linkByOutsideWidgets(List<String> nodeIds) {
+        List<String> widgetIds = iWidgetService.getNodeWidgetIds(nodeIds);
+        if (!widgetIds.isEmpty()) {
+            List<String> resourceIds = iWidgetService.getWidgetNodeIds(widgetIds);
+            if (!resourceIds.isEmpty()) {
+                resourceIds = getExistNodeIdsBySelf(resourceIds);
+                return !new HashSet<>(nodeIds).containsAll(resourceIds);
             }
         }
-
         return false;
+    }
+
+    @Override
+    public void linkByOutsideResource(String nodeId) {
+        List<String> nodeIds = new ArrayList<>();
+        if (nodeId.startsWith(IdRulePrefixEnum.FOD.getIdRulePrefixEnum())) {
+            nodeIds = getNodeIdsInNodeTree(nodeId, -1);
+        }
+        if (nodeId.startsWith(IdRulePrefixEnum.DST.getIdRulePrefixEnum())) {
+            nodeIds.add(nodeId);
+        }
+        if (nodeIds.isEmpty()) {
+            return;
+        }
+        // check mirror
+        ExceptionUtil.isTrue(iNodeRelService.relInTheSameFolder(nodeIds), NODE_LINK_FOREIGN_NODE);
+        // check widgets
+        ExceptionUtil.isFalse(linkByOutsideWidgets(nodeIds), NODE_LINK_FOREIGN_NODE);
+        // check automation
+        ExceptionUtil.isFalse(iAutomationRobotService.linkByOutsideAutomation(nodeIds),
+            NODE_LINK_FOREIGN_NODE);
     }
 
     private List<NodeSearchResult> formatNodeSearchResults(List<NodeInfoVo> nodeInfoList) {

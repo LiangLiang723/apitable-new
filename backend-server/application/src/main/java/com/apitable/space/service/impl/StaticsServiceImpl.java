@@ -474,7 +474,8 @@ public class StaticsServiceImpl implements IStaticsService {
             return PageHelper.build(nodes.getCurrent(), nodes.getSize(), nodes.getTotal(), records);
         }
         List<Long> userIds = nodes.getRecords().stream().map(
-            NodeStatisticsDTO::getCreatedBy).filter(userId -> !userId.equals(0L)).toList();
+                NodeStatisticsDTO::getCreatedBy).filter(userId -> !userId.equals(0L)).distinct()
+            .toList();
         List<UnitMemberTeamDTO> members =
             iMemberService.getMemberBySpaceIdAndUserIds(spaceId, userIds);
         Map<Long, UnitMemberTeamDTO> memberMap = members.stream()
@@ -486,7 +487,7 @@ public class StaticsServiceImpl implements IStaticsService {
         for (NodeStatisticsDTO node : nodes.getRecords()) {
             NodeStatisticsVo vo = new NodeStatisticsVo();
             UnitMemberTeamDTO member = memberMap.get(node.getCreatedBy());
-            vo.setMemberId(member.getMemberId().toString());
+            vo.setMemberId(StrUtil.toStringOrNull(member.getMemberId()));
             vo.setMemberName(member.getMemberName());
             vo.setAvatar(member.getAvatar());
             vo.setAvatarColor(member.getAvatarColor());
