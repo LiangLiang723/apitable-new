@@ -56,7 +56,7 @@ public class AutomationRunHistoryServiceImpl
     @Override
     public List<AutomationTaskSimpleVO> getRobotRunHistory(String spaceId, String robotId,
                                                            Page<Void> page) {
-        LocalDate date = LocalDate.now();
+        LocalDate date = LocalDate.now().plusDays(1);
         IPage<Long> historyIds =
             baseMapper.selectIdByRobotIdAndSpaceIdAndBetweenWithPage(robotId, spaceId,
                 getPreviousMonthFirstDay(date), date, page);
