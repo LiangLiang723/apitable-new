@@ -25,6 +25,7 @@ import static java.util.stream.Collectors.toList;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Dict;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSON;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
@@ -36,6 +37,7 @@ import com.apitable.automation.model.CreateActionRO;
 import com.apitable.automation.model.TriggerCopyResultDto;
 import com.apitable.automation.model.UpdateActionRO;
 import com.apitable.automation.service.IAutomationActionService;
+import com.apitable.automation.service.IAutomationActionTypeService;
 import com.apitable.core.util.ExceptionUtil;
 import com.apitable.shared.config.properties.LimitProperties;
 import com.apitable.shared.util.IdUtil;
@@ -71,6 +73,9 @@ public class AutomationActionServiceImpl implements IAutomationActionService {
 
     @Resource
     private AutomationDaoApiApi automationDaoApiApi;
+
+    @Resource
+    private IAutomationActionTypeService iAutomationActionTypeService;
 
     @Override
     public void create(AutomationActionEntity action) {
@@ -146,26 +151,6 @@ public class AutomationActionServiceImpl implements IAutomationActionService {
         return new ArrayList<>();
     }
 
-    @Override
-    public List<ActionVO> updateByDatabus(String actionId, Long userId, UpdateActionRO data) {
-        AutomationRobotActionRO ro = new AutomationRobotActionRO();
-        ro.setUserId(userId);
-        ro.setInput(JSONUtil.toJsonStr(data.getInput()));
-        ro.setPrevActionId(data.getPrevActionId());
-        ro.setActionTypeId(data.getActionTypeId());
-        ro.setActionId(actionId);
-        try {
-            ApiResponseAutomationActionPO response =
-                automationDaoApiApi.daoCreateOrUpdateAutomationRobotAction(data.getRobotId(), ro);
-            ExceptionUtil.isFalse(
-                AUTOMATION_ROBOT_NOT_EXIST.getCode().equals(response.getCode()),
-                AUTOMATION_ROBOT_NOT_EXIST);
-            return formatVoFromDatabusResponse(response.getData());
-        } catch (RestClientException e) {
-            log.error("Robot update action: {}", data.getRobotId(), e);
-        }
-        return new ArrayList<>();
-    }
 
     @Override
     public void deleteByDatabus(String robotId, String actionId, Long userId) {
@@ -207,6 +192,51 @@ public class AutomationActionServiceImpl implements IAutomationActionService {
         return inputObj;
     }
 
+    @Override
+    public List<ActionVO> updateByDatabus(String actionId, Long userId, UpdateActionRO data) {
+        // handle input
+        String input = getActionInputStringFromRo(actionId, data.getInput());
+        AutomationRobotActionRO ro = new AutomationRobotActionRO();
+        ro.setUserId(userId);
+        ro.setInput(input);
+        ro.setPrevActionId(data.getPrevActionId());
+        ro.setActionTypeId(data.getActionTypeId());
+        ro.setActionId(actionId);
+        try {
+            ApiResponseAutomationActionPO response =
+                automationDaoApiApi.daoCreateOrUpdateAutomationRobotAction(data.getRobotId(), ro);
+            ExceptionUtil.isFalse(
+                AUTOMATION_ROBOT_NOT_EXIST.getCode().equals(response.getCode()),
+                AUTOMATION_ROBOT_NOT_EXIST);
+            return formatVoFromDatabusResponse(response.getData());
+        } catch (RestClientException e) {
+            log.error("Robot update action: {}", data.getRobotId(), e);
+        }
+        return new ArrayList<>();
+    }
+
+    private String getActionInputStringFromRo(String actionId, Object inputObj) {
+        String input = JSONUtil.toJsonStr(inputObj);
+        if (null == input) {
+            return null;
+        }
+        AutomationActionEntity action = actionMapper.selectByActionId(actionId);
+        if (null == action) {
+            return null;
+        }
+        // change send email input, should check password
+        if (!input.equals(JSONUtil.toJsonStr(JSONUtil.createObj()))
+            && iAutomationActionTypeService.isSendEmailAction(action.getActionTypeId())) {
+            String newPassword = getSendEmailActionPassword(input);
+            // should set old password to new password
+            if (EMAIL_SHOW_PASSWORD.equals(newPassword)) {
+                String oldPassword = getSendEmailActionPassword(action.getInput());
+                return setSendEmailActionPassword(input, oldPassword);
+            }
+        }
+        return input;
+    }
+
     private List<ActionVO> formatVoFromDatabusResponse(List<AutomationActionPO> data) {
         if (null != data) {
             return data.stream().map(i -> {
@@ -221,5 +251,45 @@ public class AutomationActionServiceImpl implements IAutomationActionService {
         return new ArrayList<>();
     }
 
+    private String getSendEmailActionPassword(String input) {
+        if (null == input) {
+            return null;
+        }
+        JSONObject inputObj = JSONUtil.parseObj(input);
+        if (inputObj.containsKey("value")) {
+            JSONObject inputValue = JSONUtil.parseObj(inputObj.get("value"));
+            if (inputValue.containsKey("operands")) {
+                JSONArray operands = JSONUtil.parseArray(inputValue.get("operands"));
+                if (operands.contains("password")) {
+                    int passwordIndex = operands.indexOf("password");
+                    JSONObject passwordValue = JSONUtil.parseObj(operands.get(passwordIndex + 1));
+                    return StrUtil.toString(passwordValue.get("value"));
+                }
+            }
+        }
+        return null;
+    }
+
+    private String setSendEmailActionPassword(String input, String password) {
+        if (null == input) {
+            return null;
+        }
+        JSONObject inputObj = JSONUtil.parseObj(input);
+        if (inputObj.containsKey("value")) {
+            JSONObject inputValue = JSONUtil.parseObj(inputObj.get("value"));
+            if (inputValue.containsKey("operands")) {
+                JSONArray operands = JSONUtil.parseArray(inputValue.get("operands"));
+                if (operands.contains("password")) {
+                    int passwordIndex = operands.indexOf("password");
+                    Dict passwordValue =
+                        new Dict().set("value", password).set("type", "Literal");
+                    operands.set(passwordIndex + 1, passwordValue);
+                }
+                inputValue.set("operands", operands);
+            }
+            inputObj.set("value", inputValue);
+        }
+        return JSONUtil.toJsonStr(inputObj);
+    }
 
 }
