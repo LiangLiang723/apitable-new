@@ -24,6 +24,7 @@ import com.apitable.asset.service.IAssetService;
 import com.apitable.asset.service.IAssetUploadTokenService;
 import com.apitable.asset.task.AssetTask;
 import com.apitable.auth.service.IAuthService;
+import com.apitable.automation.service.IAutomationActionService;
 import com.apitable.automation.service.IAutomationRobotService;
 import com.apitable.automation.service.IAutomationTriggerService;
 import com.apitable.automation.service.IAutomationTriggerTypeService;
@@ -262,6 +263,9 @@ public abstract class AbstractIntegrationTest extends TestSuiteWithDB {
 
     @Autowired
     protected IAutomationTriggerTypeService iAutomationTriggerTypeService;
+
+    @Autowired
+    protected IAutomationActionService iAutomationActionService;
 
     @Autowired
     protected NodeBundleService nodeBundleService;

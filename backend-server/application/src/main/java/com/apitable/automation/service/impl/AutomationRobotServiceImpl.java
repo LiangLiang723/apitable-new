@@ -330,7 +330,7 @@ public class AutomationRobotServiceImpl implements IAutomationRobotService {
         List<ActionVO> actions =
             Optional.of(automation.getActions()).orElse(new ArrayList<>()).stream().map(i -> {
                 ActionVO action = new ActionVO();
-                action.setInput(i.getInput());
+                action.setInput(iAutomationActionService.handleActionInput(i.getInput()));
                 action.setActionId(i.getActionId());
                 action.setPrevActionId(i.getPrevActionId());
                 action.setActionTypeId(i.getActionTypeId());
