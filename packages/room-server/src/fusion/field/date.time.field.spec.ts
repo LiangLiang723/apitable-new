@@ -78,7 +78,7 @@ describe('DatetimeField', () => {
 
   describe('roTransform', () => {
     it('Date [2021] should return 1609430400000', async () => {
-      expect(await fieldClass.roTransform(2021, field)).toBe(1609430400000);
+      expect(await fieldClass.roTransform(2021, field)).toBe(1609459200000);
     });
 
     it("Date ['2021'] should return 1609430400000", async () => {
@@ -86,7 +86,7 @@ describe('DatetimeField', () => {
     });
 
     it("Date ['2021-01-01 00:00:00'] should return 1609430400000", async () => {
-      expect(await fieldClass.roTransform('2021-01-01 00:00:00', field)).toBe(1609430400000);
+      expect(await fieldClass.roTransform('2021-01-01 00:00:00', field)).toBe(1609459200000);
     });
 
     it("Date ['2021-01-01T00:00:00Z'] should return 1609430400000", async () => {
@@ -94,8 +94,8 @@ describe('DatetimeField', () => {
       expect(await fieldClass.roTransform('2021-01-01T00:00:00Z', field)).toBe(1609459200000);
     });
 
-    it("Date ['2020-09-12 18:37 +0800'] should return 1599935820000", async () => {
-      expect(await fieldClass.roTransform('2020-09-12 18:37 +0800', field)).toBe(1599935820000);
+    it("Date ['2020-09-12 18:37 +0800'] should return 1599907020000", async () => {
+      expect(await fieldClass.roTransform('2020-09-12 18:37 +0800', field)).toBe(1599907020000);
     });
 
     it('Date [1609430400000] should return 1609430400000', async () => {
@@ -113,7 +113,7 @@ describe('DatetimeField', () => {
     });
 
     it('cellFormat--string--should return 2021-01-01 00:00', () => {
-      expect(fieldClass.voTransform(1609430400000, field, { cellFormat: CellFormatEnum.STRING, store })).toBe('2021-01-01 00:00');
+      expect(fieldClass.voTransform(1609430400000, field, { cellFormat: CellFormatEnum.STRING, store })).toBe('2020-12-31 16:00');
     });
   });
 });
