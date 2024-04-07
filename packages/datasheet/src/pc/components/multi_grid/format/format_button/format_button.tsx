@@ -87,6 +87,7 @@ export const FormatButton: React.FC<React.PropsWithChildren<IFormateButtonProps>
   const [bingAutomationVisible, setBingAutomationVisible] = useState(false);
   const userUnitId = useAppSelector((state) => state.user.info?.unitId);
   const datasheetId = useAppSelector((state: IReduxState) => propDatasheetId || Selectors.getActiveDatasheetId(state))!;
+  const isDatasheetPrivate = useAppSelector((state) => Selectors.getDatasheet(state, propDatasheetId)?.nodePrivate);
 
   const activeFieldState = useAppSelector((state) => Selectors.gridViewActiveFieldState(state, datasheetId));
   const handleModify = useCallback(
@@ -227,7 +228,7 @@ export const FormatButton: React.FC<React.PropsWithChildren<IFormateButtonProps>
       preNodeId: datasheetId,
       parentId: datasheetParentId,
       type: 10,
-      unitId: userUnitId
+      unitId: isDatasheetPrivate ? userUnitId : undefined
     });
     const { data, message, success } = res.data;
     if(!success) {
