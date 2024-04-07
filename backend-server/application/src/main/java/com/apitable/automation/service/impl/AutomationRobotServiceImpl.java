@@ -362,6 +362,7 @@ public class AutomationRobotServiceImpl implements IAutomationRobotService {
         List<String> referenceResourceIds = triggers.stream()
             .map(AutomationTriggerDto::getResourceId)
             .filter(StrUtil::isNotBlank).collect(Collectors.toList());
+        referenceResourceIds = iNodeService.getExistNodeIdsBySelf(referenceResourceIds);
         Collection<String> subtract = CollUtil.subtract(referenceResourceIds, subNodeIds);
         if (CollUtil.isEmpty(subtract)) {
             return;
