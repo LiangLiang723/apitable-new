@@ -160,14 +160,15 @@ export class DatasheetMetaRepository extends Repository<DatasheetMetaEntity> {
       .where('vdm.dst_id = :dstId', { dstId })
       .andWhere('vdm.is_deleted = 0')
       .select("vdm.meta_data -> '$.views[0].rows[*].recordId'", 'recordId')
-      .getRawMany<{ recordId: string }>();
+      .getRawMany<{ recordId: string[] }>();
     let totalCount = 0;
     if (!result) {
       return totalCount;
     }
+
     for (const v of result) {
       if (v.recordId) {
-        totalCount += (JSON.parse(v.recordId) as string[]).length;
+        totalCount += v.recordId.length;
       }
     }
     return totalCount;
