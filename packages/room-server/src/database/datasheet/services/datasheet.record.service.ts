@@ -19,6 +19,7 @@
 import { Field, FieldType, IMeta, IRecord, IRecordMap, IReduxState } from '@apitable/core';
 import { Span } from '@metinseylan/nestjs-opentelemetry';
 import { Injectable } from '@nestjs/common';
+import { dbQueryBatchSize } from 'app.environment';
 import { DatasheetMetaRepository } from 'database/datasheet/repositories/datasheet.meta.repository';
 import { get, isEmpty, keyBy, orderBy } from 'lodash';
 import { Store } from 'redux';
@@ -51,9 +52,22 @@ export class DatasheetRecordService {
 
   @Span()
   async getRecordsByDstId(dstId: string, includeCommentCount = true, includeArchivedRecords = false): Promise<IRecordMap> {
+    if (includeArchivedRecords) {
+      return await this.getAllRecordsByDstId(dstId, includeCommentCount);
+    }
+    return await this.getUnarchivedRecordsByDstId(dstId, includeCommentCount);
+  }
+
+  /**
+   * get all records including the archived records. only used in subscription.
+   * @param dstId
+   * @param includeCommentCount
+   */
+  @Span()
+  async getAllRecordsByDstId(dstId: string, includeCommentCount = true): Promise<IRecordMap> {
     // We do not expect to query all the records of dstId at once,
     // which will cause excessive memory usage. We expect to use paging to load the records of dstId.
-    const counts = await this.datasheetMeta.selectRecordCountByDstId(dstId);
+    const counts = await this.recordRepo.count({ dstId, isDeleted: false });
     // Use paging to load records of dstId
     const pageSize = 2000;
     const pageCount = Math.ceil(counts / pageSize);
@@ -71,14 +85,19 @@ export class DatasheetRecordService {
     if (includeCommentCount) {
       commentCountMap = await this.recordCommentService.getCommentCountMapByDstId(dstId);
     }
-    if (!includeArchivedRecords) {
-      const archivedRecordIds = await this.recordArchiveRepo.getArchivedRecordIdsByDstId(dstId);
-      if (archivedRecordIds && archivedRecordIds.size > 0) {
-        records = records.filter((record) => !archivedRecordIds.has(record.recordId));
-      }
-    }
-
     return this.formatRecordMap(records, commentCountMap);
+  }
+
+  /**
+   * only query the table records. resolve slow sql.
+   * @param dstId
+   * @param includeCommentCount
+   */
+  @Span()
+  async getUnarchivedRecordsByDstId(dstId: string, includeCommentCount = true): Promise<IRecordMap> {
+    // get count from metadata more efficient
+    const recordIds: string[] = await this.datasheetMeta.selectRecordIdsByDstId(dstId);
+    return this.getRecordsByDstIdAndRecordIds(dstId, recordIds, false, includeCommentCount, false, dbQueryBatchSize);
   }
 
   async batchSave(records: any[]) {
@@ -92,6 +111,7 @@ export class DatasheetRecordService {
     isDeleted = false,
     includeCommentCount = true,
     includeArchivedRecords = false,
+    batchSize?: number,
   ): Promise<IRecordMap> {
     if (recordIds && recordIds.length === 0) {
       return {};
@@ -101,6 +121,7 @@ export class DatasheetRecordService {
       ['recordId', 'data', 'revisionHistory', 'createdAt', 'updatedAt', 'recordMeta'],
       recordIds,
       { dstId, isDeleted },
+      batchSize,
     );
     let commentCountMap = {};
     if (includeCommentCount) {

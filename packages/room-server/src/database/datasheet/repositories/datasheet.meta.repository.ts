@@ -173,4 +173,12 @@ export class DatasheetMetaRepository extends Repository<DatasheetMetaEntity> {
     }
     return totalCount;
   }
+  async selectRecordIdsByDstId(dstId: string): Promise<string[]> {
+    const result = await this.createQueryBuilder('vdm')
+      .where('vdm.dst_id = :dstId', { dstId })
+      .andWhere('vdm.is_deleted = 0')
+      .select("vdm.meta_data -> '$.views[0].rows[*].recordId'", 'recordId')
+      .getRawOne<{ recordId: string[] }>();
+    return result?.recordId || [];
+  }
 }
