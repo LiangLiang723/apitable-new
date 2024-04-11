@@ -3359,6 +3359,7 @@
   "move_favorite_node_fail": "Spostamento nodo fallito. Il sistema aggiornerà automaticamente l'elenco.",
   "move_folder_link_warn": "Cannot be moved to Team Area because the files in the current folder are linked to files outside the folder (may be two-way links or linked by forms, etc.) We recommend that they be placed in a folder before moving",
   "move_node_modal_content": "Dopo lo spostamento, la visibilità del file potrebbe essere influenzata dalla cartella principale.",
+  "move_other_link_no_permission": "Unable to move to the corresponding folder because you do not have administrative rights to the folder",
   "move_other_link_warn": "It is not allowed to move ${node type} to Team Area alone, because it connects to the datasheet of Private Area, it is recommended to put them in a folder before moving them",
   "move_to": "Sposta a",
   "move_to_error_equal_parent": "Il file si trova sotto la cartella corrente. Seleziona un'altra cartella",

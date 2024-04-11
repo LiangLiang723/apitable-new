@@ -3356,6 +3356,7 @@ export type StringKeysMapType = {
   'move_favorite_node_fail': 'move_favorite_node_fail',
   'move_folder_link_warn': 'move_folder_link_warn',
   'move_node_modal_content': 'move_node_modal_content',
+  'move_other_link_no_permission': 'move_other_link_no_permission',
   'move_other_link_warn': 'move_other_link_warn',
   'move_to': 'move_to',
   'move_to_error_equal_parent': 'move_to_error_equal_parent',
