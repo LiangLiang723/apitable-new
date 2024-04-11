@@ -3359,6 +3359,7 @@
   "move_favorite_node_fail": "移動節點失敗，系統將會自動更新列表",
   "move_folder_link_warn": "Cannot be moved to Team Area because the files in the current folder are linked to files outside the folder (may be two-way links or linked by forms, etc.) We recommend that they be placed in a folder before moving",
   "move_node_modal_content": "移動後，文件的可見性可能會受到上級文件夾的影響",
+  "move_other_link_no_permission": "Unable to move to the corresponding folder because you do not have administrative rights to the folder",
   "move_other_link_warn": "It is not allowed to move ${node type} to Team Area alone, because it connects to the datasheet of Private Area, it is recommended to put them in a folder before moving them",
   "move_to": "搬去",
   "move_to_error_equal_parent": "該文件位於當前文件夾下。 請選擇另一個文件夾",

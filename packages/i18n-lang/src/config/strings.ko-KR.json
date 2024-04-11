@@ -3359,6 +3359,7 @@
   "move_favorite_node_fail": "노드 이동에 실패했습니다.목록이 자동으로 업데이트됩니다.",
   "move_folder_link_warn": "Cannot be moved to Team Area because the files in the current folder are linked to files outside the folder (may be two-way links or linked by forms, etc.) We recommend that they be placed in a folder before moving",
   "move_node_modal_content": "이동하면 상위 폴더의 파일 가시성에 영향을 받을 수 있습니다.",
+  "move_other_link_no_permission": "Unable to move to the corresponding folder because you do not have administrative rights to the folder",
   "move_other_link_warn": "It is not allowed to move ${node type} to Team Area alone, because it connects to the datasheet of Private Area, it is recommended to put them in a folder before moving them",
   "move_to": "다음으로 이동",
   "move_to_error_equal_parent": "파일은 현재 폴더 아래에 있습니다.다른 폴더를 선택하십시오.",
