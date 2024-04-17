@@ -1544,8 +1544,8 @@ importers:
         specifier: ^2.0.11
         version: 2.0.11
       rc-textarea:
-        specifier: ^0.4.5
-        version: 0.4.7(react-dom@18.2.0)(react@18.2.0)
+        specifier: ^0.3.0
+        version: 0.3.7(react-dom@18.2.0)(react@18.2.0)
       rc-trigger:
         specifier: ^5.3.3
         version: 5.3.4(react-dom@18.2.0)(react@18.2.0)
@@ -31677,6 +31677,21 @@ packages:
       rc-util: 5.38.0(react-dom@18.2.0)(react@18.2.0)
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
+    dev: false
+
+  /rc-textarea@0.3.7(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-yCdZ6binKmAQB13hc/oehh0E/QRwoPP1pjF21aHBxlgXO3RzPF6dUu4LG2R4FZ1zx/fQd2L1faktulrXOM/2rw==}
+    peerDependencies:
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+    dependencies:
+      '@babel/runtime': 7.23.2
+      classnames: 2.2.6
+      rc-resize-observer: 1.4.0(react-dom@18.2.0)(react@18.2.0)
+      rc-util: 5.38.0(react-dom@18.2.0)(react@18.2.0)
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+      shallowequal: 1.1.0
     dev: false
 
   /rc-textarea@0.4.7(react-dom@18.2.0)(react@18.2.0):
