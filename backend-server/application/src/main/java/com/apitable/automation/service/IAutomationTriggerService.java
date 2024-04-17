@@ -117,4 +117,13 @@ public interface IAutomationTriggerService {
      */
     void updateInputByRobotIdsAndTriggerTypeIds(List<String> robotIds, String triggerTypeId,
                                                 String input);
+
+    /**
+     * get node linked robot id list.
+     *
+     * @param nodeIds node id
+     * @return robot id list
+     */
+    List<String> getRobotIdsByResourceIds(List<String> nodeIds);
+
 }
