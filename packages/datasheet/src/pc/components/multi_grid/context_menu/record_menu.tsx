@@ -134,7 +134,7 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
     wrapperRef.current && wrapperRef.current.focus();
   });
 
-  function archiveRecord(recordId: string) {
+  async function archiveRecord(recordId: string) {
     const data: string[] = [];
     if (!isCalendar && recordRanges && recordRanges.length) {
       // Handling the deletion of ticked rows
@@ -161,6 +161,8 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
         data: chunks,
       });
       console.log(`Archiving: ${data.length} records，archived ${CHUCK_SIZE * i + chunks.length}`);
+      // await 3 seconds
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
     if (ExecuteResult.Success === rlt?.result) {
