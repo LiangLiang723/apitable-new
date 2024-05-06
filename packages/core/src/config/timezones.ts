@@ -30,17 +30,9 @@ export const getTimeZone = () => {
   return isValidTimezone(timeZone) ? timeZone : '';
 };
 
-const isDst = (abbr?: string) => {
-  if (!abbr) {
-    return false;
-  }
-  const dstAbbrs = ['PST', 'PDT'];
-  return dstAbbrs.includes(abbr);
-};
-
 export const getTimeZoneOffsetByUtc = (utc: string, isdstDate?: boolean) => {
   const currentTimeZoneData = TIMEZONES.find((tz) => tz.utc.includes(utc));
-  const dstDiff = isdstDate && isDst(currentTimeZoneData?.abbr) ? 1 : 0;
+  const dstDiff = currentTimeZoneData?.isdst ? isdstDate ? 0 : -1 : 0;
   return currentTimeZoneData ? currentTimeZoneData.offset + dstDiff : 0;
 };
 
@@ -200,9 +192,10 @@ export const TIMEZONES = [
     value: 'Central Standard Time',
     abbr: 'CDT',
     offset: -5,
-    // isdst: true,
+    isdst: true,
     text: '(UTC-06:00) Central Time (US & Canada)',
     utc: [
+      'America/Chicago',
       'America/Indiana/Knox',
       'America/Indiana/Tell_City',
       'America/Matamoros',
@@ -1033,14 +1026,6 @@ export const TIMEZONES = [
     isdst: false,
     text: '(UTC+08:00) Irkutsk',
     utc: ['Asia/Irkutsk'],
-  },
-  {
-    value: 'Central Standard Time',
-    abbr: 'CDT',
-    offset: 8,
-    isdst: false,
-    text: '(UTC-06:00) Central Time (US & Canada)',
-    utc: ['America/Chicago'],
   },
   {
     value: 'Japan Standard Time',

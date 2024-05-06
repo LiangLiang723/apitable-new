@@ -4,6 +4,7 @@ FROM apitable/nodepy:16.15.0-alpine AS deps
 WORKDIR /workspace-install
 
 COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./
+COPY ./patches/ ./patches
 
 # components
 COPY packages/components/package.json ./packages/components/

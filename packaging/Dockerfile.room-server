@@ -5,6 +5,7 @@ WORKDIR /app
 
 # install packages can use cache
 COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./common-tsconfig.json ./
+COPY ./patches/ ./patches
 
 COPY packages/i18n-lang/package.json ./packages/i18n-lang/
 

@@ -142,6 +142,7 @@ export const getViewIndex = (snapshot: ISnapshot, viewId: string) => {
 
 const filterColumnsByPermission = (columns: IViewColumn[], fieldPermissionMap: IFieldPermissionMap | undefined) => {
   return columns.filter((column) => {
+    if (!column) return true;
     // TODO: column permission delete this logic (2nd phase)
     const fieldRole = getFieldRoleByFieldId(fieldPermissionMap, column.fieldId);
     return fieldRole !== Role.None;
@@ -239,12 +240,15 @@ export const getTemporaryView = (snapshot: ISnapshot | undefined, viewId: string
   if (!temporaryView || mirror?.sourceInfo.datasheetId !== snapshot.datasheetId) {
     return originView;
   }
+  if (!originView) {
+    return;
+  }
   // in mirror, if any view config is modified,
   // the original table's view config will not affect the mirror, so here directly use the mirror's cache data
   return {
-    id: originView!.id,
-    type: originView!.type,
-    rows: originView!.rows,
+    id: originView.id,
+    type: originView.type,
+    rows: originView.rows,
     ...temporaryView,
   } as IViewProperty;
 };
@@ -375,12 +379,12 @@ export const getVisibleColumns = createCachedSelector<
   // ignore the first column as hidden
   return view
     ? view.columns.filter((item, i) => {
-        const fieldRole = getFieldRoleByFieldId(fieldPermissionMap, item.fieldId);
-        if (fieldRole === Role.None) {
-          return false;
-        }
-        return !(item.hidden && i !== 0);
-      })
+      const fieldRole = getFieldRoleByFieldId(fieldPermissionMap, item.fieldId);
+      if (fieldRole === Role.None) {
+        return false;
+      }
+      return !(item.hidden && i !== 0);
+    })
     : [];
 })(defaultKeySelector);
 
@@ -565,12 +569,12 @@ export const getPermissions = (state: IReduxState, datasheetId?: string, fieldId
     // TODO: mobile will support edit in the future
     const permission = datasheet
       ? getIntegratePermissionWithField(state, {
-          permission: getReaderRolePermission(state, datasheet.id, nodePermission)!,
-          datasheetId,
-          fieldPermissionMap,
-          fieldId: fieldId,
-          mirrorId,
-        })
+        permission: getReaderRolePermission(state, datasheet.id, nodePermission)!,
+        datasheetId,
+        fieldPermissionMap,
+        fieldId: fieldId,
+        mirrorId,
+      })
       : {};
     return {
       ...DEFAULT_PERMISSION,
