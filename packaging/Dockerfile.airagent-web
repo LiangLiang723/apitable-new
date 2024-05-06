@@ -6,7 +6,7 @@ RUN npm install -g pnpm@8.13.1
 WORKDIR /workspace-install
 
 COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./
-COPY patches/ ./patches/
+COPY ./patches/ ./patches
 
 # air-agent dependencies packages
 COPY packages/components/package.json ./packages/components/
