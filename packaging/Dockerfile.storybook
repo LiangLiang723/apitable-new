@@ -16,6 +16,7 @@ FROM apitable/nodepy:16.15.0-alpine AS builder
 
 WORKDIR /app
 
+COPY --from=deps /workspace-install/patches ./patches
 COPY --from=deps /workspace-install/node_modules ./node_modules
 COPY --from=deps /workspace-install/packages/components/node_modules ./packages/components/node_modules
 
