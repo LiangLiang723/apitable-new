@@ -120,4 +120,4 @@ const plugins = [
 ];
 
 const config = () => plugins.reduce((acc, next) => next(acc), nextConfig);
-module.exports = isProd ? withSentryConfig(config, sentryWebpackPluginOptions, sentryWebpackPluginOptions) : config;
+module.exports = config;
