@@ -79,7 +79,7 @@ export const Calendar: FC<React.PropsWithChildren<ICalendar>> = (props) => {
               <PreMonth />
             </Tooltip>
           )}
-          {monthPicker ? monthPicker(formatDate(year, month, lang)) : <span className="date">{formatDate(year, month, lang)}</span>}
+          {monthPicker ? monthPicker(`${year}-${month}`) : <span className="date">{formatDate(year, month, lang)}</span>}
           {isMobile ? (
             <NextMonth />
           ) : (
