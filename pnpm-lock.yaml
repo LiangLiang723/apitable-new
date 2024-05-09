@@ -1361,6 +1361,9 @@ importers:
       dom-to-image:
         specifier: ^2.6.0
         version: 2.6.0
+      dompurify:
+        specifier: ^3.0.1
+        version: 3.0.5
       dot-object:
         specifier: ^2.1.2
         version: 2.1.4
@@ -1737,6 +1740,9 @@ importers:
       '@types/dom-to-image':
         specifier: ^2.6.2
         version: 2.6.4
+      '@types/dompurify':
+        specifier: ^3
+        version: 3.0.2
       '@types/dot-object':
         specifier: ^2.1.2
         version: 2.1.2
