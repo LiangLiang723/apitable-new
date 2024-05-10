@@ -35,7 +35,8 @@ export const imageCache = (() => {
     imgPromises.push(
       new Promise((resolve, reject) => {
         const img = new Image();
-        img.src = location.origin + (src.startsWith('/') ? '' : '/') + src;
+        const isSrcWithHttp = src.startsWith('http');
+        img.src = isSrcWithHttp ? src : location.origin + (src.startsWith('/') ? '' : '/') + src;
         img.referrerPolicy = 'no-referrer';
 
         if (!option?.crossOrigin && getEnvVariables().IS_CANVAS_IMAGE_CROSS_ORIGIN) {
