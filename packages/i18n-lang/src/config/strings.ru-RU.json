@@ -4184,6 +4184,7 @@
   "record": "Запись",
   "record_activity_experience_tips": "Вы можете просматривать записи об активности за ${day} дней.",
   "record_archived_data": "архивная запись",
+  "record_chunk_text": "${text} rows, please wait",
   "record_comment": "Только примечания",
   "record_comments": "Замечания",
   "record_fail_data": "Ошибка данных",

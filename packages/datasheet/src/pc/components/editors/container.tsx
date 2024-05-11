@@ -17,12 +17,15 @@
  */
 
 import { useUnmount } from 'ahooks';
+import { Progress } from 'antd';
 import dayjs from 'dayjs';
 import { isEmpty, isEqual, noop, omit } from 'lodash';
+import { ContextName, ShortcutActionManager, ShortcutActionName, ShortcutContext } from 'modules/shared/shortcut_key';
+import { appendRow } from 'modules/shared/shortcut_key/shortcut_actions/append_row';
 import * as React from 'react';
 import { ClipboardEvent, forwardRef, KeyboardEvent, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { shallowEqual } from 'react-redux';
-import { Message } from '@apitable/components';
+import { Message, Typography } from '@apitable/components';
 import {
   Cell,
   CellDirection,
@@ -50,9 +53,9 @@ import {
   Strings,
   t,
   ViewType,
+  getRecordChunkSize,
 } from '@apitable/core';
-import { ContextName, ShortcutActionManager, ShortcutActionName, ShortcutContext } from 'modules/shared/shortcut_key';
-import { appendRow } from 'modules/shared/shortcut_key/shortcut_actions/append_row';
+import { Modal } from 'pc/components/common/modal/modal/modal';
 import { autoTaskScheduling } from 'pc/components/gantt_view/utils/auto_task_line_layout';
 import { useDispatch } from 'pc/hooks';
 import { resourceService } from 'pc/resource_service';
@@ -148,6 +151,11 @@ const EditorContainerBase: React.ForwardRefRenderFunction<IContainerEdit, Editor
     }),
     shallowEqual,
   );
+
+  const chunkSize = getRecordChunkSize();
+  const [isPasting, setIsPasting] = useState(false);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const [completedCount, setCompletedCount] = React.useState(0);
 
   const activeView = useAppSelector((state) => Selectors.getCurrentView(state));
   const visibleRows = useAppSelector((state) => Selectors.getVisibleRows(state));
@@ -616,7 +624,19 @@ const EditorContainerBase: React.ForwardRefRenderFunction<IContainerEdit, Editor
     if (editing) {
       return;
     }
-    resourceService.instance!.clipboard.paste(e.nativeEvent);
+    setIsPasting(true);
+    resourceService.instance!.clipboard.paste(e.nativeEvent, undefined, (total, completed) => {
+      setTotalCount(total);
+      setCompletedCount(completed);
+      if (completed === total) {
+        // await 3 seconds
+        setTimeout(() => {
+          setIsPasting(false);
+          setTotalCount(0);
+          setCompletedCount(0);
+        }, 3000);
+      }
+    });
   };
 
   const calcEditorRect = () => {
@@ -868,18 +888,38 @@ const EditorContainerBase: React.ForwardRefRenderFunction<IContainerEdit, Editor
   }
 
   return (
-    <div
-      className={styles.editorContainer}
-      id={EDITOR_CONTAINER}
-      style={{ left: x, top: y }}
-      onKeyDown={startEditByKeyDown}
-      onCopy={handleCopy}
-      onCut={handleCut}
-      onPaste={handlePaste}
-      onMouseDown={stopPropagation}
-    >
-      {Editor()}
-    </div>
+    <>
+      <div
+        className={styles.editorContainer}
+        id={EDITOR_CONTAINER}
+        style={{ left: x, top: y }}
+        onKeyDown={startEditByKeyDown}
+        onCopy={handleCopy}
+        onCut={handleCut}
+        onPaste={handlePaste}
+        onMouseDown={stopPropagation}
+      >
+        {Editor()}
+      </div>
+      {totalCount > chunkSize && (
+        <Modal
+          open={isPasting}
+          footer={null}
+          centered
+          width={440}
+          closable={false}
+        >
+          <div className={styles.archiveProgress}>
+            <Typography variant='h6'>
+              {t(Strings.record_chunk_text, {
+                text: `${t(Strings.paste)} ${completedCount}/${totalCount}`
+              })}
+            </Typography>
+            <Progress percent={Number(((100 * completedCount) / totalCount).toFixed(2))} showInfo={false} />
+          </div>
+        </Modal>
+      )}
+    </>
   );
 };
 

@@ -4164,6 +4164,7 @@ export type StringKeysMapType = {
   'record': 'record',
   'record_activity_experience_tips': 'record_activity_experience_tips',
   'record_archived_data': 'record_archived_data',
+  'record_chunk_text': 'record_chunk_text',
   'record_comment': 'record_comment',
   'record_comments': 'record_comments',
   'record_fail_data': 'record_fail_data',

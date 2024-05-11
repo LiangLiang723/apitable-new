@@ -4184,6 +4184,7 @@
   "record": "Registra",
   "record_activity_experience_tips": "Puoi visualizzare l'attività registrata di ${day} giorni",
   "record_archived_data": "registrazione archiviata",
+  "record_chunk_text": "${text} rows, please wait",
   "record_comment": "Solo osservazioni",
   "record_comments": "commenti",
   "record_fail_data": "errore dei dati",

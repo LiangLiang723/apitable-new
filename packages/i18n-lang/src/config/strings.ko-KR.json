@@ -4184,6 +4184,7 @@
   "record": "기록",
   "record_activity_experience_tips": "${day}일의 기록 활동을 볼 수 있습니다.",
   "record_archived_data": "보관된 기록",
+  "record_chunk_text": "${text} rows, please wait",
   "record_comment": "주석만 해당",
   "record_comments": "코멘트",
   "record_fail_data": "데이터 오류",

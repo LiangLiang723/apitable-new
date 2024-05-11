@@ -39,6 +39,7 @@ import {
   Strings,
   t,
   ViewType,
+  getRecordChunkSize,
 } from '@apitable/core';
 import { Message } from 'pc/components/common/message/message';
 import { Modal } from 'pc/components/common/modal/modal/modal';
@@ -221,6 +222,7 @@ export class Clipboard {
     rows: IViewRow[];
   };
   isCutting = false;
+  chunkSize = getRecordChunkSize();
 
   selectWithWorkdocField(tableHeader?: IField[]) {
     const state = store.getState() as IReduxState;
@@ -255,7 +257,7 @@ export class Clipboard {
     return _selectWithWorkdocField;
   }
 
-  paste(e: ClipboardEvent, ignoreEdit?: boolean) {
+  paste(e: ClipboardEvent, ignoreEdit?: boolean, cb?: (_total: number, _completed: number) => void) {
     const state = store.getState() as IReduxState;
     if (ShortcutContext.context.isEditing() && !ignoreEdit) {
       return;
@@ -319,6 +321,7 @@ export class Clipboard {
               selection,
               stdValueTable!,
               clipboardText,
+              cb,
             )) as any as ICollaCommandExecuteResult<{}> & { isPasteIncompatibleField: boolean };
             this.clearCuttingStatus();
             if (commandResult.result === ExecuteResult.Fail) {
@@ -354,6 +357,7 @@ export class Clipboard {
     pasteRange: IRange,
     stdValueTable: IStandardValueTable,
     clipboardText: string,
+    cb?: (_total: number, _completed: number) => void,
   ) {
     const viewId = pasteView.id;
     const { row, column } = Range.bindModel(pasteRange).toNumberBaseRange(state)!;
@@ -382,20 +386,30 @@ export class Clipboard {
         }
       }
 
-      commandResult = this.commandManager.execute({
-        cmd: CollaCommandName.PasteSetRecords,
-        row,
-        column,
-        viewId,
-        fields: stdValueTable.header,
-        stdValues: stdValueTable.body,
-        recordIds: stdValueTable.recordIds,
-        cut: isRealCutting ? this.cuttingRangeData : undefined,
-        groupCellValues: cellValues,
-        notifyExistIncompatibleField: () => {
-          isPasteIncompatibleField = true;
-        },
-      });
+      const length = stdValueTable.recordIds?.length ?? 0;
+      const times = Math.ceil(length / this.chunkSize);
+      for (let i = 0; i < times; i++) {
+        const recordIds = stdValueTable.recordIds?.slice(i * this.chunkSize, (i + 1) * this.chunkSize);
+        const stdValues = stdValueTable.body.slice(i * this.chunkSize, (i + 1) * this.chunkSize);
+        const _row = row + i * this.chunkSize;
+        commandResult = this.commandManager.execute({
+          cmd: CollaCommandName.PasteSetRecords,
+          row: _row,
+          column,
+          viewId,
+          fields: stdValueTable.header,
+          stdValues,
+          recordIds,
+          cut: isRealCutting ? this.cuttingRangeData : undefined,
+          groupCellValues: cellValues,
+          notifyExistIncompatibleField: () => {
+            isPasteIncompatibleField = true;
+          },
+        });
+        cb?.(length, this.chunkSize * i + (recordIds?.length || 0));
+        // await 3 seconds
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
       recogClipboardURLData({
         state,
         row,

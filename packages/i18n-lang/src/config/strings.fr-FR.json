@@ -4184,6 +4184,7 @@
   "record": "Enregistrements",
   "record_activity_experience_tips": "Vous pouvez afficher l'activité d'enregistrement de ${day} jours",
   "record_archived_data": "enregistrement archivé",
+  "record_chunk_text": "${text} rows, please wait",
   "record_comment": "Commentaires uniquement",
   "record_comments": "commenté",
   "record_fail_data": "erreur de données",

@@ -17,6 +17,7 @@
  */
 
 import { useMount } from 'ahooks';
+import { Progress } from 'antd';
 import parser from 'html-react-parser';
 import { isInteger } from 'lodash';
 import difference from 'lodash/difference';
@@ -27,7 +28,7 @@ import path from 'path-browserify';
 import * as React from 'react';
 import { KeyboardEvent, useRef, useCallback } from 'react';
 import { batchActions } from 'redux-batched-actions';
-import { ContextMenu, IContextMenuItemProps, useThemeColors } from '@apitable/components';
+import { ContextMenu, IContextMenuItemProps, Typography, useThemeColors } from '@apitable/components';
 import {
   CollaCommandName,
   DatasheetApi,
@@ -39,6 +40,7 @@ import {
   t,
   View,
   ViewType,
+  getRecordChunkSize,
 } from '@apitable/core';
 import {
   ArrowDownOutlined,
@@ -68,9 +70,9 @@ import { getEnvVariables } from 'pc/utils/env';
 import { isWindowsOS } from 'pc/utils/os';
 import { copy2clipBoard } from '../../../utils/dom';
 import { IInputEditor, InputMenuItem } from './input_menu_item';
+import styles from './styles.module.less';
 
 export const GRID_RECORD_MENU = 'GRID_RECORD_MENU';
-const CHUCK_SIZE = 300;
 
 export function copyLink(recordId: string) {
   const url = new URL(window.location.href);
@@ -95,6 +97,7 @@ export function copyRecord(recordId: string): Promise<ICollaCommandExecuteResult
 }
 
 export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (props) => {
+  const chunkSize = getRecordChunkSize();
   const colors = useThemeColors();
   const { insertDirection = 'vertical', hideInsert, menuId, extraData } = props;
   const recordRanges = useAppSelector((state) => Selectors.getSelectionRecordRanges(state));
@@ -134,7 +137,15 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
     wrapperRef.current && wrapperRef.current.focus();
   });
 
+  const [action, setAction] = React.useState('');
+  const [isArchiving, setIsArchiving] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const [completedCount, setCompletedCount] = React.useState(0);
+
   async function archiveRecord(recordId: string) {
+    setAction(t(Strings.menu_archive_record));
+    setIsArchiving(true);
     const data: string[] = [];
     if (!isCalendar && recordRanges && recordRanges.length) {
       // Handling the deletion of ticked rows
@@ -151,19 +162,25 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
       // Handling right-click menu deletion
       data.push(recordId);
     }
+    setTotalCount(data.length);
     // The setTimeout is used here to ensure that the user is alerted that a large amount of data is being deleted before it is deleted
     let rlt: any;
-    const times = Math.ceil(data.length / CHUCK_SIZE);
+    const times = Math.ceil(data.length / chunkSize);
     for (let i = 0; i < times; i++) {
-      const chunks = data.slice(i * CHUCK_SIZE, (i + 1) * CHUCK_SIZE);
+      const chunks = data.slice(i * chunkSize, (i + 1) * chunkSize);
       rlt = resourceService.instance!.commandManager.execute({
         cmd: CollaCommandName.ArchiveRecords,
         data: chunks,
       });
-      console.log(`Archiving: ${data.length} records，archived ${CHUCK_SIZE * i + chunks.length}`);
       // await 3 seconds
       await new Promise((resolve) => setTimeout(resolve, 3000));
+      setCompletedCount(chunkSize * i + chunks.length);
     }
+    // await 3 seconds
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    setIsArchiving(false);
+    setTotalCount(0);
+    setCompletedCount(0);
 
     if (ExecuteResult.Success === rlt?.result) {
       Message.success({ content: t(Strings.archive_record_success) });
@@ -172,7 +189,9 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
     }
   }
 
-  function deleteRecord(recordId: string) {
+  async function deleteRecord(recordId: string) {
+    setAction(t(Strings.delete));
+    setIsDeleting(true);
     const data: string[] = [];
     if (!isCalendar && recordRanges && recordRanges.length) {
       // Handling the deletion of ticked rows
@@ -189,17 +208,25 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
       // Handling right-click menu deletion
       data.push(recordId);
     }
+    setTotalCount(data.length);
     // The setTimeout is used here to ensure that the user is alerted that a large amount of data is being deleted before it is deleted
     let rlt: any;
-    const times = Math.ceil(data.length / CHUCK_SIZE);
+    const times = Math.ceil(data.length / chunkSize);
     for (let i = 0; i < times; i++) {
-      const chunks = data.slice(i * CHUCK_SIZE, (i + 1) * CHUCK_SIZE);
+      const chunks = data.slice(i * chunkSize, (i + 1) * chunkSize);
       rlt = resourceService.instance!.commandManager.execute({
         cmd: CollaCommandName.DeleteRecords,
         data: chunks,
       });
-      console.log(`Deleting: ${data.length} deleted ${CHUCK_SIZE * i + chunks.length}`);
+      // await 3 seconds
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      setCompletedCount(chunkSize * i + chunks.length);
     }
+    // await 3 seconds
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    setIsDeleting(false);
+    setTotalCount(0);
+    setCompletedCount(0);
 
     if (ExecuteResult.Success === rlt.result) {
       notifyWithUndo(
@@ -533,6 +560,28 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
   }
 
   const contextMenuData = flatContextData(data, true);
+  return (
+    <>
+      <ContextMenu menuId={menuId || GRID_RECORD_MENU} overlay={contextMenuData} width={isWindowsOS() ? 320 : 280} />;
+      {totalCount > chunkSize && (
+        <Modal
+          open={isArchiving || isDeleting}
+          footer={null}
+          centered
+          width={440}
+          closable={false}
+        >
+          <div className={styles.archiveProgress}>
+            <Typography variant='h6'>
+              {t(Strings.record_chunk_text, {
+                text: `${action} ${completedCount}/${totalCount}`
+              })}
+            </Typography>
+            <Progress percent={Number(((100 * completedCount) / totalCount).toFixed(2))} showInfo={false} />
+          </div>
+        </Modal>
+      )}
+    </>
+  );
 
-  return <ContextMenu menuId={menuId || GRID_RECORD_MENU} overlay={contextMenuData} width={isWindowsOS() ? 320 : 280} />;
 };
