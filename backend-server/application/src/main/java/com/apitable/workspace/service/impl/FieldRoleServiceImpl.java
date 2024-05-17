@@ -59,6 +59,7 @@ import com.apitable.organization.vo.MemberTeamPathInfo;
 import com.apitable.organization.vo.RoleInfoVo;
 import com.apitable.organization.vo.UnitMemberVo;
 import com.apitable.organization.vo.UnitTeamVo;
+import com.apitable.shared.util.IdUtil;
 import com.apitable.shared.util.page.PageInfo;
 import com.apitable.space.service.ISpaceRoleService;
 import com.apitable.workspace.dto.ControlRoleInfo;
@@ -511,13 +512,11 @@ public class FieldRoleServiceImpl implements IFieldRoleService {
             .collect(Collectors.toMap(String::toString,
                 controlId -> controlId.substring(controlId.indexOf(ControlIdBuilder.SYMBOL) + 1)));
         // load field permissions in sharing
-        if (StrUtil.isNotBlank(shareId)) {
+        if ((StrUtil.isNotBlank(shareId) && !IdUtil.isEmbed(shareId)) || null == memberId) {
             // If the datasheet is not collected, directly return the field with the permission set.
             if (type != NodeType.FORM) {
-                Map<String, FieldPermissionInfo> permissionInfoMap =
-                    controlIdToFieldIdMap.values().stream()
-                        .collect(Collectors.toMap(String::toString,
-                            fieldId -> FieldPermissionInfo.builder()
+                Map<String, FieldPermissionInfo> permissionInfoMap = controlIdToFieldIdMap.values().stream()
+                        .collect(Collectors.toMap(String::toString, fieldId -> FieldPermissionInfo.builder()
                                 .fieldId(fieldId)
                                 .permission(new FieldPermission())
                                 .build()));
