@@ -70,15 +70,6 @@ public interface IAutomationTriggerService {
      */
     List<TriggerVO> update(Long userId, String triggerId, String spaceId, UpdateTriggerRO data);
 
-    /**
-     * Delete trigger.
-     *
-     * @param robotId   robot id
-     * @param triggerId trigger id
-     * @param userId    operator user id
-     */
-    void deleteByDatabus(String robotId, String triggerId, Long userId);
-
 
     /**
      * Delete trigger.
