@@ -97,7 +97,19 @@ export function copyRecord(recordId: string): Promise<ICollaCommandExecuteResult
 }
 
 export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (props) => {
-  const chunkSize = getRecordChunkSize();
+  let chunkSize = getRecordChunkSize();
+  const viewLength = useAppSelector((state) => {
+    const snapshot = Selectors.getSnapshot(state)!;
+    return snapshot.meta.views.length;
+  });
+  const fieldLength = useAppSelector((state) => {
+    const snapshot = Selectors.getSnapshot(state)!;
+    return Object.keys(snapshot.meta.fieldMap).length;
+  });
+  // view length over 10 or field length over 50, set chunkSize to 100
+  if (viewLength > 10 || fieldLength > 50) {
+    chunkSize = 100;
+  }
   const colors = useThemeColors();
   const { insertDirection = 'vertical', hideInsert, menuId, extraData } = props;
   const recordRanges = useAppSelector((state) => Selectors.getSelectionRecordRanges(state));

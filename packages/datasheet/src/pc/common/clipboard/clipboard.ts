@@ -363,6 +363,12 @@ export class Clipboard {
     const { row, column } = Range.bindModel(pasteRange).toNumberBaseRange(state)!;
     const { id: datasheetId, snapshot } = Selectors.getDatasheet(state)!;
     const rows = Selectors.getVisibleRows(state);
+    const viewLength = snapshot.meta.views.length;
+    const fieldLength = Object.keys(snapshot.meta.fieldMap).length;
+    // view length over 10 or field length over 50, set chunkSize to 100
+    if (viewLength > 10 || fieldLength > 50) {
+      this.chunkSize = 100;
+    }
     const groupFields = Selectors.getGroupFields(pasteView, Selectors.getFieldMap(state, state.pageParams.datasheetId!)!).map((f) => f.id);
     const recordValue = snapshot.recordMap[rows[row].recordId].data;
     const cellValues = groupFields.map((f) => (recordValue ? recordValue[f] : null));
