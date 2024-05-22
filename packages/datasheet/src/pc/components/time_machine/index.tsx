@@ -345,9 +345,9 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
                           <div className={styles.timestamp}>
                             {dayjs.tz(item.createdAt).format(DATEFORMAT)}
                             {getEnvVariables().ENABLE_TIME_MACHINE_ROOLBACK && 
-                              <TextButton size="x-small" color="danger" disabled={isEmpty} onClick={() => onRollbackClick(index)}>
-                                {t(Strings.rollback_revision)}
-                              </TextButton>
+                            <TextButton size="x-small" color="danger" disabled={isEmpty} onClick={() => onRollbackClick(index)}>
+                              {t(Strings.rollback_revision)}
+                            </TextButton>
                             }
                           </div>
                         </div>

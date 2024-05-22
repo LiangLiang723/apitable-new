@@ -115,19 +115,6 @@ export const Stat: FC<React.PropsWithChildren<IStatProps>> = memo((props) => {
     // eslint-disable-next-line
   }, [visibleRecordIds, isGroupStat, groupInfo, groupBreakpoint, row]);
 
-  /**
-   * The statistical selection is only for cases where more than 1 cell is selected.
-   * If only one cell is selected, there is no need to get the selection record.
-   */
-  const multiSelection = useMemo(() => {
-    const isMultiSelection = hasLargeSelection(selectRanges?.[0], recordRanges);
-    if (!isMultiSelection) return null;
-    if (isGroupStat) {
-      return intersection(visibleRecordIds, selectRecordIds);
-    }
-    return selectRecordIds;
-  }, [isGroupStat, recordRanges, selectRanges, selectRecordIds, visibleRecordIds]);
-
   const statText = useMemo(() => {
     const state = store.getState();
     const snapshot = Selectors.getSnapshot(state)!;
@@ -135,7 +122,7 @@ export const Stat: FC<React.PropsWithChildren<IStatProps>> = memo((props) => {
     if (!statType) {
       return t(Strings.statistics);
     }
-    const count = getFieldResultByStatType(statType!, multiSelection || getStatRecordIds(), field, snapshot, state);
+    const count = getFieldResultByStatType(statType!, getStatRecordIds(), field, snapshot, state);
     if (statType === StatType.CountAll) {
       return t(Strings.records_of_count, {
         count,
@@ -143,7 +130,7 @@ export const Stat: FC<React.PropsWithChildren<IStatProps>> = memo((props) => {
     }
     const statText = Field.bindModel(field).statType2text(statType!);
     return statText + ' ' + count;
-  }, [statType, multiSelection, getStatRecordIds, field]);
+  }, [statType, getStatRecordIds, field]);
 
   const finalWidth = useMemo(() => {
     if (!isFrozenGroup) {
