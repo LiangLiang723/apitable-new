@@ -5162,6 +5162,8 @@
   "stay_tuned_for_more_features": "更多功能敬请期待…",
   "steps_choose_reset_mode": "选择重置方式",
   "steps_validate_identities": "验证身份",
+  "stop_chunk_content": "终止后将不会继续执行操作，确定终止？",
+  "stop_chunk_title": "终止",
   "stop_dingtalk_h5_modal_content": "自建应用将与本空间站解除绑定，请确认停用。",
   "storage_per_seats": "",
   "storage_per_space": "附件容量",

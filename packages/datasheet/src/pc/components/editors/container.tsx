@@ -25,7 +25,7 @@ import { appendRow } from 'modules/shared/shortcut_key/shortcut_actions/append_r
 import * as React from 'react';
 import { ClipboardEvent, forwardRef, KeyboardEvent, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { shallowEqual } from 'react-redux';
-import { Message, Typography } from '@apitable/components';
+import { Message, Typography, Button } from '@apitable/components';
 import {
   Cell,
   CellDirection,
@@ -152,7 +152,13 @@ const EditorContainerBase: React.ForwardRefRenderFunction<IContainerEdit, Editor
     shallowEqual,
   );
 
-  const chunkSize = getRecordChunkSize();
+  let chunkSize = getRecordChunkSize();
+  const viewLength = snapshot.meta.views.length;
+  const fieldLength = Object.keys(snapshot.meta.fieldMap).length;
+  // view length over 10 or field length over 50, set chunkSize to 100
+  if (viewLength > 10 || fieldLength > 50) {
+    chunkSize = 100;
+  }
   const [isPasting, setIsPasting] = useState(false);
   const [totalCount, setTotalCount] = React.useState(0);
   const [completedCount, setCompletedCount] = React.useState(0);
@@ -912,10 +918,23 @@ const EditorContainerBase: React.ForwardRefRenderFunction<IContainerEdit, Editor
           <div className={styles.archiveProgress}>
             <Typography variant='h6'>
               {t(Strings.record_chunk_text, {
-                text: `${t(Strings.paste)} ${completedCount}/${totalCount}`
+                text: `${t(Strings.paste)}${completedCount}/${totalCount}`
               })}
             </Typography>
             <Progress percent={Number(((100 * completedCount) / totalCount).toFixed(2))} showInfo={false} />
+            <div className={styles.stopProgress}>
+              <Button size="small" onClick={() => {
+                Modal.warning({
+                  title: t(Strings.stop_chunk_title),
+                  content: t(Strings.stop_chunk_content),
+                  hiddenCancelBtn: false,
+                  onOk: () => {
+                    // reload page
+                    window.location.reload();
+                  },
+                });
+              }}>{t(Strings.stop_chunk_title)}</Button>
+            </div>
           </div>
         </Modal>
       )}

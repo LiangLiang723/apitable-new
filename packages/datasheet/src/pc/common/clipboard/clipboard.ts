@@ -395,6 +395,9 @@ export class Clipboard {
       const length = stdValueTable.recordIds?.length ?? 0;
       const times = Math.ceil(length / this.chunkSize);
       for (let i = 0; i < times; i++) {
+        if (i === 0) {
+          cb?.(length, 0);
+        }
         const recordIds = stdValueTable.recordIds?.slice(i * this.chunkSize, (i + 1) * this.chunkSize);
         const stdValues = stdValueTable.body.slice(i * this.chunkSize, (i + 1) * this.chunkSize);
         const _row = row + i * this.chunkSize;
@@ -412,9 +415,19 @@ export class Clipboard {
             isPasteIncompatibleField = true;
           },
         });
+        // await until the operation is completed
+        await new Promise<void>((resolve) => {
+          const doingOpMessageId = localStorage.getItem('doing_op_messageId');
+          if (doingOpMessageId) {
+            window.addEventListener(doingOpMessageId, () => {
+              resolve();
+              // remove event listener
+              window.removeEventListener(doingOpMessageId, () => {});
+            });
+          }
+        });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         cb?.(length, this.chunkSize * i + (recordIds?.length || 0));
-        // await 3 seconds
-        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
       recogClipboardURLData({
         state,

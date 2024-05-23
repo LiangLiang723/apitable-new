@@ -28,7 +28,7 @@ import path from 'path-browserify';
 import * as React from 'react';
 import { KeyboardEvent, useRef, useCallback } from 'react';
 import { batchActions } from 'redux-batched-actions';
-import { ContextMenu, IContextMenuItemProps, Typography, useThemeColors } from '@apitable/components';
+import { ContextMenu, IContextMenuItemProps, Typography, useThemeColors, Button } from '@apitable/components';
 import {
   CollaCommandName,
   DatasheetApi,
@@ -179,17 +179,30 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
     let rlt: any;
     const times = Math.ceil(data.length / chunkSize);
     for (let i = 0; i < times; i++) {
+      if (i === 0) {
+        setCompletedCount(0);
+      }
       const chunks = data.slice(i * chunkSize, (i + 1) * chunkSize);
       rlt = resourceService.instance!.commandManager.execute({
         cmd: CollaCommandName.ArchiveRecords,
         data: chunks,
       });
       // await 3 seconds
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await new Promise<void>((resolve) => {
+        const doingOpMessageId = localStorage.getItem('doing_op_messageId');
+        if (doingOpMessageId) {
+          window.addEventListener(doingOpMessageId, () => {
+            resolve();
+            // remove event listener
+            window.removeEventListener(doingOpMessageId, () => {});
+          });
+        }
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setCompletedCount(chunkSize * i + chunks.length);
     }
     // await 3 seconds
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     setIsArchiving(false);
     setTotalCount(0);
     setCompletedCount(0);
@@ -590,6 +603,19 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
               })}
             </Typography>
             <Progress percent={Number(((100 * completedCount) / totalCount).toFixed(2))} showInfo={false} />
+            <div className={styles.stopProgress}>
+              <Button size="small" onClick={() => {
+                Modal.warning({
+                  title: t(Strings.stop_chunk_title),
+                  content: t(Strings.stop_chunk_content),
+                  hiddenCancelBtn: false,
+                  onOk: () => {
+                    // reload page
+                    window.location.reload();
+                  },
+                });
+              }}>{t(Strings.stop_chunk_title)}</Button>
+            </div>
           </div>
         </Modal>
       )}
