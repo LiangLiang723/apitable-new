@@ -30,6 +30,7 @@
       "*": ["*"]
     },
     "lib": [
+      "dom",
       "esnext",
       "ESNext.Array",
       "ES2020.String"
