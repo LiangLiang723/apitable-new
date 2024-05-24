@@ -729,6 +729,23 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, SpaceEntity>
     public SpaceInfoVO getSpaceInfo(final String spaceId) {
         SpaceEntity entity = getBySpaceId(spaceId);
         SpaceInfoVO spaceInfoVO = this.transform(entity);
+        // obtain third party information
+        SocialConnectInfo socialConnectInfo =
+            socialServiceFacade.getConnectInfo(spaceId);
+        SpaceSocialConfig bindInfo = new SpaceSocialConfig();
+        if (ObjectUtil.isNotNull(socialConnectInfo) && socialConnectInfo.isEnabled()) {
+            bindInfo.setEnabled(true);
+            bindInfo.setPlatform(socialConnectInfo.getPlatform());
+            bindInfo.setAppType(socialConnectInfo.getAppType());
+            bindInfo.setAuthMode(socialConnectInfo.getAuthMode());
+            // is it synchronizing the contact
+            bindInfo.setContactSyncing(socialConnectInfo.contactSyncing());
+        }
+        spaceInfoVO.setSocial(bindInfo);
+        // chat bot status
+        CommonCacheService cacheService = SpringContextHolder.getBean(CommonCacheService.class);
+        boolean isEnableChatbot = cacheService.checkIfSpaceEnabledChatbot(spaceId);
+        spaceInfoVO.setIsEnableChatbot(isEnableChatbot);
         if (Boolean.TRUE.equals(skipUsageVerification)) {
             spaceInfoVO.setSocial(new SpaceSocialConfig());
             spaceInfoVO.setSeatUsage(new SeatUsage());
@@ -805,29 +822,11 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, SpaceEntity>
             spaceCapacityUsedInfo.getCurrentBundleCapacityUsedSizes());
         spaceInfoVO.setGiftCapacityUsedSizes(
             spaceCapacityUsedInfo.getGiftCapacityUsedSizes());
-
-        // obtain third party information
-        SocialConnectInfo socialConnectInfo =
-            socialServiceFacade.getConnectInfo(spaceId);
-        SpaceSocialConfig bindInfo = new SpaceSocialConfig();
-        if (ObjectUtil.isNotNull(socialConnectInfo) && socialConnectInfo.isEnabled()) {
-            bindInfo.setEnabled(true);
-            bindInfo.setPlatform(socialConnectInfo.getPlatform());
-            bindInfo.setAppType(socialConnectInfo.getAppType());
-            bindInfo.setAuthMode(socialConnectInfo.getAuthMode());
-            // is it synchronizing the contact
-            bindInfo.setContactSyncing(socialConnectInfo.contactSyncing());
-        }
-        spaceInfoVO.setSocial(bindInfo);
         // credit
         BigDecimal usedCredit =
             aiServiceFacade.getUsedCreditCount(spaceId, dateRange.getCycleStartDate(),
                 dateRange.getCycleEndDate());
         spaceInfoVO.setUsedCredit(usedCredit);
-        // chat bot status
-        CommonCacheService cacheService = SpringContextHolder.getBean(CommonCacheService.class);
-        boolean isEnableChatbot = cacheService.checkIfSpaceEnabledChatbot(spaceId);
-        spaceInfoVO.setIsEnableChatbot(isEnableChatbot);
         return spaceInfoVO;
     }
 
