@@ -29,6 +29,8 @@ liquibase \
     update \
     -Dtable.prefix="${DATABASE_TABLE_PREFIX:=apitable_}"
 
+cd /app/init-appdata
+
 for action in init-user load; do
     java -jar /app/init-appdata/init-appdata.jar "${action}"
 done
