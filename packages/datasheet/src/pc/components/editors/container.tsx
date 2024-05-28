@@ -160,6 +160,7 @@ const EditorContainerBase: React.ForwardRefRenderFunction<IContainerEdit, Editor
     chunkSize = 100;
   }
   const [isPasting, setIsPasting] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const [totalCount, setTotalCount] = React.useState(0);
   const [completedCount, setCompletedCount] = React.useState(0);
 
@@ -923,17 +924,17 @@ const EditorContainerBase: React.ForwardRefRenderFunction<IContainerEdit, Editor
             </Typography>
             <Progress percent={Number(((100 * completedCount) / totalCount).toFixed(2))} showInfo={false} />
             <div className={styles.stopProgress}>
-              <Button size="small" onClick={() => {
+              <Button size="small" disabled={isStopping} onClick={() => {
                 Modal.warning({
                   title: t(Strings.stop_chunk_title),
                   content: t(Strings.stop_chunk_content),
                   hiddenCancelBtn: false,
                   onOk: () => {
-                    // reload page
-                    window.location.reload();
+                    setIsStopping(true);
+                    localStorage.setItem('stop_chunk', 'stop');
                   },
                 });
-              }}>{t(Strings.stop_chunk_title)}</Button>
+              }}>{isStopping ? t(Strings.chunk_stopping_title) : t(Strings.stop_chunk_title)}</Button>
             </div>
           </div>
         </Modal>

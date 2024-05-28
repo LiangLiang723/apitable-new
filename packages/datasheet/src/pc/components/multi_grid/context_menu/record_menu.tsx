@@ -152,6 +152,7 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
   const [action, setAction] = React.useState('');
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isStopping, setIsStopping] = React.useState(false);
   const [totalCount, setTotalCount] = React.useState(0);
   const [completedCount, setCompletedCount] = React.useState(0);
 
@@ -187,7 +188,6 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
         cmd: CollaCommandName.ArchiveRecords,
         data: chunks,
       });
-      // await 3 seconds
       await new Promise<void>((resolve) => {
         const doingOpMessageId = localStorage.getItem('doing_op_messageId');
         if (doingOpMessageId) {
@@ -200,6 +200,12 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
       });
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setCompletedCount(chunkSize * i + chunks.length);
+      const isChunkStop = localStorage.getItem('stop_chunk') === 'stop';
+      if (isChunkStop) {
+        localStorage.removeItem('stop_chunk');
+        window.location.reload();
+        break;
+      }
     }
     // await 3 seconds
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -243,12 +249,27 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
         cmd: CollaCommandName.DeleteRecords,
         data: chunks,
       });
-      // await 3 seconds
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await new Promise<void>((resolve) => {
+        const doingOpMessageId = localStorage.getItem('doing_op_messageId');
+        if (doingOpMessageId) {
+          window.addEventListener(doingOpMessageId, () => {
+            resolve();
+            // remove event listener
+            window.removeEventListener(doingOpMessageId, () => {});
+          });
+        }
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setCompletedCount(chunkSize * i + chunks.length);
+      const isChunkStop = localStorage.getItem('stop_chunk') === 'stop';
+      if (isChunkStop) {
+        localStorage.removeItem('stop_chunk');
+        window.location.reload();
+        break;
+      }
     }
     // await 3 seconds
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     setIsDeleting(false);
     setTotalCount(0);
     setCompletedCount(0);
@@ -599,22 +620,22 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
           <div className={styles.archiveProgress}>
             <Typography variant='h6'>
               {t(Strings.record_chunk_text, {
-                text: `${action} ${completedCount}/${totalCount}`
+                text: `${action}${completedCount}/${totalCount}`
               })}
             </Typography>
             <Progress percent={Number(((100 * completedCount) / totalCount).toFixed(2))} showInfo={false} />
             <div className={styles.stopProgress}>
-              <Button size="small" onClick={() => {
+              <Button size="small" disabled={isStopping} onClick={() => {
                 Modal.warning({
                   title: t(Strings.stop_chunk_title),
                   content: t(Strings.stop_chunk_content),
                   hiddenCancelBtn: false,
                   onOk: () => {
-                    // reload page
-                    window.location.reload();
+                    setIsStopping(true);
+                    localStorage.setItem('stop_chunk', 'stop');
                   },
                 });
-              }}>{t(Strings.stop_chunk_title)}</Button>
+              }}>{isStopping ? t(Strings.chunk_stopping_title) : t(Strings.stop_chunk_title)}</Button>
             </div>
           </div>
         </Modal>

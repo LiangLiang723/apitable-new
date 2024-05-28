@@ -428,6 +428,12 @@ export class Clipboard {
         });
         await new Promise((resolve) => setTimeout(resolve, 1000));
         cb?.(length, this.chunkSize * i + (recordIds?.length || 0));
+        const isChunkStop = localStorage.getItem('stop_chunk') === 'stop';
+        if (isChunkStop) {
+          localStorage.removeItem('stop_chunk');
+          window.location.reload();
+          break;
+        }
       }
       recogClipboardURLData({
         state,
