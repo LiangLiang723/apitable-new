@@ -31,10 +31,12 @@ import {
   DATASHEET_MEMBER_FIELD,
   DATASHEET_META_HTTP_DECORATE,
   InjectLogger,
+  USER_HTTP_DECORATE,
 } from 'shared/common';
 import { FieldTypeEnum } from 'shared/enums/field.type.enum';
 import { ApiException } from 'shared/exception';
 import { IFieldRoTransformOptions, IFieldValue, IFieldValueMap } from 'shared/interfaces';
+import { UserEntity } from 'user/entities/user.entity';
 import { Logger } from 'winston';
 
 /**
@@ -46,13 +48,13 @@ export class FieldPipe implements PipeTransform {
     private readonly recordService: DatasheetRecordService,
     @InjectLogger() private readonly logger: Logger,
     @Inject(REQUEST) private readonly request: FastifyRequest,
-  ) {
-  }
+  ) {}
 
   // no use function
   async transform(value: any, _: ArgumentMetadata): Promise<any> {
     const datasheet = this.request[DATASHEET_HTTP_DECORATE];
     const meta = this.request[DATASHEET_META_HTTP_DECORATE] as IMeta;
+    const user = this.request[USER_HTTP_DECORATE] as UserEntity;
     let fieldMap = meta.fieldMap;
     if (value.fieldKey === FieldKeyEnum.NAME) {
       fieldMap = keyBy(Object.values(meta.fieldMap), 'name');
@@ -75,21 +77,24 @@ export class FieldPipe implements PipeTransform {
               fields[field.id] = null;
               continue;
             }
-            const transformedOptionIds = flatten([fieldValue]).filter(value => !isEmpty(value)).map(optionValue => {
-              const { option, isCreated } = SelectField.getOrCreateNewOption({ name: optionValue }, existOptions);
-              if (isCreated) {
-                existOptions.push(option);
-                (field as ISelectField).property.options = existOptions;
-                this.request[DATASHEET_ENRICH_SELECT_FIELD][field.id] = field;
-              }
-              return option.id;
-            });
+            const transformedOptionIds = flatten([fieldValue])
+              .filter((value) => !isEmpty(value))
+              .map((optionValue) => {
+                const { option, isCreated } = SelectField.getOrCreateNewOption({ name: optionValue }, existOptions);
+                if (isCreated) {
+                  existOptions.push(option);
+                  (field as ISelectField).property.options = existOptions;
+                  this.request[DATASHEET_ENRICH_SELECT_FIELD][field.id] = field;
+                }
+                return option.id;
+              });
             fields[field.id] = field.type === FieldType.SingleSelect ? transformedOptionIds[0]! : transformedOptionIds;
           } else {
             // transform
             fields[field.id] = await this.fieldTransform(fieldValue, field, {
               spaceId: datasheet.spaceId,
               fieldMap: meta.fieldMap,
+              timeZone: user.timeZone,
             });
           }
           // collect recordIds if it is link type field

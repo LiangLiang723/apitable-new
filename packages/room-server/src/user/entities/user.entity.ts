@@ -130,6 +130,14 @@ export class UserEntity {
   locale?: string;
 
   @Column({
+    name: 'time_zone',
+    nullable: true,
+    comment: 'user time zone',
+    length: 50,
+  })
+  timeZone?: string;
+
+  @Column({
     name: 'is_social_name_modified',
     nullable: true,
     comment: 'have you modified the nickname as a third -party IM user? 0: No; 1: Yes; 2: Not third -party users of IM',

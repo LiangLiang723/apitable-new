@@ -703,8 +703,8 @@ export abstract class DateTimeBaseField extends Field {
     return cellValue ? this.cellValueToString(cellValue) : null;
   }
 
-  cellValueToOpenValue(cellValue: ICellValue): number | null {
-    return cellValue ? cellValue as number: null;
+  cellValueToOpenValue(cellValue: ICellValue): string | null {
+    return cellValue ? this.cellValueToString(cellValue): null;
   }
 
   openWriteValueToCellValue(openWriteValue: string | Date | null) {
