@@ -22,7 +22,8 @@ export const useAutomationResourcePermission = (): INodePermissions => {
   const mirrorCreatable = useAppSelector((state: IReduxState) => {
     const resourceId = stateValue?.resourceId!;
     const defaultValue= state.catalogTree.treeNodesMap[resourceId]?.permissions ||
-      state.catalogTree.privateTreeNodesMap[resourceId]?.permissions || {
+      state.catalogTree.privateTreeNodesMap[resourceId]?.permissions ||
+      state.datasheetMap[resourceId]?.datasheet?.permissions || {
       manageable: false,
       editable: false,
       readable: true,
