@@ -392,7 +392,7 @@ export class Clipboard {
         }
       }
 
-      const length = stdValueTable.recordIds?.length ?? 0;
+      const length = stdValueTable.recordIds?.length ?? stdValueTable.body.length ?? 0;
       const times = Math.ceil(length / this.chunkSize);
       for (let i = 0; i < times; i++) {
         if (i === 0) {
