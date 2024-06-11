@@ -75,6 +75,10 @@ describe('DatetimeField', () => {
       expect(() => fieldClass.validate(1599893097514, field)).not.toThrow();
     });
 
+    it('Date ISO should pass', () => {
+      expect(() => fieldClass.validate("2024-06-04T00:00:00+08:00", field)).not.toThrow();
+    });
+
     it('Date String 2024/05/29 09:36 PM (UTC-10) should throw', () => {
       expect(() => {
         fieldClass.validate('2024/05/29 09:36 PM (UTC-10)', field);
