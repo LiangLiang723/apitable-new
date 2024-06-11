@@ -44,7 +44,6 @@ import {
   IRecord,
   IRecordAlarmClient,
   ISelection,
-  isUrl,
   Range,
   RangeDirection,
   SegmentType,
@@ -704,7 +703,7 @@ const EditorContainerBase: React.ForwardRefRenderFunction<IContainerEdit, Editor
           });
         };
 
-        if (isUrl(url) && cellValue?.[0].text !== (value[0] as any)?.text) {
+        if (cellValue?.[0].text !== (value[0] as any)?.text) {
           recognizeURLAndSetTitle({
             url,
             callback,

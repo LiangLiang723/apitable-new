@@ -18,6 +18,7 @@
 
 import { Select as MultiSelect } from 'antd';
 import classNames from 'classnames';
+import { TriggerCommands } from 'modules/shared/apphook/trigger_commands';
 import { FC, memo, useContext, useMemo } from 'react';
 import { shallowEqual, useDispatch } from 'react-redux';
 // eslint-disable-next-line no-restricted-imports
@@ -57,7 +58,6 @@ import {
   QuestionCircleOutlined, TwoWayLinkOutlined,
   WarnCircleOutlined,
 } from '@apitable/icons';
-import { TriggerCommands } from 'modules/shared/apphook/trigger_commands';
 import { Message } from 'pc/components/common';
 import { ColorPicker, OptionSetting } from 'pc/components/common/color_picker';
 import { ColorGroup } from 'pc/components/common/color_picker/color_group';
@@ -150,7 +150,7 @@ export const SettingPanel: FC<React.PropsWithChildren<ISettingPanelProps>> = mem
   const dispatch = useDispatch();
   const columns = view.columns as IGanttViewColumn[];
   const columnCount = columns.length;
-  const { datasheetId, viewId } = useAppSelector((state) => state.pageParams);
+  const { datasheetId, viewId, embedId } = useAppSelector((state) => state.pageParams);
   const spaceId = useAppSelector((state) => state.space.activeId);
   const {
     startFieldId,
@@ -444,7 +444,7 @@ export const SettingPanel: FC<React.PropsWithChildren<ISettingPanelProps>> = mem
       </header>
 
       {/* Video teaching button */}
-      {getEnvVariables().GANTT_SETTING_GUIDE_VIDEO_VISIBLE && (
+      {getEnvVariables().GANTT_SETTING_GUIDE_VIDEO_VISIBLE && !Boolean(embedId) && (
         <div className={styles.guideWrap} onClick={onPlayGuideVideo}>
           <span className={styles.left}>
             <ClassOutlined size={16} color={colors.primaryColor} />

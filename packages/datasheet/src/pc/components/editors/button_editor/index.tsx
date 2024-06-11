@@ -17,10 +17,12 @@
  */
 
 import * as React from 'react';
-import { ButtonActionType, evaluate, IButtonField, ICellValue, IReduxState, OpenLinkType, Strings, t, IRecord } from '@apitable/core';
+import { ButtonActionType, evaluate, IButtonField, ICellValue, IReduxState, OpenLinkType, IRecord, isUrl } from '@apitable/core';
+import { Message } from 'pc/components/common';
 import { executeWithMinimumTime } from 'pc/components/editors/button_editor/buton_item';
 import { reqDatasheetButtonTrigger } from 'pc/components/robot/api';
-import { IBaseEditorProps, IEditor } from '../interface';
+import { getEnvVariables } from 'pc/utils/env';
+import { IBaseEditorProps } from '../interface';
 
 export interface IButtonEditorProps extends IBaseEditorProps {
   editable: boolean;
@@ -46,13 +48,28 @@ const timeout = (prom: any, time: number, exception: any) => {
 
 export const runAutomationUrl = (datasheetId: string, record: any, state: IReduxState, recordId: string, fieldId: string, field: IButtonField) => {
   if (field.property.action.type === ButtonActionType.OpenLink) {
+    const env = getEnvVariables();
     try {
       if (field.property.action.openLink?.type === OpenLinkType.Url) {
-        window.open(field.property.action.openLink?.expression, '_blank');
+        const expression = field.property.action.openLink?.expression;
+        if (env.IS_SELFHOST && !isUrl(expression)) {
+          Message.warning({
+            content: 'URL is invalid.',
+          });
+          return;
+        }
+        window.open(expression, '_blank');
       } else {
         const expression = field.property.action.openLink?.expression ?? '';
 
         const url = evaluate(expression, { field, record, state }, false);
+
+        if (env.IS_SELFHOST && !isUrl(url)) {
+          Message.warning({
+            content: 'URL is invalid.',
+          });
+          return;
+        }
 
         window.open(String(url), '_blank');
       }

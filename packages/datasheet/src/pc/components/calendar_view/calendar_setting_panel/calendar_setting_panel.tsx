@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import { TriggerCommands } from 'modules/shared/apphook/trigger_commands';
 import { FC, useContext, useMemo } from 'react';
 import { shallowEqual, useDispatch } from 'react-redux';
 import { batchActions } from 'redux-batched-actions';
@@ -43,7 +44,6 @@ import {
   t,
 } from '@apitable/core';
 import { AddOutlined, ChevronRightOutlined, ClassOutlined, CloseOutlined, QuestionCircleOutlined, WarnCircleOutlined } from '@apitable/icons';
-import { TriggerCommands } from 'modules/shared/apphook/trigger_commands';
 import { ColorPicker, OptionSetting } from 'pc/components/common/color_picker';
 import { notify } from 'pc/components/common/notify';
 import { NotifyKey } from 'pc/components/common/notify/notify.interface';
@@ -76,13 +76,14 @@ export const CalendarSettingPanel: FC<React.PropsWithChildren<ICalendarSettingPa
   const isEndFieldDeleted = endFieldId && !isCryptoEndField && !fieldMap[endFieldId];
   const columns = view.columns as ICalendarViewColumn[];
   const isViewLock = useShowViewLockModal();
-  const { spaceId, viewId, datasheetId, cacheTheme } = useAppSelector((state) => {
-    const { datasheetId: dstId, viewId: vId } = state.pageParams;
+  const { spaceId, viewId, datasheetId, cacheTheme, embedId } = useAppSelector((state) => {
+    const { datasheetId: dstId, viewId: vId, embedId } = state.pageParams;
     return {
       datasheetId: dstId,
       viewId: vId,
       spaceId: state.space.activeId!,
       cacheTheme: state.theme,
+      embedId
     };
   }, shallowEqual);
   const { CALENDAR_SETTING_HELP_URL } = getEnvVariables();
@@ -230,7 +231,7 @@ export const CalendarSettingPanel: FC<React.PropsWithChildren<ICalendarSettingPa
         </div>
         <CloseOutlined className={styles.closeIcon} size={16} color={black[500]} onClick={onClose} />
       </header>
-      {getEnvVariables().CALENDAR_SETTING_GUIDE_VIDEO_VISIBLE && (
+      {getEnvVariables().CALENDAR_SETTING_GUIDE_VIDEO_VISIBLE && !Boolean(embedId) && (
         <div className={styles.guideWrap} onClick={onPlayGuideVideo}>
           <span className={styles.left}>
             <ClassOutlined size={16} color={colors.primaryColor} />

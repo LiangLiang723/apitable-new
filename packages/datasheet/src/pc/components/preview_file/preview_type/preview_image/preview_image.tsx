@@ -17,11 +17,11 @@
  */
 
 import classNames from 'classnames';
+import { browser } from 'modules/shared/browser';
 import { useRef } from 'react';
 import * as React from 'react';
 import { stopPropagation } from '@apitable/components';
 import { cellValueToImageSrc, isWebp } from '@apitable/core';
-import { browser } from 'modules/shared/browser';
 import { FileType, getDownloadSrc, isSupportImage, renderFileIconUrl } from 'pc/utils/file_type';
 import IconImg from 'static/icon/datasheet/attachment/attachment_ img_placeholder_filled.png'; // img
 import { MIN_SCALE } from '../../preview_main/constant';
@@ -121,7 +121,7 @@ export const PreviewImage: React.FC<React.PropsWithChildren<IPreviewTypeBase>> =
     ? renderFileIconUrl(fileLikeProps).src
     : cellValueToImageSrc(file, transformWebpIfNeeded ? { formatToJPG: true } : undefined);
 
-  if (!src && file.token.includes('http')) {
+  if (!src) {
     src = file.token;
   }
 

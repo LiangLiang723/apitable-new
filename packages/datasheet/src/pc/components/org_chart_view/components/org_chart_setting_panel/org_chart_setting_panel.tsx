@@ -17,6 +17,7 @@
  */
 
 import { Tooltip } from 'antd';
+import { TriggerCommands } from 'modules/shared/apphook/trigger_commands';
 import * as React from 'react';
 import { useContext, useMemo } from 'react';
 // eslint-disable-next-line no-restricted-imports
@@ -35,7 +36,6 @@ import {
 import {
   AddOutlined, ChevronRightOutlined, ClassOutlined, CloseOutlined, OneWayLinkOutlined, TwoWayLinkOutlined, QuestionCircleOutlined
 } from '@apitable/icons';
-import { TriggerCommands } from 'modules/shared/apphook/trigger_commands';
 import { FieldPermissionLock } from 'pc/components/field_permission';
 import { useShowViewLockModal } from 'pc/components/view_lock/use_show_view_lock_modal';
 import { resourceService } from 'pc/resource_service';
@@ -65,6 +65,7 @@ export const OrgChartSettingPanel: React.FC<React.PropsWithChildren<IOrgChartSet
   const activeView = useAppSelector((state) => Selectors.getCurrentView(state)) as IOrgChartViewProperty;
   const datasheetId = useAppSelector((state) => Selectors.getActiveDatasheetId(state));
   const fieldMap = useAppSelector((state) => Selectors.getFieldMap(state))!;
+  const { embedId } = useAppSelector((state) => state.pageParams);
   const isViewLock = useShowViewLockModal();
 
   const options = useMemo(() => {
@@ -148,7 +149,7 @@ export const OrgChartSettingPanel: React.FC<React.PropsWithChildren<IOrgChartSet
         </div>
         <IconButton onClick={onClose} icon={CloseOutlined} size="small" />
       </header>
-      {getEnvVariables().ARCHITECTURE_SETTING_GUIDE_VIDEO_VISIBLE && (
+      {getEnvVariables().ARCHITECTURE_SETTING_GUIDE_VIDEO_VISIBLE && !Boolean(embedId) && (
         <div className={styles.guideWrap} onClick={onPlayGuideVideo}>
           <span className={styles.left}>
             <ClassOutlined size={16} color={colors.primaryColor} />
