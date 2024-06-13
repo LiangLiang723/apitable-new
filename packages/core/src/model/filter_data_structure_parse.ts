@@ -180,7 +180,7 @@ export function parseInnerFilter(filterInfo: IOpenFilterInfo, context: {
     const operator = Object.keys(filterValueMap)[0];
     exitIds.push(conditionId);
     const fieldValue = filterValueMap[operator];
-    const isSingleContains = field.type === FieldType.SingleSelect && operator === FOperator.Contains;
+    const isSingleContains = field.type === FieldType.SingleSelect && (operator === FOperator.Contains || operator === FOperator.DoesNotContain);
     let value;
     if (isSingleContains) {
       value = Array.isArray(fieldValue) ?
@@ -209,7 +209,7 @@ export function parseInnerFilter(filterInfo: IOpenFilterInfo, context: {
 
 function openFilterValueToFilterValueInterceptor(fieldModel: Field, fieldValue: IFilterSingleSelect, operator: OperatorEnums, fieldType: FieldType){
   const ensuredArrayValue = Array.isArray(fieldValue)? fieldValue: [fieldValue];
-  if (fieldType === FieldType.SingleSelect && operator === OperatorEnums.Contains) {
+  if (fieldType === FieldType.SingleSelect && (operator === OperatorEnums.Contains || operator === OperatorEnums.DoesNotContain)) {
     return ensuredArrayValue.map(item => fieldModel.openFilterValueToFilterValue(item)).flat();
   }
   return fieldModel.openFilterValueToFilterValue(fieldValue);
@@ -220,7 +220,7 @@ function filterValueToOpenFilterValueInterceptor(fieldModel: Field, value: IFilt
     return fieldModel.filterValueToOpenFilterValue(value);
   }
   const arrayValue: IFilterSingleSelect = Array.isArray(value) ? value : [value];
-  if (operator === OperatorEnums.Contains && fieldType == FieldType.SingleSelect) {
+  if ((operator === OperatorEnums.Contains || operator === OperatorEnums.DoesNotContain) && fieldType == FieldType.SingleSelect) {
     return arrayValue.map((option: string) => fieldModel.filterValueToOpenFilterValue([option]))
       .filter(Boolean);
   }

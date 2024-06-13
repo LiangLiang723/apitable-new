@@ -33,6 +33,7 @@ export enum OperatorEnums {
   GreaterThan = 'greaterThan',
   GreaterThanOrEqual = 'greaterThanOrEqual',
   Contains = 'contains',
+  DoesNotContain = 'doesNotContain',
 
   // built-in functions
   GetNodeOutput = 'getNodeOutput',
