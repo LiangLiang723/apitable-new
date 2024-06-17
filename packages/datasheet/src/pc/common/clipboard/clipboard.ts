@@ -271,8 +271,9 @@ export class Clipboard {
     }
     const selection = selections[0];
 
-    const clipboardData = e.clipboardData;
+    const clipboardData = e.clipboardData || (window as any).clipboardData;
     if (!clipboardData) {
+      console.warn('! ' + 'Clipboard data is not supported');
       return;
     }
 
@@ -392,8 +393,11 @@ export class Clipboard {
         }
       }
 
-      const length = stdValueTable.recordIds?.length ?? 0;
+      const length = stdValueTable.recordIds?.length ?? stdValueTable.body.length ?? 0;
       const times = Math.ceil(length / this.chunkSize);
+      console.log('paste data', {
+        stdValueTable, times
+      });
       for (let i = 0; i < times; i++) {
         if (i === 0) {
           cb?.(length, 0);
@@ -427,7 +431,7 @@ export class Clipboard {
           }
         });
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        cb?.(length, this.chunkSize * i + (recordIds?.length || 0));
+        cb?.(length, this.chunkSize * i + (recordIds?.length ?? stdValues?.length ?? 0));
         const isChunkStop = localStorage.getItem('stop_chunk') === 'stop';
         if (isChunkStop) {
           localStorage.removeItem('stop_chunk');
@@ -596,6 +600,7 @@ export class Clipboard {
     }
     const activeCell = Selectors.getActiveCell(store.getState());
     if (!activeCell) {
+      console.warn('! ' + 'No active cell');
       return;
     }
     const snapshot = Selectors.getSnapshot(store.getState());

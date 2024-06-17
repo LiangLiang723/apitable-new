@@ -29,6 +29,10 @@ import { FieldManager } from '../field.manager';
 export class DateTimeField extends BaseField implements OnApplicationBootstrap {
   override validate(fieldValue: IFieldValue, field: IField, extra?: { [key: string]: string }) {
     if (fieldValue === null) return;
+     // Time String
+     if (DateTime.fromISO(fieldValue.toString()).isValid) {
+      return;
+    }
     // Time String
     if (DateTime.fromSQL(fieldValue.toString()).isValid) {
       return;
