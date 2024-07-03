@@ -17,13 +17,13 @@
  */
 
 import { ExecuteResult, ExecuteType, ICollaCommandExecuteSuccessResult } from 'command_manager';
-import { ICommandExecutionSuccessResult } from '../logic';
+import { CollaCommandName } from 'commands/enum';
+import { IOperation, OTActionName } from 'engine';
 import { ViewType } from 'modules/shared/store/constants';
 import { ResourceType, SegmentType } from 'types';
+import { ICommandExecutionSuccessResult } from '../logic';
 import { MockDataBus, resetDataLoader } from './mock.databus';
 import { mockOperationOfAddRecords } from './mock.record';
-import { IOperation, OTActionName } from 'engine';
-import { CollaCommandName } from 'commands/enum';
 
 const db = MockDataBus.getDatabase();
 
@@ -63,7 +63,7 @@ describe('getFields', () => {
 
     const fields = await view2!.getFields({});
 
-    const fieldIds = fields.map(field => field.id);
+    const fieldIds = fields.map((field) => field.id);
 
     expect(fieldIds).toStrictEqual(['fld1']);
   });
@@ -84,7 +84,7 @@ describe('getFields', () => {
       includeHidden: true,
     });
 
-    const fieldIds = fields.map(field => field.id);
+    const fieldIds = fields.map((field) => field.id);
 
     expect(fieldIds).toStrictEqual(['fld1', 'fld2']);
   });
@@ -101,206 +101,11 @@ describe('getRecords', () => {
     const view2 = await dst1!.getView('viw2');
     expect(view2).toBeTruthy();
 
-    const records = await view2!.getRecords({});
+    const records = await view2!.getRecords();
 
-    const recordIds = records.map(record => record.id);
-
-    expect(recordIds).toStrictEqual(['rec2', 'rec3', 'rec5', 'rec1', 'rec4']);
-  });
-
-  test('maxRecords limit number of records', async () => {
-    const dst1 = await db.getDatasheet('dst1', {
-      loadOptions: {},
-      storeOptions: {},
-    });
-    expect(dst1).toBeTruthy();
-
-    const view2 = await dst1!.getView('viw2');
-    expect(view2).toBeTruthy();
-
-    const records = await view2!.getRecords({
-      maxRecords: 3,
-    });
-
-    const recordIds = records.map(record => record.id);
-
-    expect(recordIds).toStrictEqual(['rec2', 'rec3', 'rec5']);
-  });
-
-  test('maxRecords > total number of records', async () => {
-    const dst1 = await db.getDatasheet('dst1', {
-      loadOptions: {},
-      storeOptions: {},
-    });
-    expect(dst1).toBeTruthy();
-
-    const view2 = await dst1!.getView('viw2');
-    expect(view2).toBeTruthy();
-
-    const records = await view2!.getRecords({
-      maxRecords: 20,
-    });
-
-    const recordIds = records.map(record => record.id);
+    const recordIds = records.map((record) => record.id);
 
     expect(recordIds).toStrictEqual(['rec2', 'rec3', 'rec5', 'rec1', 'rec4']);
-  });
-
-  describe('pagination', () => {
-    test('pageNum = 1, pageSize = 3', async () => {
-      const dst1 = await db.getDatasheet('dst1', {
-        loadOptions: {},
-        storeOptions: {},
-      });
-      expect(dst1).toBeTruthy();
-
-      const view2 = await dst1!.getView('viw2');
-      expect(view2).toBeTruthy();
-
-      const records = await view2!.getRecords({
-        pagination: {
-          pageNum: 1,
-          pageSize: 3,
-        },
-      });
-
-      const recordIds = records.map(record => record.id);
-
-      expect(recordIds).toStrictEqual(['rec2', 'rec3', 'rec5']);
-    });
-
-    test('pageNum = 1, pageSize = 0', async () => {
-      const dst1 = await db.getDatasheet('dst1', {
-        loadOptions: {},
-        storeOptions: {},
-      });
-      expect(dst1).toBeTruthy();
-
-      const view2 = await dst1!.getView('viw2');
-      expect(view2).toBeTruthy();
-
-      const records = await view2!.getRecords({
-        pagination: {
-          pageNum: 1,
-          pageSize: 0,
-        },
-      });
-
-      const recordIds = records.map(record => record.id);
-
-      expect(recordIds).toStrictEqual([]);
-    });
-
-    test('pageNum = 1, pageSize = 0', async () => {
-      const dst1 = await db.getDatasheet('dst1', {
-        loadOptions: {},
-        storeOptions: {},
-      });
-      expect(dst1).toBeTruthy();
-
-      const view2 = await dst1!.getView('viw2');
-      expect(view2).toBeTruthy();
-
-      const records = await view2!.getRecords({
-        pagination: {
-          pageNum: 1,
-          pageSize: 0,
-        },
-      });
-
-      const recordIds = records.map(record => record.id);
-
-      expect(recordIds).toStrictEqual([]);
-    });
-
-    test('pageNum = 2, pageSize = 2', async () => {
-      const dst1 = await db.getDatasheet('dst1', {
-        loadOptions: {},
-        storeOptions: {},
-      });
-      expect(dst1).toBeTruthy();
-
-      const view2 = await dst1!.getView('viw2');
-      expect(view2).toBeTruthy();
-
-      const records = await view2!.getRecords({
-        pagination: {
-          pageNum: 2,
-          pageSize: 2,
-        },
-      });
-
-      const recordIds = records.map(record => record.id);
-
-      expect(recordIds).toStrictEqual(['rec5', 'rec1']);
-    });
-
-    test('pageNum = 2, pageSize = 3', async () => {
-      const dst1 = await db.getDatasheet('dst1', {
-        loadOptions: {},
-        storeOptions: {},
-      });
-      expect(dst1).toBeTruthy();
-
-      const view2 = await dst1!.getView('viw2');
-      expect(view2).toBeTruthy();
-
-      const records = await view2!.getRecords({
-        pagination: {
-          pageNum: 2,
-          pageSize: 3,
-        },
-      });
-
-      const recordIds = records.map(record => record.id);
-
-      expect(recordIds).toStrictEqual(['rec1', 'rec4']);
-    });
-
-    test('pageNum = 3, pageSize = 3', async () => {
-      const dst1 = await db.getDatasheet('dst1', {
-        loadOptions: {},
-        storeOptions: {},
-      });
-      expect(dst1).toBeTruthy();
-
-      const view2 = await dst1!.getView('viw2');
-      expect(view2).toBeTruthy();
-
-      const records = await view2!.getRecords({
-        pagination: {
-          pageNum: 3,
-          pageSize: 3,
-        },
-      });
-
-      const recordIds = records.map(record => record.id);
-
-      expect(recordIds).toStrictEqual([]);
-    });
-  });
-
-  test('maxRecords = 4 and pagnation: pageNum = 2, pageSize = 3', async () => {
-    const dst1 = await db.getDatasheet('dst1', {
-      loadOptions: {},
-      storeOptions: {},
-    });
-    expect(dst1).toBeTruthy();
-
-    const view2 = await dst1!.getView('viw2');
-    expect(view2).toBeTruthy();
-
-    const records = await view2!.getRecords({
-      maxRecords: 4,
-      pagination: {
-        pageNum: 2,
-        pageSize: 3,
-      },
-    });
-
-    const recordIds = records.map(record => record.id);
-
-    expect(recordIds).toStrictEqual(['rec1']);
   });
 });
 
@@ -322,7 +127,7 @@ describe('addRecords', () => {
         index: 3,
         count: 2,
       },
-      {},
+      {}
     );
 
     expect(result.result).toStrictEqual(ExecuteResult.Success);
@@ -407,7 +212,7 @@ describe('addRecords', () => {
           },
         ],
       },
-      {},
+      {}
     );
 
     expect(result.result).toStrictEqual(ExecuteResult.Success);
@@ -495,7 +300,7 @@ describe('modify view', () => {
         key: 'name',
         value: 'VIEW_1',
       },
-      {},
+      {}
     );
 
     expect(result.result).toStrictEqual(ExecuteResult.Success);
@@ -560,7 +365,7 @@ describe('modify view', () => {
         key: 'columns',
         value: [{ fieldId: 'fld2', hidden: true }],
       },
-      {},
+      {}
     );
 
     expect(result.result).toStrictEqual(ExecuteResult.Success);

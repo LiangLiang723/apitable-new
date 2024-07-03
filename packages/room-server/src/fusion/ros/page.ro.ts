@@ -40,7 +40,6 @@ export abstract class PageRo implements IApiPaginateRo {
   // For parameter verification
   @Type(() => Number)
   @IsOptional()
-  @ValidateIf(o => o.pageSize !== -1)
   @Min(1, { message: ApiTipConstant.api_params_pagesize_min_error })
   @Max(API_MAX_PAGE_SIZE, {
     message: ApiTipConstant.api_params_pagesize_max_error,
@@ -56,6 +55,7 @@ export abstract class PageRo implements IApiPaginateRo {
   })
   @Type(() => Number)
   @IsOptional()
+  @ValidateIf((o) => o.maxRecords !== -1)
   @Min(1, { message: ApiTipConstant.api_params_maxrecords_min_error })
   maxRecords?: number;
 
@@ -81,7 +81,7 @@ export abstract class PageRo implements IApiPaginateRo {
       'the sorting conditions specified in this parameter will cover the sorting conditions in the view',
   })
   @Type(() => SortRo)
-  @Transform(value => plainToClass(SortRo, objStringToArray(value), {}), { toClassOnly: true })
+  @Transform((value) => plainToClass(SortRo, objStringToArray(value), {}), { toClassOnly: true })
   // TODO: This annotation has a bug that cannot pass the OPTIONS, so ignoring the incorrect verification of the format
   @ValidateNested({ message: ApiTipConstant.api_params_instance_sort_error })
   @IsOptional()

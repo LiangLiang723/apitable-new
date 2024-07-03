@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { mockRecordValues, mockRecords, mockDefaultRecord, mockRecordVoTransformer } from './mock.record';
-import { MockDataBus, resetDataLoader } from './mock.databus';
-import { IRecord } from 'exports/store/interfaces';
-import { SegmentType } from 'types';
 import { ExecuteResult } from 'command_manager';
 import { CollaCommandName } from 'commands/enum';
+import { IRecord } from 'exports/store/interfaces';
+import { SegmentType } from 'types';
+import { MockDataBus, resetDataLoader } from './mock.databus';
+import { mockDefaultRecord, mockRecords, mockRecordValues, mockRecordVoTransformer } from './mock.record';
 
 const assertRecordId = (record: IRecord, newId: string): IRecord => {
   expect(record.id).toBeTruthy();
@@ -48,7 +48,7 @@ describe('record operations', () => {
       expect(dst1).toBeTruthy();
       const view1 = await dst1!.getView('viw1');
       expect(view1).toBeTruthy();
-      const records = await view1!.getRecords({});
+      const records = await view1!.getRecords();
 
       expect(records).toBeTruthy();
       expect(records.length).toBe(5);
@@ -62,11 +62,11 @@ describe('record operations', () => {
       expect(dst1).toBeTruthy();
       const view1 = await dst1!.getView('viw1');
       expect(view1).toBeTruthy();
-      const records = await view1!.getRecords({});
+      const records = await view1!.getRecords();
 
       expect(records).toBeTruthy();
 
-      const recordVos = records.map(record => record.getViewObject(mockRecordVoTransformer));
+      const recordVos = records.map((record) => record.getViewObject(mockRecordVoTransformer));
 
       expect(recordVos).toStrictEqual([
         {
@@ -146,7 +146,7 @@ describe('record operations', () => {
             },
           ],
         },
-        {},
+        {}
       );
 
       expect(succeeded.result).toStrictEqual(ExecuteResult.Success);
@@ -160,7 +160,7 @@ describe('record operations', () => {
       view1 = await dst1!.getView('viw1');
       expect(view1).toBeTruthy();
 
-      const records = await view1!.getRecords({});
+      const records = await view1!.getRecords();
 
       expect(records).toBeTruthy();
       expect(records.length).toBe(6);
@@ -179,7 +179,7 @@ describe('record operations', () => {
           index: 0,
           recordValues: [mockRecordValues[0]!],
         },
-        {},
+        {}
       );
 
       expect(result.result).toStrictEqual(ExecuteResult.Success);
@@ -192,7 +192,7 @@ describe('record operations', () => {
       view1 = await dst1!.getView('viw1');
 
       expect(view1).toBeTruthy();
-      const records = await view1!.getRecords({});
+      const records = await view1!.getRecords();
 
       expect(records).toBeTruthy();
       expect(records.length).toBe(6);
@@ -216,7 +216,7 @@ describe('record operations', () => {
           index: 1,
           recordValues: [mockRecordValues[0]!],
         },
-        {},
+        {}
       );
 
       expect(result.result).toStrictEqual(ExecuteResult.Success);
@@ -229,7 +229,7 @@ describe('record operations', () => {
       view1 = await dst1!.getView('viw1');
       expect(view1).toBeTruthy();
 
-      const records = await view1!.getRecords({});
+      const records = await view1!.getRecords();
 
       expect(records).toBeTruthy();
       expect(records.length).toBe(6);
@@ -253,7 +253,7 @@ describe('record operations', () => {
           index: 1,
           recordValues: mockRecordValues,
         },
-        {},
+        {}
       );
 
       expect(result.result).toStrictEqual(ExecuteResult.Success);
@@ -266,13 +266,13 @@ describe('record operations', () => {
       view1 = await dst1!.getView('viw1');
       expect(view1).toBeTruthy();
 
-      const records = await view1!.getRecords({});
+      const records = await view1!.getRecords();
 
       expect(records).toBeTruthy();
       expect(records.length).toBe(8);
 
-      let recordVos = records.slice(1, 4).map(record => record.getViewObject(mockRecordVoTransformer));
-      recordVos = assertRecordIds(recordVos, i => `rec${i + 4}`);
+      let recordVos = records.slice(1, 4).map((record) => record.getViewObject(mockRecordVoTransformer));
+      recordVos = assertRecordIds(recordVos, (i) => `rec${i + 4}`);
 
       expect(recordVos).toStrictEqual(mockRecords);
     });
@@ -290,7 +290,7 @@ describe('record operations', () => {
           index: 1,
           count: 3,
         },
-        {},
+        {}
       );
 
       expect(result.result).toStrictEqual(ExecuteResult.Success);
@@ -303,12 +303,12 @@ describe('record operations', () => {
       view1 = await dst1!.getView('viw1');
       expect(view1).toBeTruthy();
 
-      const records = await view1!.getRecords({});
+      const records = await view1!.getRecords();
 
       expect(records).toBeTruthy();
       expect(records.length).toBe(8);
 
-      const recordVos = records.slice(1, 4).map(record => record.getViewObject(mockRecordVoTransformer));
+      const recordVos = records.slice(1, 4).map((record) => record.getViewObject(mockRecordVoTransformer));
       let recordVo = assertRecordId(recordVos[0]!, 'rec4');
       expect(recordVo).toStrictEqual(mockDefaultRecord);
 
@@ -335,7 +335,7 @@ describe('record operations', () => {
           cellValues: [mockRecordValues[0]!],
           ignoreFieldPermission: true,
         },
-        {},
+        {}
       );
 
       expect(result.result).toStrictEqual(ExecuteResult.Success);
@@ -348,7 +348,7 @@ describe('record operations', () => {
       const view1 = await dst1!.getView('viw1');
       expect(view1).toBeTruthy();
 
-      const records = await view1!.getRecords({});
+      const records = await view1!.getRecords();
 
       expect(records).toBeTruthy();
       expect(records.length).toBe(6);

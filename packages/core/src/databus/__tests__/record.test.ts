@@ -24,7 +24,7 @@ const db = MockDataBus.getDatabase();
 beforeAll(resetDataLoader);
 
 describe('record info', () => {
-  test('basic record info', async() => {
+  test('basic record info', async () => {
     const dst1 = await db.getDatasheet('dst1', {
       loadOptions: {},
       storeOptions: {},
@@ -36,9 +36,9 @@ describe('record info', () => {
 
     expect(view1!.id).toStrictEqual('viw1');
 
-    const records = await view1!.getRecords({});
+    const records = await view1!.getRecords();
 
-    const recordData = records.map(record => ({ id: record.id, comments: record.comments }));
+    const recordData = records.map((record) => ({ id: record.id, comments: record.comments }));
 
     expect(recordData).toStrictEqual([
       {
@@ -78,7 +78,7 @@ describe('record info', () => {
 });
 
 describe('getViewInfo', () => {
-  test('verbatim', async() => {
+  test('verbatim', async () => {
     const dst1 = await db.getDatasheet('dst1', {
       loadOptions: {},
       storeOptions: {},
@@ -90,11 +90,11 @@ describe('getViewInfo', () => {
 
     expect(view1!.id).toStrictEqual('viw1');
 
-    const records = await view1!.getRecords({});
+    const records = await view1!.getRecords();
 
     expect(records.length).toBeGreaterThan(1);
 
-    expect(records[1]!.getViewObject(x => x)).toStrictEqual({
+    expect(records[1]!.getViewObject((x) => x)).toStrictEqual({
       id: 'rec2',
       data: {
         fld1: [{ type: SegmentType.Text, text: 'text 2' }],
