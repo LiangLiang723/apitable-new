@@ -415,17 +415,20 @@ export class Clipboard {
             isPasteIncompatibleField = true;
           },
         });
-        // await until the operation is completed
-        await new Promise<void>((resolve) => {
-          const doingOpMessageId = localStorage.getItem('doing_op_messageId');
-          if (doingOpMessageId) {
-            window.addEventListener(doingOpMessageId, () => {
-              resolve();
-              // remove event listener
-              window.removeEventListener(doingOpMessageId, () => {});
-            });
-          }
-        });
+        // cover paste no actions and result is None
+        if (commandResult.result !== ExecuteResult.None) {
+          // await until the operation is completed
+          await new Promise<void>((resolve) => {
+            const doingOpMessageId = localStorage.getItem('doing_op_messageId');
+            if (doingOpMessageId) {
+              window.addEventListener(doingOpMessageId, () => {
+                resolve();
+                // remove event listener
+                window.removeEventListener(doingOpMessageId, () => {});
+              });
+            }
+          });
+        }
         await new Promise((resolve) => setTimeout(resolve, 1000));
         cb?.(length, this.chunkSize * i + (recordIds?.length ?? stdValues?.length ?? 0));
         const isChunkStop = localStorage.getItem('stop_chunk') === 'stop';

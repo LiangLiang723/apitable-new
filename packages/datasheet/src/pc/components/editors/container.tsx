@@ -932,6 +932,12 @@ const EditorContainerBase: React.ForwardRefRenderFunction<IContainerEdit, Editor
                   onOk: () => {
                     setIsStopping(true);
                     localStorage.setItem('stop_chunk', 'stop');
+                    // timeout 15s
+                    setTimeout(() => {
+                      setIsStopping(false);
+                      localStorage.removeItem('stop_chunk');
+                      window.location.reload();
+                    }, 15000);
                   },
                 });
               }}>{isStopping ? t(Strings.chunk_stopping_title) : t(Strings.stop_chunk_title)}</Button>
