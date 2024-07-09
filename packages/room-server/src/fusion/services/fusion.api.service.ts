@@ -312,7 +312,7 @@ export class FusionApiService {
     // page
     let pageSize = query.maxRecords ? query.maxRecords : query.pageSize;
     const start = (query.pageNum - 1) * pageSize;
-    const end = start + pageSize;
+    const end = query.maxRecords === -1 ? recordVos.length : start + pageSize;
     const results = recordVos.slice(start, end);
 
     return {
