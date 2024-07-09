@@ -211,9 +211,10 @@ export abstract class MemberBaseField extends ArrayValueField {
     if (!cellValue) return stdValue;
     const nameValues = this.cellValueToArray(cellValue);
     if (!nameValues) return stdValue;
-    nameValues.forEach(item => {
+    nameValues.forEach((item, idx) => {
       stdValue.data.push({
         text: item,
+        id: cellValue[idx],
       });
     });
     return stdValue;
