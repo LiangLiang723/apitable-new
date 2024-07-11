@@ -397,6 +397,11 @@ export type UnitItem =
       roleName: string;
       memberCount: number;
       position: number;
+    }
+    | {
+      unitId?: string;
+      groupId: string;
+      groupName: string;
     };
 
 export interface IRefreshTreeAction {

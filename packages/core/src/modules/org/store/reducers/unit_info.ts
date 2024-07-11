@@ -17,16 +17,16 @@
  */
 
 import { IUnitInfo } from '../../../../exports/store/interfaces';
-import { IResetUnitInfoAction, IUpdateUnitMapAction, IUpdateUserMapAction } from 'modules/org/store/actions/unit_info';
+import { IResetUnitInfoAction, IUpdateUnitMapAction, IUpdateUserMapAction, IUpdateGroupListAction } from 'modules/org/store/actions/unit_info';
 import produce from 'immer';
-import { RESET_UNIT_INFO, UPDATE_UNIT_MAP, UPDATE_USER_MAP } from '../../../shared/store/action_constants';
+import { RESET_UNIT_INFO, UPDATE_GROUP_LIST, UPDATE_UNIT_MAP, UPDATE_USER_MAP } from '../../../shared/store/action_constants';
 
 const defaultState: IUnitInfo = {
   unitMap: null,
   userMap: null,
 };
 
-type IUnitInfoAction = IUpdateUnitMapAction | IUpdateUserMapAction | IResetUnitInfoAction;
+type IUnitInfoAction = IUpdateUnitMapAction | IUpdateUserMapAction | IResetUnitInfoAction | IUpdateGroupListAction;
 
 const updateUnitMap = (oldUnitMap: any, newUnitMap: any) => {
   return {
@@ -64,6 +64,10 @@ export const unitInfo = produce(
         const unitMap = updateUnitMap(state.unitMap, _unitMap);
         state.userMap = userMap;
         state.unitMap = unitMap;
+        break;
+      }
+      case UPDATE_GROUP_LIST: {
+        state.groupList = action.payload;
         break;
       }
       case RESET_UNIT_INFO: {

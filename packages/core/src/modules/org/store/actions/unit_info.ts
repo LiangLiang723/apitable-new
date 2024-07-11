@@ -17,7 +17,7 @@
  */
 
 import keyBy from 'lodash/keyBy';
-import { RESET_UNIT_INFO, UPDATE_UNIT_MAP, UPDATE_USER_MAP } from '../../../shared/store/action_constants';
+import { RESET_UNIT_INFO, UPDATE_UNIT_MAP, UPDATE_USER_MAP, UPDATE_GROUP_LIST } from '../../../shared/store/action_constants';
 import { IUnitMap } from '../../../../exports/store/interfaces';
 import { Api } from '../../../../exports/api';
 
@@ -26,6 +26,10 @@ export interface IUpdateUnitMapAction {
   payload: IUnitMap;
 }
 
+export interface IUpdateGroupListAction {
+  type: typeof UPDATE_GROUP_LIST;
+  payload: any;
+}
 export interface IUpdateUserMapAction {
   type: typeof UPDATE_USER_MAP;
   payload: IUnitMap;
@@ -49,6 +53,13 @@ export const updateUserMap = (userMap: IUnitMap) => {
   };
 };
 
+export const updateGroupList = (data: { groupId: string; groupName: string }) => {
+  return {
+    type: UPDATE_GROUP_LIST,
+    payload: data,
+  };
+};
+
 export const resetUnitInfo = () => {
   return {
     type: RESET_UNIT_INFO,
@@ -62,11 +73,11 @@ export const resetUnitInfo = () => {
  * @returns 
  */
 export const loadLackUnitMap = (names: string, linkId?: string,) => {
-  return async(dispatch: any) => {
+  return async (dispatch: any) => {
     if (!names.length) {
       return;
     }
-    const { data: { data: resData }} = await Api.searchUnitInfoVo(names, linkId);
+    const { data: { data: resData } } = await Api.searchUnitInfoVo(names, linkId);
     if (!resData.length) {
       return;
     }

@@ -17,6 +17,7 @@
  */
 
 import { useToggle } from 'ahooks';
+import { TriggerCommands } from 'modules/shared/apphook/trigger_commands';
 import { FC, useEffect, useRef, useState } from 'react';
 import { Box, IOption, Skeleton } from '@apitable/components';
 import {
@@ -30,8 +31,8 @@ import {
   Strings,
   t,
   IRoleMember,
+  MemberType,
 } from '@apitable/core';
-import { TriggerCommands } from 'modules/shared/apphook/trigger_commands';
 import { Message } from 'pc/components/common/message/message';
 import { Modal } from 'pc/components/common/modal/modal/modal';
 import { UnitPermissionSelect } from 'pc/components/field_permission/unit_permission_select';
@@ -143,12 +144,27 @@ export const Permission: FC<React.PropsWithChildren<IPermissionSettingProps>> = 
       return;
     }
 
-    const unitIds = unitInfos.map((item) => item.unitId);
+    const unitInfosNoGroup = unitInfos.filter((item) => item.type !== MemberType.Group);
+    const unitIdsNoGroup = unitInfosNoGroup.map((item) => item.unitId);
+
+    const unitInfosGroup = unitInfos.filter((item) => item.type === MemberType.Group);
+    const groupIds = unitInfosGroup.map((item) => item.unitId);
     const res = await disableRoleExtend();
     if (!res) {
       return;
     }
-    Api.addRole(data.nodeId, unitIds, permission.value + '').then(async (res) => {
+    groupIds.length > 0 && Api.yachAddRole({ nodeId: data.nodeId, unitIds: groupIds, role: permission.value + '' }).then(async (res) => {
+      const { success, message } = res.data;
+      if (success) {
+        Message.success({ content: t(Strings.permission_add_success) });
+        await getNodeRoleMap();
+        scrollBottom();
+      } else {
+        Message.error({ content: message });
+      }
+    });
+
+    unitIdsNoGroup.length > 0 && Api.addRole(data.nodeId, unitIdsNoGroup, permission.value + '').then(async (res) => {
       const { success, message } = res.data;
       if (success) {
         Message.success({ content: t(Strings.permission_add_success) });
@@ -286,6 +302,7 @@ export const Permission: FC<React.PropsWithChildren<IPermissionSettingProps>> = 
               permissionList={optionData}
               onSubmit={onSubmit}
               adminAndOwnerUnitIds={adminAndOwnerUnitIds}
+              showGroup
             />
           </div>
         )}

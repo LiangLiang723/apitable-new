@@ -192,7 +192,7 @@ export const AddAdminModal: FC<React.PropsWithChildren<IModalProps>> = ({ cancel
                   return (
                     <UnitTag
                       key={item.unitId}
-                      unitId={item.unitId}
+                      unitId={item.unitId!}
                       avatar={userInfo.avatar}
                       avatarColor={userInfo.avatarColor}
                       nickName={userInfo.nickName}

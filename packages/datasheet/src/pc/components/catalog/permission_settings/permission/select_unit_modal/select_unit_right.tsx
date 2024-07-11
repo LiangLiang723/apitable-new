@@ -66,7 +66,7 @@ export const SelectUnitRight: React.FC<React.PropsWithChildren<ISelectUnitRightP
             const isLeave = !userInfo.isTeam && (!(item as IMember).isActive || (item as IMember).isDeleted);
             return (
               <UnitTag
-                unitId={item.unitId}
+                unitId={item.unitId!}
                 key={item.unitId}
                 className={styles.item}
                 avatar={userInfo.avatar}

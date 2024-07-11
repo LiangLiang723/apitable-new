@@ -346,6 +346,22 @@ export const useCatalogTreeRequest = () => {
     });
   };
 
+  const getOrgYachGroupListReq = (pageNo: number, groupName?: string) => {
+    return Api.getOrgYachGroupList({
+      pageObjectParams: {
+        pageSize: 100,
+        pageNo
+      },
+      groupName
+    }).then((res) => {
+      const { success, data } = res.data;
+      if (success) {
+        return data;
+      }
+      return null;
+    });
+  };
+
   /**
    * Get node roles list
    * @param nodeId
@@ -711,6 +727,7 @@ export const useCatalogTreeRequest = () => {
     copyNodeReq,
     getChildNodeListReq,
     getSubUnitListReq,
+    getOrgYachGroupListReq,
     getNodeRoleListReq,
     searchUnitReq,
     updateRoleReq,

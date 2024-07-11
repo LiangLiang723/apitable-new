@@ -233,5 +233,6 @@ export const getEnvVars = () => {
     AI_SETTING_HELP_DOC_LINK: process.env.AI_SETTING_HELP_DOC_LINK,
     EDITION: process.env.EDITION,
     ENABLE_TIME_MACHINE_ROOLBACK: process.env.ENABLE_TIME_MACHINE_ROOLBACK === 'true',
+    YACH_ENABLED: process.env.YACH_ENABLED === 'true',
   };
 };

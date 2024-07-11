@@ -136,6 +136,8 @@ export const GET_NEW_MSG_FROM_WS_AND_LOOK = 'GET_NEW_MSG_FROM_WS_AND_LOOK';
 export const SCROLL_OFFSET = 'SCROLL_OFFSET';
 export const SET_NODE_NAME = 'SET_NODE_NAME';
 
+export const UPDATE_GROUP_LIST = 'UPDATE_GROUP_LIST';
+
 /**
  * if the sub-node request failed
  */

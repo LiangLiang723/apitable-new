@@ -25,6 +25,7 @@ export const FETCH_EMBED_DASHBOARD = '/embedlinks/:embedId/dashboards/:dashboard
 
 // =============== Column permissions related start =======================
 export const FIELD_PERMISSION_ADD_ROLE = 'datasheet/:dstId/field/:fieldId/addRole';
+export const FIELD_PERMISSION_YACH_ADD_ROLE = 'org/yach/datasheet/:dstId/field/:fieldId/addRole';
 export const FIELD_PERMISSION_DELETE_ROLE = 'datasheet/:dstId/field/:fieldId/deleteRole';
 export const FIELD_PERMISSION_EDIT_ROLE = 'datasheet/:dstId/field/:fieldId/editRole';
 export const FIELD_PERMISSION_ROLE_LIST = 'datasheet/:dstId/field/:fieldId/listRole';

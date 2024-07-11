@@ -65,6 +65,10 @@ export const MEMBER_UNITS = '/org/member/units';
 
 export const COLLABORATOR_INFO = 'node/collaborator/info';
 
+export const GET_ORG_YACH_GROUP = 'org/yach/group/page';
+
+export const YACH_ADD_ROLE = 'org/yach/node/addRole';
+
 /**
  * Edit Member Info
  */

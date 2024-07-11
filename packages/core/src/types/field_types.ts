@@ -143,6 +143,7 @@ export enum MemberType {
   Team = 1,
   Role = 2,
   Member = 3,
+  Group = 4,
 }
 
 export type IUnitIds = string[];

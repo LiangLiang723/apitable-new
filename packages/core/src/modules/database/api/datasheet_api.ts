@@ -246,6 +246,10 @@ export function addFieldPermissionRole(dstId: string, fieldId: string, option: {
   return axios.post<IApiWrapper>(urlcat(Url.FIELD_PERMISSION_ADD_ROLE, { dstId, fieldId }), option);
 }
 
+export function addYachFieldPermissionRole(dstId: string, fieldId: string, option: { role: string; unitIds: string[] }) {
+  return axios.post<IApiWrapper>(urlcat(Url.FIELD_PERMISSION_YACH_ADD_ROLE, { dstId, fieldId }), option);
+}
+
 /**
  * edit field permission role
  *
