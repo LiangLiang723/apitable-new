@@ -151,9 +151,11 @@ export class MemberField extends MemberBaseField {
     // it is necessary to first find the members that are activated and not deleted, so all data must be checked
     const unitNames = Array.from(new Set(stdValue.data.map(d => d.text.split(/, ?/)).flat()));
     const cvMap = new Map();
-    for (const name of unitNames) {
+    unitNames.forEach((name, index) => {
+      const id = stdValue.data[index]?.id;
       for (const unit of unitValue) {
-        if (unit.name !== name) {
+        const isNotCurrentUnit = id ? unit.unitId !== id : unit.name !== name;
+        if (isNotCurrentUnit) {
           continue;
         }
         cvMap.set(name, unit.unitId);
@@ -161,7 +163,7 @@ export class MemberField extends MemberBaseField {
           break;
         }
       }
-    }
+    });
 
     return cvMap.size ? [...cvMap.values()] : null;
   }
