@@ -264,6 +264,7 @@ export class UnitService {
     const memberIds: number[] = [];
     const teamIds: number[] = [];
     const roleIds: number[] = [];
+    const groups: number[] = [];
     unitEntities.forEach(unit => {
       if (unit.unitType === MemberType.Member) {
         memberIds.push(unit.unitRefId);
@@ -274,8 +275,11 @@ export class UnitService {
       if (unit.unitType === MemberType.Role) {
         roleIds.push(unit.unitRefId);
       }
+      if (unit.unitType === MemberType.Group) {
+        groups.push(unit.unitRefId);
+      }
     });
-    return { [MemberType.Member]: memberIds, [MemberType.Team]: teamIds, [MemberType.Role]: roleIds };
+    return { [MemberType.Member]: memberIds, [MemberType.Team]: teamIds, [MemberType.Role]: roleIds, [MemberType.Group]: groups};
   }
 
   public async getCountBySpaceIdAndId(unitId: string, spaceId: string): Promise<number> {
