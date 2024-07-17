@@ -35,6 +35,8 @@ import com.apitable.control.service.IControlSettingService;
 import com.apitable.organization.enums.UnitType;
 import com.apitable.organization.service.IMemberService;
 import com.apitable.organization.service.IRoleMemberService;
+import com.apitable.organization.service.ITagMemberRelService;
+import com.apitable.organization.service.ITagService;
 import com.apitable.organization.service.ITeamService;
 import com.apitable.organization.service.IUnitService;
 import com.apitable.shared.util.page.PageHelper;
@@ -85,6 +87,9 @@ public class ControlMemberServiceImpl implements IControlMemberService {
 
     @Resource
     private IControlRoleService iControlRoleService;
+
+    @Resource
+    private ITagService iTagService;
 
     @Override
     public <T extends ControlRoleMemberVo> PageInfo<T> getControlRoleMemberPageInfo(
@@ -143,6 +148,7 @@ public class ControlMemberServiceImpl implements IControlMemberService {
             List<Long> memberIds = new ArrayList<>();
             List<Long> teamIds = new ArrayList<>();
             List<Long> roleIds = new ArrayList<>();
+            List<Long> tagIds = new ArrayList<>();
             for (ControlRoleUnitDTO control : entry.getValue()) {
                 UnitType unitType = UnitType.toEnum(control.getUnitType());
                 switch (unitType) {
@@ -154,6 +160,9 @@ public class ControlMemberServiceImpl implements IControlMemberService {
                         break;
                     case ROLE:
                         roleIds.add(control.getUnitRefId());
+                        break;
+                    case TAG:
+                        tagIds.add(control.getUnitRefId());
                         break;
                     default:
                         break;
@@ -170,12 +179,17 @@ public class ControlMemberServiceImpl implements IControlMemberService {
                 List<Long> roleMemberIds = iRoleMemberService.getMemberIdsByRoleIds(roleIds);
                 memberIds.addAll(roleMemberIds);
             }
+            if (CollUtil.isNotEmpty(tagIds)) {
+                List<Long> tagMemberIds = iTagService.getMemberIdsByTagIds(tagIds);
+                memberIds.addAll(tagMemberIds);
+            }
             for (Long memberId : memberIds) {
                 if (memberRoleMap.containsKey(memberId)) {
                     continue;
                 }
                 memberRoleMap.put(memberId, new ControlMemberDTO(memberId, entry.getKey()));
             }
+
         }
         return memberRoleMap;
     }

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ APITable <https://github.com/apitable/apitable>
+ Copyright (C) 2022 APITable Ltd. <https://apitable.com>
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Affero General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Affero General Public License for more details.
+
+ You should have received a copy of the GNU Affero General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.apitable.organization.mapper.TagMemberRelMapper">
+
+    <insert id="insertBatch">
+        INSERT INTO ${tablePrefix}unit_tag_member_rel(id, tag_id, member_id)
+        VALUES
+        <foreach item="item" index="index" collection="entities" separator=",">
+            <trim prefix="(" suffix=")">
+                #{item.id},#{item.tagId}, #{item.memberId}
+            </trim>
+        </foreach>
+    </insert>
+
+    <select id="selectByTagIds"
+            resultType="com.apitable.organization.entity.TagMemberRelEntity">
+        SELECT *
+        FROM ${tablePrefix}unit_tag_member_rel voutmr
+        WHERE voutmr.tag_id IN
+        <foreach collection="tagIds" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+
+    <select id="selectMemberIdsByTag"
+            resultType="java.lang.Long">
+        SELECT voutmr.member_id
+        FROM ${tablePrefix}unit_tag_member_rel voutmr
+        WHERE voutmr.tag_id IN
+        <foreach collection="tagIds" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <delete id="deleteByMemberIdAndTagId">
+        DELETE  FROM ${tablePrefix}unit_tag_member_rel vodmr
+        WHERE vodmr.tag_id = #{tagId}
+            AND  vodmr.member_id in
+        <foreach collection="memberIds" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <delete id="deleteMembersByTagId">
+        DELETE FROM ${tablePrefix}unit_tag_member_rel vodmr
+        WHERE vodmr.tag_id = #{tagId}
+    </delete>
+
+
+    <select id="selectTagIdsByMemberId"
+            resultType="java.lang.Long">
+        SELECT tag_id
+        FROM ${tablePrefix}unit_tag_member_rel
+        WHERE member_id = #{memberId}
+    </select>
+
+</mapper>

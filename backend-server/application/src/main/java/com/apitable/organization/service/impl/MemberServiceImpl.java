@@ -73,6 +73,7 @@ import com.apitable.organization.ro.UpdateMemberRo;
 import com.apitable.organization.service.IMemberService;
 import com.apitable.organization.service.IRoleMemberService;
 import com.apitable.organization.service.IRoleService;
+import com.apitable.organization.service.ITagMemberRelService;
 import com.apitable.organization.service.ITeamMemberRelService;
 import com.apitable.organization.service.ITeamService;
 import com.apitable.organization.service.IUnitService;
@@ -204,6 +205,9 @@ public class MemberServiceImpl extends ExpandServiceImpl<MemberMapper, MemberEnt
     @Resource
     private InvitationServiceFacade invitationServiceFacade;
 
+    @Resource
+    private ITagMemberRelService iTagMemberRelService;
+
     @Override
     public String getMemberNameById(Long memberId) {
         return baseMapper.selectMemberNameById(memberId);
@@ -314,7 +318,9 @@ public class MemberServiceImpl extends ExpandServiceImpl<MemberMapper, MemberEnt
             refRoles.stream().map(RoleMemberDTO::getRoleId).forEach(unitRefIds::add);
         }
         List<Long> roleIds = iRoleMemberService.getRoleIdsByRoleMemberId(memberId);
+        List<Long> tagIds = iTagMemberRelService.getTagIdsByTagMemberId(memberId);
         unitRefIds.addAll(roleIds);
+        unitRefIds.addAll(tagIds);
         return iUnitService.getUnitIdsByRefIds(unitRefIds);
     }
 

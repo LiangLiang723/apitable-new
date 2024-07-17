@@ -37,7 +37,9 @@ public enum UnitType {
 
     ROLE(2),
 
-    MEMBER(3);
+    MEMBER(3),
+
+    TAG(4);
 
     private final Integer type;
 
