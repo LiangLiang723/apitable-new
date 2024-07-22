@@ -42,6 +42,7 @@ import com.apitable.shared.component.scanner.annotation.PostResource;
 import com.apitable.shared.constants.ParamsConstants;
 import com.apitable.shared.context.LoginContext;
 import com.apitable.shared.context.SessionContext;
+import com.apitable.shared.security.IFrequencyLimitService;
 import com.apitable.space.ro.EmailInvitationMemberRo;
 import com.apitable.space.ro.EmailInvitationResendRo;
 import com.apitable.space.ro.EmailInvitationRo;
@@ -88,6 +89,9 @@ public class SpaceInvitationController {
 
     @Resource
     private BlackListServiceFacade blackListServiceFacade;
+
+    @Resource
+    private IFrequencyLimitService iFrequencyLimitService;
 
     @Resource
     private HumanVerificationServiceFacade humanVerificationServiceFacade;
@@ -157,13 +161,14 @@ public class SpaceInvitationController {
         if (StrUtil.isBlank(spaceId)) {
             spaceId = LoginContext.me().getSpaceId();
         }
-        // human verification
-        humanVerificationServiceFacade.verifyNonRobot(new NonRobotMetadata(data.getData()));
         // whether in black list
         blackListServiceFacade.checkSpace(spaceId);
+        iFrequencyLimitService.spaceInviteFrequency(spaceId);
         iSpaceService.checkSeatOverLimit(spaceId, data.getInvite().size());
         // check whether space can invite user
         iSpaceService.checkCanOperateSpaceUpdate(spaceId);
+        // human verification
+        humanVerificationServiceFacade.verifyNonRobot(new NonRobotMetadata(data.getData()));
         List<EmailInvitationMemberRo> inviteMembers = data.getInvite();
         EmailInvitationResultVO view = EmailInvitationResultVO.builder().build();
         // get invited emails
@@ -212,6 +217,7 @@ public class SpaceInvitationController {
         }
         // check black space
         blackListServiceFacade.checkSpace(spaceId);
+        iFrequencyLimitService.spaceInviteFrequency(spaceId);
         iSpaceService.checkSeatOverLimit(spaceId);
         iSpaceService.checkCanOperateSpaceUpdate(spaceId);
         // Again email invite members

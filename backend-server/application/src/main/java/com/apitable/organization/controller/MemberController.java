@@ -74,6 +74,7 @@ import com.apitable.shared.constants.ParamsConstants;
 import com.apitable.shared.context.LoginContext;
 import com.apitable.shared.context.SessionContext;
 import com.apitable.shared.holder.SpaceHolder;
+import com.apitable.shared.security.IFrequencyLimitService;
 import com.apitable.shared.util.page.PageHelper;
 import com.apitable.shared.util.page.PageInfo;
 import com.apitable.shared.util.page.PageObjectParam;
@@ -137,6 +138,9 @@ public class MemberController {
 
     @Resource
     private BlackListServiceFacade blackListServiceFacade;
+
+    @Resource
+    private IFrequencyLimitService iFrequencyLimitService;
 
     @Resource
     private IRoleService iRoleService;
@@ -507,12 +511,13 @@ public class MemberController {
     @Parameter(name = ParamsConstants.SPACE_ID, description = "space id", required = true,
         schema = @Schema(type = "string"), in = ParameterIn.HEADER, example = "spcyQkKp9XJEl")
     public ResponseData<UploadParseResultVO> uploadExcel(UploadMemberTemplateRo data) {
-        // human verification
-        humanVerificationServiceFacade.verifyNonRobot(new NonRobotMetadata(data.getData()));
         String spaceId = LoginContext.me().getSpaceId();
         // check black space
         blackListServiceFacade.checkSpace(spaceId);
+        iFrequencyLimitService.spaceInviteFrequency(spaceId);
         iSpaceService.checkCanOperateSpaceUpdate(spaceId);
+        // human verification
+        humanVerificationServiceFacade.verifyNonRobot(new NonRobotMetadata(data.getData()));
         SubscriptionInfo subscriptionInfo =
             entitlementServiceFacade.getSpaceSubscription(spaceId);
         if (subscriptionInfo.isFree() && iMemberService.shouldPreventInvitation(spaceId)) {
