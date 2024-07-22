@@ -8,11 +8,8 @@ import com.apitable.interfaces.billing.facade.EntitlementServiceFacade;
 import com.apitable.interfaces.billing.model.SubscriptionInfo;
 import com.apitable.shared.config.properties.LimitProperties;
 import jakarta.annotation.Resource;
-import java.util.Date;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.data.redis.core.BoundSetOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -27,7 +24,7 @@ public class FrequencyLimitServiceImpl implements IFrequencyLimitService {
     private LimitProperties limitProperties;
 
     @Resource
-    private RedisTemplate<String, Object> redisTemplate;
+    private RedisTemplate<String, Long> redisTemplate;
 
     @Override
     public void spaceInviteFrequency(String spaceId) {
@@ -38,14 +35,14 @@ public class FrequencyLimitServiceImpl implements IFrequencyLimitService {
             return;
         }
         String repeatKey = RedisConstants.getGeneralFrequencyRecordOfInvite(spaceId);
-        BoundSetOperations<String, Object> ops = redisTemplate.boundSetOps(repeatKey);
-        ops.add(DateUtil.date());
+        BoundSetOperations<String, Long> ops = redisTemplate.boundSetOps(repeatKey);
+        ops.add(DateUtil.current());
         ops.expire(1, TimeUnit.DAYS);
 
         long repeatNum = Objects.requireNonNull(ops.members()).stream()
-            .filter(val -> DateUtil.between(DateUtil.date(), (Date) val, DateUnit.DAY) < 1)
+            .filter(val -> DateUtil.between(DateUtil.date(), DateUtil.date(val), DateUnit.DAY) < 1)
             .count();
-        if (repeatNum >= limitProperties.getMaxInviteCountForFree() - 1) {
+        if (repeatNum > limitProperties.getMaxInviteCountForFree()) {
             throw new BusinessException("Frequent operation");
         }
     }
