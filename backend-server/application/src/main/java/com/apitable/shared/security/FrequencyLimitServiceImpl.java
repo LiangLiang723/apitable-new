@@ -14,6 +14,9 @@ import org.springframework.data.redis.core.BoundSetOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+/**
+ * Frequency Limit Service Implementation.
+ */
 @Service
 public class FrequencyLimitServiceImpl implements IFrequencyLimitService {
 

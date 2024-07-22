@@ -54,7 +54,7 @@ public class RedisConstants {
      */
     public static final String GENERAL_STATICS = "statics:{}:{}";
     /**
-     * general frequency record ---> frequency:entity:business example: frequency:spc_id:invite
+     * general frequency record ---> frequency:entity:business example: frequency:spc_id:invite.
      */
     public static final String GENERAL_FREQUENCY_RECORD = "frequency:{}:{}";
     /**
