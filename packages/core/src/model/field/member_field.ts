@@ -152,10 +152,11 @@ export class MemberField extends MemberBaseField {
     const unitNames = Array.from(new Set(stdValue.data.map(d => d.text.split(/, ?/)).flat()));
     const cvMap = new Map();
     unitNames.forEach((name, index) => {
-      const id = stdValue.data[index]?.id;
+      const unitId = stdValue.data[index]?.unitId;
+      const uuid = stdValue.data[index]?.uuid;
       for (const unit of unitValue) {
-        const isNotCurrentUnit = id ? unit.unitId !== id : unit.name !== name;
-        if (isNotCurrentUnit) {
+        const isCurrentUnit = unit.unitId === unitId || unit.uuid === uuid || unit.name === name;
+        if (!isCurrentUnit) {
           continue;
         }
         cvMap.set(name, unit.unitId);

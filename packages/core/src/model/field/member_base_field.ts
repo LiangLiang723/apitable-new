@@ -210,11 +210,13 @@ export abstract class MemberBaseField extends ArrayValueField {
     };
     if (!cellValue) return stdValue;
     const nameValues = this.cellValueToArray(cellValue);
+    const isString = typeof cellValue === 'string';
     if (!nameValues) return stdValue;
     nameValues.forEach((item, idx) => {
       stdValue.data.push({
         text: item,
-        id: cellValue[idx],
+        unitId: isString ? undefined : cellValue[idx],
+        uuid: isString ? cellValue : undefined,
       });
     });
     return stdValue;
