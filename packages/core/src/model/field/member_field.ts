@@ -155,7 +155,7 @@ export class MemberField extends MemberBaseField {
       const unitId = stdValue.data[index]?.unitId;
       const uuid = stdValue.data[index]?.uuid;
       for (const unit of unitValue) {
-        const isCurrentUnit = unit.unitId === unitId || unit.uuid === uuid || unit.name === name;
+        const isCurrentUnit = unitId ? unit.unitId === unitId : uuid ? unit.uuid === uuid : unit.name === name;
         if (!isCurrentUnit) {
           continue;
         }
