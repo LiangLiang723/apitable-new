@@ -44,4 +44,5 @@ CMD ["sh", "-c", "echo \"clearChecksums\"; \
                         --database-changelog-lock-table-name=\"${DATABASE_TABLE_PREFIX:=apitable_}db_changelog_lock\" \
                         --url=\"jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?characterEncoding=utf8&autoReconnect=true&useSSL=true\" \
                          ${ACTION:=update} \
-                        -Dtable.prefix=${DATABASE_TABLE_PREFIX:=apitable_}"]
+                        -Dtable.prefix=${DATABASE_TABLE_PREFIX:=apitable_} \
+                        -DDB_ENGINE=${DB_ENGINE:=mysql}"]

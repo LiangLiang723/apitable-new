@@ -24,6 +24,9 @@
 	  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
     <changeSet id="V0.8-20210926-001" author="Pengap" labels="widget">
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>Widget Package Table add is_template、is_enabled、owner field</comment>
         <sql>
             ALTER TABLE `${table.prefix}widget_package`
@@ -33,11 +36,44 @@
         </sql>
     </changeSet>
 
+    <changeSet id="V0.8-20210926-001-2" author="Pengap" labels="widget">
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Widget Package Table add is_template、is_enabled、owner field</comment>
+        <sql>
+            ALTER TABLE `${table.prefix}widget_package`
+            ADD COLUMN `is_template` tinyint(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Is template (0: Yes, 1: No)',
+            ADD COLUMN `is_enabled` tinyint(1) UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Enable or not, only for global widgets (0: off, 1: on)',
+            ADD COLUMN `owner` bigint NULL DEFAULT NULL COMMENT 'Owner Id(link#xxxx_user#id)';
+            ALTER TABLE `${table.prefix}widget_package`
+            MODIFY COLUMN `is_template` tinyint(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Is template (0: Yes, 1: No)' AFTER `release_id`,
+            MODIFY COLUMN `is_enabled` tinyint(1) UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Enable or not, only for global widgets (0: off, 1: on)' AFTER `is_template`,
+            MODIFY COLUMN `owner` bigint NULL DEFAULT NULL COMMENT 'Owner Id(link#xxxx_user#id)' AFTER `is_deleted`;
+        </sql>
+    </changeSet>
+
     <changeSet id="V0.8-20210926-002" author="Pengap" labels="widget">
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>Widget Package Auth Table add sequence field</comment>
         <sql>
             ALTER TABLE `${table.prefix}widget_package_auth_space`
             ADD COLUMN `widget_sort` int UNSIGNED NULL DEFAULT 10000 COMMENT 'Sequence number, space station components start from 10000' AFTER `type`;
+        </sql>
+    </changeSet>
+
+    <changeSet id="V0.8-20210926-002-2" author="Pengap" labels="widget">
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Widget Package Auth Table add sequence field</comment>
+        <sql>
+            ALTER TABLE `${table.prefix}widget_package_auth_space`
+            ADD COLUMN `widget_sort` int UNSIGNED NULL DEFAULT 10000 COMMENT 'Sequence number, space station components start from 10000';
+            ALTER TABLE `${table.prefix}widget_package_auth_space`
+            MODIFY COLUMN `widget_sort` int UNSIGNED NULL DEFAULT 10000 COMMENT 'Sequence number, space station components start from 10000' AFTER `type`;
         </sql>
     </changeSet>
 

@@ -23,9 +23,25 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
 	  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
     <changeSet id="V0.7-20210408-001" author="chambers" labels="space">
+        <preConditions onFail="CONTINUE">
+            <and>
+                <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+            </and>
+        </preConditions>
         <comment>Space Table add setting attribute properties</comment>
         <sql>
             ALTER TABLE `${table.prefix}space` ADD COLUMN `props` json NOT NULL DEFAULT ('{}') COMMENT 'Option properties' AFTER `level`;
+        </sql>
+    </changeSet>
+
+    <changeSet id="V0.7-20210408-001-2" author="chambers" labels="space" >
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Space Table add setting attribute properties</comment>
+        <sql>
+            ALTER TABLE `${table.prefix}space` ADD COLUMN `props` json DEFAULT NULL COMMENT 'Option properties';
+            ALTER TABLE `${table.prefix}space` MODIFY COLUMN `props` json NOT NULL DEFAULT (JSON_QUOTE('{}')) COMMENT 'Option properties' AFTER `level`;
         </sql>
     </changeSet>
 </databaseChangeLog>

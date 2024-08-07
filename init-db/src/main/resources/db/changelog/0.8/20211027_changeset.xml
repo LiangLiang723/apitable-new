@@ -32,12 +32,32 @@
     </changeSet>
 
     <changeSet id="V0.8-20211027-002" author="penglongfeng" labels="automation">
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>Robot Table add x_service_token、seq_id and uk_seq_resource_id</comment>
         <sql>
             ALTER TABLE `${table.prefix}automation_robot`
             ADD COLUMN `seq_id` varchar(64) NULL COMMENT 'Request source request number' AFTER `updated_at`,
             ADD COLUMN `x_service_token` varchar(128) NULL COMMENT 'Service Provider Certification Token' AFTER `seq_id`,
             ADD UNIQUE INDEX `uk_seq_resource_id`(`seq_id`, `resource_id`) USING BTREE COMMENT 'Unique number of single table robot creation request';
+        </sql>
+    </changeSet>
+
+    <changeSet id="V0.8-20211027-002-2" author="penglongfeng" labels="automation">
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Robot Table add x_service_token、seq_id and uk_seq_resource_id</comment>
+        <sql>
+            ALTER TABLE `${table.prefix}automation_robot`
+            ADD COLUMN `seq_id` varchar(64) NULL COMMENT 'Request source request number',
+            ADD COLUMN `x_service_token` varchar(128) NULL COMMENT 'Service Provider Certification Token';
+            ALTER TABLE `${table.prefix}automation_robot`
+            ADD UNIQUE `uk_seq_resource_id`(`seq_id`, `resource_id`) USING BTREE COMMENT 'Unique number of single table robot creation request';
+            ALTER TABLE `${table.prefix}automation_robot`
+            MODIFY COLUMN `seq_id` varchar(64) NULL COMMENT 'Request source request number' AFTER `updated_at`,
+            MODIFY COLUMN `x_service_token` varchar(128) NULL COMMENT 'Service Provider Certification Token' AFTER `seq_id`;
         </sql>
     </changeSet>
 

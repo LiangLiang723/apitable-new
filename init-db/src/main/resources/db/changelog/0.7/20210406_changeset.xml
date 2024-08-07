@@ -23,12 +23,35 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
 	  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
     <changeSet id="V0.7-20210406-001" author="shawn" labels="control">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>Create Control Setting Table</comment>
         <sql>
             CREATE TABLE `${table.prefix}control_setting` (
             `id` bigint(20) unsigned NOT NULL COMMENT 'Primary Key',
             `control_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Resource Control Tag',
             `props` json NOT NULL DEFAULT ('{}') COMMENT 'Option parameters',
+            `created_by` bigint(20) DEFAULT NULL COMMENT 'Creator',
+            `updated_by` bigint(20) DEFAULT NULL COMMENT 'Last Update By',
+            `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create Time',
+            `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update Time',
+            PRIMARY KEY (`id`) USING BTREE,
+            UNIQUE KEY `uk_control_id` (`control_id`) USING BTREE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Workbench - Control Setting Table';
+        </sql>
+    </changeSet>
+
+    <changeSet id="V0.7-20210406-001-2" author="shawn" labels="control">
+         <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Create Control Setting Table</comment>
+        <sql>
+            CREATE TABLE IF NOT EXISTS `${table.prefix}control_setting` (
+            `id` bigint(20) unsigned NOT NULL COMMENT 'Primary Key',
+            `control_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Resource Control Tag',
+            `props` json NOT NULL DEFAULT (JSON_QUOTE('{}')) COMMENT 'Option parameters',
             `created_by` bigint(20) DEFAULT NULL COMMENT 'Creator',
             `updated_by` bigint(20) DEFAULT NULL COMMENT 'Last Update By',
             `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create Time',

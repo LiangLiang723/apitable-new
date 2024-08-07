@@ -31,11 +31,43 @@
         <sqlFile path="db/changelog/0.6/20210109_changeset_002.sql"/>
     </changeSet>
     <changeSet id="V0.6-20210109-003" author="Shawn" labels="widget">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>Widget Table add Space ID</comment>
         <sqlFile path="db/changelog/0.6/20210109_changeset_003.sql"/>
     </changeSet>
+    <changeSet id="V0.6-20210109-003-2" author="Shawn" labels="widget">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Widget Table add Space ID</comment>
+        <sql>
+        ALTER table `${table.prefix}widget`
+            ADD COLUMN `space_id` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Space ID';
+        ALTER TABLE `${table.prefix}widget`
+            ADD INDEX `idx_space_id`(`space_id`) USING BTREE;
+        ALTER table `${table.prefix}widget`
+            MODIFY COLUMN `space_id` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Space ID' AFTER `id`;
+        </sql>
+    </changeSet>
     <changeSet id="V0.6-20210109-004" author="Shawn" labels="widget">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>Widget Table add ndoe id records component ownership</comment>
         <sqlFile path="db/changelog/0.6/20210109_changeset_004.sql"/>
+    </changeSet>
+    <changeSet id="V0.6-20210109-004-2" author="Shawn" labels="widget">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Widget Table add ndoe id records component ownership</comment>
+        <sql>
+        ALTER TABLE `${table.prefix}widget`
+            ADD COLUMN `node_id` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Node ID';
+        ALTER TABLE `${table.prefix}widget`
+            MODIFY COLUMN `node_id` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Node ID' AFTER `space_id`;
+        </sql>
     </changeSet>
 </databaseChangeLog>
