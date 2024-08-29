@@ -210,7 +210,7 @@ export const FilterBase = (props: IFilterProps) => {
             const path = `operands[${index}].value`;
             return (
               <React.Fragment key={path}>
-                {index == 0 ? (
+                {index === 0 ? (
                   <OperatorWrap>{t(Strings.when)}</OperatorWrap>
                 ) : index === 1 ? (
                   <Select
