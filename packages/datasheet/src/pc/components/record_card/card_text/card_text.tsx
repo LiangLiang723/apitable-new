@@ -18,7 +18,9 @@
 
 import classnames from 'classnames';
 import * as React from 'react';
+import { LinkButton } from '@apitable/components';
 import { Field, FieldType, IField } from '@apitable/core';
+import { Tooltip } from 'pc/components/common';
 import { getFieldHeight, getShowFieldType, getVietualFieldHeight } from 'pc/components/gallery_view/utils';
 import { UrlDiscern } from 'pc/components/multi_grid/cell/cell_text/url_discern';
 import styles from './style.module.less';
@@ -57,6 +59,11 @@ export const CardText: React.FC<React.PropsWithChildren<ICardTextProps>> = ({
     style.paddingTop = 4;
     style.paddingBottom = 12;
   }
+  const isUrl = field.type === FieldType.URL;
+  let title = text;
+  if (isUrl) {
+    title = Field.bindModel(field).cellValueToTitle(cellValue);
+  }
   return (
     <div
       className={classnames({
@@ -66,7 +73,21 @@ export const CardText: React.FC<React.PropsWithChildren<ICardTextProps>> = ({
       })}
       style={style}
     >
-      <UrlDiscern value={text} />
+      {isUrl ? text && (
+        <Tooltip title={text} placement="top">
+          <LinkButton
+            onMouseDown={() => {
+              if (/^https?:\/\//.test(text)) {
+                window.open(text, '_blank');
+                return;
+              }
+              window.open(`http://${text}`);
+            }}
+          >
+            {title}
+          </LinkButton>
+        </Tooltip>
+      ): <UrlDiscern value={text} />}
     </div>
   );
 };

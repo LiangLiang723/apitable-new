@@ -56,6 +56,8 @@ const optionData = [
   { value: 2, label: '1.00' },
   { value: 3, label: '1.000' },
   { value: 4, label: '1.0000' },
+  { value: 5, label: '1.00000' },
+  { value: 6, label: '1.000000' },
 ];
 
 const symbolAlignOptions = [
