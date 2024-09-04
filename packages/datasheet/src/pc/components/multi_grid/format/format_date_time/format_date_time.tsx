@@ -54,6 +54,11 @@ const optionDateFormatData = [
   { value: DateFormat['YYYY/MM/DD'], label: t(Strings.label_format_year_month_and_day_split_by_slash) },
   { value: DateFormat['YYYY-MM-DD'], label: t(Strings.label_format_year_month_and_day_split_by_dash) },
   { value: DateFormat['DD/MM/YYYY'], label: t(Strings.label_format_day_month_and_year_split_by_slash) },
+
+  { value: DateFormat['MM/DD/YYYY'], label: t(Strings.label_format_month_day_year_split_by_slash) },
+  { value: DateFormat['MM-DD-YYYY'], label: t(Strings.label_format_month_day_year_split_by_dash) },
+  { value: DateFormat['MM/DD/YY'], label: t(Strings.label_format_month_day_year_two_digit_year_split_by_slash) },
+
   { value: DateFormat['YYYY-MM'], label: t(Strings.label_format_year_and_month_split_by_dash) },
   { value: DateFormat['MM-DD'], label: t(Strings.label_format_month_and_day_split_by_dash) },
 
