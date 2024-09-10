@@ -53,7 +53,7 @@
   "add_dashboard": "新建仪表盘",
   "label_format_month_day_year_split_by_slash": "月/日/年",
   "label_format_month_day_year_split_by_dash": "月-日-年",
-  "label_format_month_day_year_two_digit_year_split_by_slash": "月/日/年（两位年）",
+  "label_format_month_day_year_two_digit_year_split_by_slash": "月/日/年（两位数年份）",
   "add_datasheet_editor": "在「只可更新」基础上，还可以删除记录和增删视图",
   "add_datasheet_manager": "拥有该表格的所有操作权限",
   "add_datasheet_reader": "可查看该表格内容或进行评论",
