@@ -544,7 +544,7 @@ export class WorkDayDiff extends DateFunc {
     const isMinus = startDate.valueOf() > endDate.valueOf(); // Whether with a negative sign
     isMinus && ([startDate, endDate] = [endDate, startDate]);
     const holidayStrList = params.length > 2 ? String(params[2]!.value).split(',') : [];
-    const holidays = holidayStrList.filter(v => v !== 'null').map(v => getDayjs(v.trim()));
+    const holidays = holidayStrList.filter(v => v !== 'null').map(v => getStartOfDay(v.trim()));
     const weekends = [0, 6]; // specify which days are the weekends
 
     const startDay = startDate.day();
@@ -572,12 +572,10 @@ export class WorkDayDiff extends DateFunc {
       const holiday = holidays[i]!;
       const holidayDay = holiday.day();
       if (
-        endDate.isAfter(holiday, 'date') &&
-        (
-          startDate.isBefore(holiday, 'date') ||
-          startDate.isSame(holiday, 'date')
-        ) &&
-        !weekends.includes(holidayDay)
+        ((endDate.isAfter(holiday, 'date') && startDate.isBefore(holiday, 'date')) // holiday is between start and end date
+        || endDate.isSame(holiday, 'date') // holiday is the same as the end date
+        || startDate.isSame(holiday, 'date')) // holiday is the same as the start date
+         && !weekends.includes(holidayDay)
       ) {
         finalCount--;
       }
