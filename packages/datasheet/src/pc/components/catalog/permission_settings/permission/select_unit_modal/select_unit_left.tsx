@@ -105,8 +105,6 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
 
   const [clickedTeamId, setClickedTeamId] = useState<string>();
 
-  const [tabActiveKey, setTabActiveKey] = useState<TabKey>(TabKey.Org);
-
   const [groupList, setGroupList] = useState<IGroupItem[]>([]);
   const [groupMore, setGroupMore] = useState<boolean>(false);
   const [pageNo, setPageNo] = useState<number>(1);
@@ -139,6 +137,8 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
   if (CUSTOM_SYNC_CONTACTS_LINKID && source === SelectUnitSource.SyncMember) {
     linkId = CUSTOM_SYNC_CONTACTS_LINKID;
   }
+
+  const [tabActiveKey, setTabActiveKey] = useState<TabKey>(!roleIsOpen && showGroup && YACH_ENABLED ? TabKey.Group : TabKey.Org);
 
   const { screenIsAtMost } = useResponsive();
   const isMobile = screenIsAtMost(ScreenSize.md);
@@ -619,6 +619,15 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
           <TabPane key={TabKey.Org} tab={t(Strings.tab_org)} />
           <TabPane key={TabKey.Role} tab={t(Strings.tab_role)} />
           {showGroup && YACH_ENABLED && <TabPane key={TabKey.Group} tab={'群组'} />}
+        </Tabs>
+      )}
+      {!roleIsOpen && showGroup && YACH_ENABLED && (
+        <Tabs
+          className={classnames(styles.tabWrap, isRole && styles.tabWrapRole)}
+          activeKey={tabActiveKey}
+          onChange={(value) => setTabActiveKey(value as TabKey)}
+        >
+          <TabPane key={TabKey.Group} tab={'群组'} />
         </Tabs>
       )}
       {!isRole && (
