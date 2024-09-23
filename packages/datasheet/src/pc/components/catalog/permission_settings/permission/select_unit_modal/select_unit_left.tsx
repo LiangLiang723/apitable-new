@@ -121,11 +121,6 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
     });
   }, { wait: 300 });
 
-  // group
-  const isGroup = tabActiveKey === TabKey.Group;
-
-  // role
-  const isRole = tabActiveKey === TabKey.Role;
   const { run: getRoleList, data } = useRoleRequest();
   const { isOpen: roleIsOpen, roles: roleList } = data;
 
@@ -139,6 +134,12 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
   }
 
   const [tabActiveKey, setTabActiveKey] = useState<TabKey>(!roleIsOpen && showGroup && YACH_ENABLED ? TabKey.Group : TabKey.Org);
+
+  // group
+  const isGroup = tabActiveKey === TabKey.Group;
+
+  // role
+  const isRole = tabActiveKey === TabKey.Role;
 
   const { screenIsAtMost } = useResponsive();
   const isMobile = screenIsAtMost(ScreenSize.md);
