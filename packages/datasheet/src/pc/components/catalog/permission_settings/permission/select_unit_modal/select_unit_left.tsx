@@ -133,7 +133,13 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
     linkId = CUSTOM_SYNC_CONTACTS_LINKID;
   }
 
-  const [tabActiveKey, setTabActiveKey] = useState<TabKey>(!roleIsOpen && showGroup && YACH_ENABLED ? TabKey.Group : TabKey.Org);
+  const [tabActiveKey, setTabActiveKey] = useState<TabKey>(TabKey.Org);
+
+  // group
+  const isGroup = tabActiveKey === TabKey.Group;
+
+  // role
+  const isRole = tabActiveKey === TabKey.Role;
 
   // group
   const isGroup = tabActiveKey === TabKey.Group;
@@ -628,6 +634,7 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
           activeKey={tabActiveKey}
           onChange={(value) => setTabActiveKey(value as TabKey)}
         >
+          <TabPane key={TabKey.Org} tab={t(Strings.tab_org)} />
           <TabPane key={TabKey.Group} tab={'群组'} />
         </Tabs>
       )}
