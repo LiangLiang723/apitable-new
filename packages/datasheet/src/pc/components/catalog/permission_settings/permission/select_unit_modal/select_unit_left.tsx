@@ -141,12 +141,6 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
   // role
   const isRole = tabActiveKey === TabKey.Role;
 
-  // group
-  const isGroup = tabActiveKey === TabKey.Group;
-
-  // role
-  const isRole = tabActiveKey === TabKey.Role;
-
   const { screenIsAtMost } = useResponsive();
   const isMobile = screenIsAtMost(ScreenSize.md);
 
