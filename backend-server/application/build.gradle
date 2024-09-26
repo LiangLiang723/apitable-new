@@ -33,6 +33,7 @@ dependencies {
     implementation libs.spring.boot.thymeleaf
     implementation libs.spring.integration.redis
     implementation libs.spring.session.redis
+    implementation libs.spring.boot.oauth2.client
     implementation libs.mysql
     runtimeOnly libs.mysql
     implementation libs.spring.security.cas
