@@ -145,10 +145,9 @@ public class InternalSpaceServiceImpl implements InternalSpaceService {
         InternalSpaceApiUsageVo vo = assembler.toApiUsageVo(planFeature);
         LocalDate now = ClockManager.me().getLocalDateNow();
         CycleDateRange dateRange = SubscriptionDateRange.calculateCycleDate(subscriptionInfo, now);
-        vo.setApiUsageUsedCount(
-            iStaticsService.getCurrentMonthApiUsage(spaceId, dateRange.getCycleEndDate()));
-        vo.setApiCallUsedNumsCurrentMonth(
-            iStaticsService.getCurrentMonthApiUsage(spaceId, dateRange.getCycleEndDate()));
+        Long count = iStaticsService.getCurrentMonthApiUsage(spaceId, dateRange.getCycleEndDate());
+        vo.setApiUsageUsedCount(count);
+        vo.setApiCallUsedNumsCurrentMonth(count);
         vo.setIsAllowOverLimit(true);
         return vo;
     }
