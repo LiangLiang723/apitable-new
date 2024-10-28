@@ -248,6 +248,9 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, SpaceEntity>
     @Value("${SKIP_USAGE_VERIFICATION:false}")
     private Boolean skipUsageVerification;
 
+    @Value("${SKIP_API_USAGE_VERIFICATION:false}")
+    private Boolean skipApiUsageVerification;
+
     @Override
     public SpaceEntity getEntityBySpaceId(String spaceId) {
         return baseMapper.selectBySpaceId(spaceId);

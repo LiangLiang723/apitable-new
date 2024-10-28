@@ -29,7 +29,7 @@ import {
 } from '@apitable/core';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
-import { skipUsageVerification } from 'app.environment';
+import { skipUsageVerification, skipApiUsageVerification } from 'app.environment';
 import {
   InternalCreateDatasheetVo, InternalSpaceCreditUsageView,
   InternalSpaceAutomationRunsMessageView,
@@ -400,6 +400,12 @@ export class RestService {
    */
   async getApiUsage(headers: IAuthHeader, spaceId: string): Promise<IApiUsage> {
     if (skipUsageVerification) {
+      this.logger.log(`skipApiUsage:${spaceId}`);
+      return Promise.resolve({
+        isAllowOverLimit: true
+      });
+    }
+    if (skipApiUsageVerification) {
       this.logger.log(`skipApiUsage:${spaceId}`);
       return Promise.resolve({
         isAllowOverLimit: true

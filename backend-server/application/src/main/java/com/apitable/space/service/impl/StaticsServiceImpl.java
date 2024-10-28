@@ -100,12 +100,18 @@ public class StaticsServiceImpl implements IStaticsService {
     @Value("${SKIP_USAGE_VERIFICATION:false}")
     private Boolean skipUsageVerification;
 
+    @Value("${SKIP_API_USAGE_VERIFICATION:false}")
+    private Boolean skipApiUsageVerification;
+
     @Value("${SPACE_STATISTICS_CACHE_HOURS:1}")
     private Integer cacheHours;
 
     @Override
     public long getCurrentMonthApiUsage(String spaceId, LocalDate currentMonth) {
         if (Boolean.TRUE.equals(skipUsageVerification)) {
+            return 0;
+        }
+        if (Boolean.TRUE.equals(skipApiUsageVerification)) {
             return 0;
         }
         // Get the API usage of this month up to yesterday
