@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import { Tooltip } from 'antd';
 import classNames from 'classnames';
 import Image from 'next/image';
 import * as React from 'react';
@@ -113,6 +114,12 @@ export const RecordCard: React.FC<React.PropsWithChildren<IRecordCardProps>> = (
                   <div className={styles.cardCell}>
                     {cellValue == null ? (
                       <span className={styles.cellHolder} />
+                    ) : field.type === FieldType.SingleText || field.type === FieldType.MultiSelect ? (
+                      <Tooltip title={Field.bindModel(field).cellValueToString(cellValue)}>
+                        <span className='vk-text-ellipsis vk-w-full'>
+                          <CellValue className={styles.cellValue} recordId={record.id} field={field} cellValue={cellValue} datasheetId={datasheetId} />
+                        </span>
+                      </Tooltip>
                     ) : (
                       <CellValue className={styles.cellValue} recordId={record.id} field={field} cellValue={cellValue} datasheetId={datasheetId} />
                     )}
