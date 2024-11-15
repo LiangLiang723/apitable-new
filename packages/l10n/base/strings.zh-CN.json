@@ -332,7 +332,7 @@
   "api_delete_error": "删除数据失败",
   "api_delete_error_foreign_datasheet_deleted": "删除记录失败，因为关联表已被删除",
   "api_embed_link_id_not_exist": "指定的嵌入链接不存在，请调整 linkId 后再试",
-  "api_embed_link_instance_limit": "抱歉, 暂时仅支持表格、仪表盘、表单类的节点创建嵌入链接",
+  "api_embed_link_instance_limit": "抱歉, 暂时仅支持表格、仪表盘、表单、镜像类的节点创建嵌入链接",
   "api_embed_link_limit": "创建的嵌入链接数量已达上限，单个维格表的嵌入链接数量不能超过{value}个",
   "api_enterprise_limit": "抱歉，此接口仅可在黄金级以上的空间站中调用",
   "api_example_request": "示例请求",

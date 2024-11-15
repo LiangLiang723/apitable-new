@@ -41,6 +41,7 @@ export enum IDPrefix {
   Document = 'doc',
   AutomationTrigger = 'atr',
   WorkDocAonymousId = 'wda',
+  Mirror = "mir"
 }
 
 /**
