@@ -38,7 +38,7 @@ store.subscribe(function datasheetIdChange() {
     return;
   }
 
-  if (embedId && (!spaceId || !resourceService.instance?.initialized || !state.embedInfo?.spaceId)) {
+  if (embedId && (!resourceService.instance?.initialized || !state.embedInfo?.spaceId)) {
     return;
   }
 
@@ -65,7 +65,6 @@ store.subscribe(function datasheetIdChange() {
   }
 
   expandRecordManager.destroy();
-
 
   resourceService.instance?.initialized &&
     resourceService.instance!.switchResource({

@@ -102,11 +102,6 @@ export const MirrorRoute = () => {
       <ServerError />
     );
   }
-  console.log('mirror 123', {
-    mirror,
-    sourceDatasheet,
-    datasheetId,
-  });
   if (!mirror || !sourceDatasheet || !datasheetId || sourceDatasheet.isPartOfData) {
     return (
       <AutoSizer style={{ width: '100%', height: '100%' }}>

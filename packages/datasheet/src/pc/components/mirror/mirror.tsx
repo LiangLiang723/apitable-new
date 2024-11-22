@@ -16,8 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import get from 'lodash/get';
 import * as React from 'react';
-import { IMirror, ResourceType } from '@apitable/core';
+import { IMirror, ResourceType, Selectors } from '@apitable/core';
 import { ComponentDisplay, ScreenSize } from 'pc/components/common/component_display';
 import { DataSheetPane } from 'pc/components/datasheet_pane';
 import { MirrorPath } from 'pc/components/mirror/mirror_path';
@@ -34,7 +35,11 @@ import styles from './style.module.less';
 
 export const Mirror: React.FC<React.PropsWithChildren<{ mirror: IMirror }>> = ({ mirror }) => {
   const { status } = useNetwork(true, mirror!.id, ResourceType.Mirror);
-  const { shareId, datasheetId } = useAppSelector((state) => state.pageParams);
+  const { shareId, datasheetId, embedId } = useAppSelector((state) => state.pageParams);
+  const embedInfo = useAppSelector((state) => Selectors.getEmbedInfo(state));
+
+  const isShowNodeInfoBar = get(embedInfo, 'nodeInfoBar', true);
+  const showCollaborator = embedId ? embedInfo.viewControl?.collaboratorStatusBar : true;
 
   return (
     <DataSheetPane
@@ -43,13 +48,21 @@ export const Mirror: React.FC<React.PropsWithChildren<{ mirror: IMirror }>> = ({
           <div className={styles.tab}>
             <SuspensionPanel shareId={shareId} datasheetId={datasheetId} />
             <ComponentDisplay minWidthCompatible={ScreenSize.md}>
-              <div className={styles.left}>
-                <MirrorPath nodeInfo={mirror} breadInfo={mirror!.sourceInfo} permission={mirror!.permissions} />
-              </div>
-              <div className={styles.right}>
-                <CollaboratorStatus resourceId={mirror!.id} resourceType={ResourceType.Mirror} />
-                <NetworkStatus currentStatus={status} />
-              </div>
+              {
+                isShowNodeInfoBar && (
+                  <div className={styles.left}>
+                    <MirrorPath nodeInfo={mirror} breadInfo={mirror!.sourceInfo} permission={mirror!.permissions} />
+                  </div>
+                )
+              }
+              {
+                showCollaborator && (
+                  <div className={styles.right}>
+                    <CollaboratorStatus resourceId={mirror!.id} resourceType={ResourceType.Mirror} />
+                    <NetworkStatus currentStatus={status} />
+                  </div>
+                )
+              }
             </ComponentDisplay>
             <ComponentDisplay maxWidthCompatible={ScreenSize.md}>
               <MobileToolBar hideToolBar />

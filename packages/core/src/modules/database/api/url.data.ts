@@ -39,7 +39,9 @@ export const GET_FIELD_PERMISSION_PAGE_MEMBER_LIST = '/datasheet/:dstId/field/:f
 
 // ================ mirror related start =======================
 export const READ_MIRROR_INFO = 'mirrors/:mirrorId/info'; // Request mirror data
+export const READ_EMBED_MIRROR_INFO = 'embedlinks/:embedId/mirrors/:mirrorId/info'; // Request mirror data
 export const READ_MIRROR_DATA_PACK = 'mirrors/:mirrorId/dataPack'; // Request the data of the mirror-related table
+export const READ_EMBED_MIRROR_DATA_PACK = 'embedlinks/:embedId/resources/:mirrorId/dataPack'; // Request the data of the mirror-related table
 export const READ_SHARE_MIRROR_INFO = 'shares/:shareId/mirrors/:mirrorId/info'; // Request the data of mirror-related tables
 export const READ_SHARE_MIRROR_DATA_PACK = 'shares/:shareId/mirrors/:mirrorId/dataPack'; // Request the data of the mirror-related table
 export const GET_MIRROR_SUBSCRIPTIONS = '/mirrors/:mirrorId/records/subscriptions'; // Get the concerned record IDs of the mirror table
