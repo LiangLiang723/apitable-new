@@ -116,12 +116,12 @@ export const RecordCard: React.FC<React.PropsWithChildren<IRecordCardProps>> = (
                     {cellValue == null ? (
                       <span className={styles.cellHolder} />
                     ) : field.type === FieldType.SingleText || field.type === FieldType.MultiSelect ? (
-                      <Tooltip title={Field.bindModel(field).cellValueToString(cellValue)}>
-                        <span className='vk-text-ellipsis vk-w-full'>
-                          <CellValue className={styles.cellValue} recordId={record.id} field={field} cellValue={cellValue} datasheetId={datasheetId} />
-                        </span>
-                      </Tooltip>
+                      // <Tooltip title={Field.bindModel(field).cellValueToString(cellValue)}>
+                      <span className="vk-text-ellipsis vk-w-full" title={Field.bindModel(field).cellValueToString(cellValue)?.slice(0, 1000) || ''}>
+                        <CellValue className={styles.cellValue} recordId={record.id} field={field} cellValue={cellValue} datasheetId={datasheetId} />
+                      </span>
                     ) : (
+                      // </Tooltip>
                       <CellValue className={styles.cellValue} recordId={record.id} field={field} cellValue={cellValue} datasheetId={datasheetId} />
                     )}
                   </div>
