@@ -16,13 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { Tooltip } from 'antd';
 import classNames from 'classnames';
 import Image from 'next/image';
 import * as React from 'react';
 import { useMemo } from 'react';
 import { Field, FieldType, IField, IRecord, IReduxState, IViewColumn, Selectors, Strings, t } from '@apitable/core';
 import { SubtractCircleFilled } from '@apitable/icons';
+// eslint-disable-next-line no-restricted-imports
+import { Tooltip } from 'pc/components/common';
 import { DisplayFile } from 'pc/components/display_file';
 import { CellValue } from 'pc/components/multi_grid/cell/cell_value';
 import { useResponsive } from 'pc/hooks';
