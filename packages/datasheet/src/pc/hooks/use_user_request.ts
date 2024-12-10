@@ -343,8 +343,11 @@ export const useUserRequest = () => {
 
       let userLanguage = navigator.language;
 
-      if (userLanguage == 'zh-TW') {
+      if (userLanguage === 'zh-TW') {
         userLanguage = 'zh-HK';
+      }
+      if (userLanguage?.startsWith('en')) {
+        userLanguage = 'en-US';
       }
       if (languageMap[userLanguage]) {
         return userLanguage;
