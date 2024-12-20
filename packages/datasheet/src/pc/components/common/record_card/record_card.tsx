@@ -94,8 +94,7 @@ export const RecordCard: React.FC<React.PropsWithChildren<IRecordCardProps>> = (
           [styles.noReadablePermission]: !foreignDstReadable,
         })}
       >
-        <h3
-          className={classNames(styles.cardTitle, title ? '' : styles.gray, 'ellipsis')}>{title || t(Strings.record_unnamed)}</h3>
+        <h3 className={classNames(styles.cardTitle, title ? '' : styles.gray, 'ellipsis')}>{title || t(Strings.record_unnamed)}</h3>
         {foreignDstReadable && (
           <div className={styles.cellRow}>
             {normalColumns.map((column) => {
@@ -117,15 +116,13 @@ export const RecordCard: React.FC<React.PropsWithChildren<IRecordCardProps>> = (
                     {cellValue == null ? (
                       <span className={styles.cellHolder} />
                     ) : field.type === FieldType.SingleText || field.type === FieldType.Text ? (
-                      <Tooltip title={Field.bindModel(field).cellValueToString(cellValue)}>
-                        <span className="vk-text-ellipsis vk-w-full">
-                          <CellValue className={styles.cellValue} recordId={record.id} field={field}
-                            cellValue={cellValue} datasheetId={datasheetId} />
-                        </span>
-                      </Tooltip>
+                      // <Tooltip title={Field.bindModel(field).cellValueToString(cellValue)}>
+                      <span className="vk-text-ellipsis vk-w-full" title={Field.bindModel(field).cellValueToString(cellValue)?.slice(0, 1000) || ''}>
+                        <CellValue className={styles.cellValue} recordId={record.id} field={field} cellValue={cellValue} datasheetId={datasheetId} />
+                      </span>
                     ) : (
-                      <CellValue className={styles.cellValue} recordId={record.id} field={field} cellValue={cellValue}
-                        datasheetId={datasheetId} />
+                      // </Tooltip>
+                      <CellValue className={styles.cellValue} recordId={record.id} field={field} cellValue={cellValue} datasheetId={datasheetId} />
                     )}
                   </div>
                 </div>
@@ -149,8 +146,7 @@ export const RecordCard: React.FC<React.PropsWithChildren<IRecordCardProps>> = (
       field.id,
     );
     if (!cellValue) {
-      return <Image style={{ objectFit: 'cover', borderRadius: 3 }} src={NoImage} alt="NoImage" width={90}
-        height={90} />;
+      return <Image style={{ objectFit: 'cover', borderRadius: 3 }} src={NoImage} alt="NoImage" width={90} height={90} />;
     }
 
     return (
