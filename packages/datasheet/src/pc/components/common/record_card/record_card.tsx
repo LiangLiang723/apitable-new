@@ -94,7 +94,9 @@ export const RecordCard: React.FC<React.PropsWithChildren<IRecordCardProps>> = (
           [styles.noReadablePermission]: !foreignDstReadable,
         })}
       >
-        <h3 className={classNames(styles.cardTitle, title ? '' : styles.gray, 'ellipsis')}>{title || t(Strings.record_unnamed)}</h3>
+        <h3 className={classNames(styles.cardTitle, title ? '' : styles.gray, 'ellipsis')} title={title || t(Strings.record_unnamed)}>
+          {title || t(Strings.record_unnamed)}
+        </h3>
         {foreignDstReadable && (
           <div className={styles.cellRow}>
             {normalColumns.map((column) => {
