@@ -23,7 +23,6 @@ import { useThemeColors } from '@apitable/components';
 import { ConfigConstant, t, Strings } from '@apitable/core';
 import { ChevronDownOutlined } from '@apitable/icons';
 import { getNodeIcon } from 'pc/components/catalog/tree/node_icon';
-import { Emoji } from 'pc/components/common/emoji';
 import { Popup } from 'pc/components/common/mobile/popup';
 import { Rate } from 'pc/components/common/rate';
 import { RateItem } from './rate_item';

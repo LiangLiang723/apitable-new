@@ -92,6 +92,7 @@ import com.apitable.shared.component.notification.NotificationTemplateId;
 import com.apitable.shared.component.notification.NotifyMailFactory;
 import com.apitable.shared.component.notification.NotifyMailFactory.MailWithLang;
 import com.apitable.shared.config.properties.ConstProperties;
+import com.apitable.shared.config.properties.LimitProperties;
 import com.apitable.shared.constants.MailPropConstants;
 import com.apitable.shared.context.LoginContext;
 import com.apitable.shared.context.SessionContext;
@@ -159,6 +160,9 @@ public class MemberServiceImpl extends ExpandServiceImpl<MemberMapper, MemberEnt
 
     @Resource
     private ConstProperties constProperties;
+
+    @Resource
+    private LimitProperties limitProperties;
 
     @Resource
     private SpaceInviteRecordMapper spaceInviteRecordMapper;
@@ -1526,7 +1530,7 @@ public class MemberServiceImpl extends ExpandServiceImpl<MemberMapper, MemberEnt
             LocalDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0);
         Integer count =
             spaceInviteRecordMapper.selectCountBySpaceIdAndBetween(spaceId, startAt, endAt);
-        return count >= constProperties.getMaxInviteCountForFree();
+        return count >= limitProperties.getMaxInviteCountForFree();
     }
 
     @Override

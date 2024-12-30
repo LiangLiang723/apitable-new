@@ -22,6 +22,8 @@ import * as React from 'react';
 import { useMemo } from 'react';
 import { Field, FieldType, IField, IRecord, IReduxState, IViewColumn, Selectors, Strings, t } from '@apitable/core';
 import { SubtractCircleFilled } from '@apitable/icons';
+// eslint-disable-next-line no-restricted-imports
+import { Tooltip } from 'pc/components/common';
 import { DisplayFile } from 'pc/components/display_file';
 import { CellValue } from 'pc/components/multi_grid/cell/cell_value';
 import { useResponsive } from 'pc/hooks';
@@ -92,7 +94,9 @@ export const RecordCard: React.FC<React.PropsWithChildren<IRecordCardProps>> = (
           [styles.noReadablePermission]: !foreignDstReadable,
         })}
       >
-        <h3 className={classNames(styles.cardTitle, title ? '' : styles.gray, 'ellipsis')}>{title || t(Strings.record_unnamed)}</h3>
+        <h3 className={classNames(styles.cardTitle, title ? '' : styles.gray, 'ellipsis')} title={title || t(Strings.record_unnamed)}>
+          {title || t(Strings.record_unnamed)}
+        </h3>
         {foreignDstReadable && (
           <div className={styles.cellRow}>
             {normalColumns.map((column) => {
@@ -113,7 +117,13 @@ export const RecordCard: React.FC<React.PropsWithChildren<IRecordCardProps>> = (
                   <div className={styles.cardCell}>
                     {cellValue == null ? (
                       <span className={styles.cellHolder} />
+                    ) : field.type === FieldType.SingleText || field.type === FieldType.Text ? (
+                      // <Tooltip title={Field.bindModel(field).cellValueToString(cellValue)}>
+                      <span className="vk-text-ellipsis vk-w-full" title={Field.bindModel(field).cellValueToString(cellValue)?.slice(0, 1000) || ''}>
+                        <CellValue className={styles.cellValue} recordId={record.id} field={field} cellValue={cellValue} datasheetId={datasheetId} />
+                      </span>
                     ) : (
+                      // </Tooltip>
                       <CellValue className={styles.cellValue} recordId={record.id} field={field} cellValue={cellValue} datasheetId={datasheetId} />
                     )}
                   </div>

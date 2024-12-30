@@ -1,7 +1,7 @@
 import { FilterContext } from './filter_context';
 import { WidgetContext } from 'context';
 import { useContext } from 'react';
-import { injectStore, IOpenFilterConditionGroup, IReduxState, parseFilterExpressByOpenFilter, parseOpenFilterByExpress } from '@apitable/core';
+import { IOpenFilterConditionGroup, IReduxState, parseFilterExpressByOpenFilter, parseOpenFilterByExpress } from '@apitable/core';
 import React from 'react';
 import { FilterBase } from './filter_base';
 import { Store } from 'redux';
@@ -30,7 +30,6 @@ export const Filter: React.FC<IFilterProps> = props => {
     state: widgetStore.getState() as any as IReduxState
   }) || undefined;
 
-  injectStore(widgetStore);
   return (
     <FilterContext.Provider value={{
       store: widgetStore as any as Store<IReduxState>

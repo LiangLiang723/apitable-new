@@ -17,7 +17,7 @@ export interface IUtcOption {
 }
 
 export const covertDayjsFormat2DateFnsFormat = (format: string) => {
-  return format.replace('YYYY', 'yyyy').replace('DD', 'dd');
+  return format.replace('YYYY', 'yyyy').replace('YY', 'yy').replace('DD', 'dd');
 };
 
 export const isValidTimezone = (timezone: string) => {

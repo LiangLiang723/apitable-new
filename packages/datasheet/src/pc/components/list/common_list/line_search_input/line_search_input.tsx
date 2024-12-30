@@ -45,7 +45,10 @@ export const LineSearchInputBase: React.ForwardRefRenderFunction<{}, ILineSearch
   React.useImperativeHandle(ref, () => {
     return {
       focus() {
-        inputRef.current!.focus();
+        if (inputRef.current) {
+          inputRef.current.tabIndex = -1;
+        }
+        inputRef.current?.focus({ preventScroll: true });
       },
     };
   });

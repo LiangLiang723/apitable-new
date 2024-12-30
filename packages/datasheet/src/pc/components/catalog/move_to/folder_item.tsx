@@ -17,8 +17,9 @@
  */
 
 import { Typography, useThemeColors } from '@apitable/components';
+import { ConfigConstant } from '@apitable/core';
 import { FolderNormalFilled } from '@apitable/icons';
-import { Emoji } from 'pc/components/common';
+import { getNodeIcon } from 'pc/components/catalog/tree/node_icon';
 import { ScreenSize } from 'pc/components/common/component_display';
 import { useResponsive } from 'pc/hooks';
 import styles from './style.module.less';
@@ -41,7 +42,9 @@ export const FolderItem: React.FC<
   const fontVariant = isMobile ? 'body1' : 'body3';
   const levelVariant = isMobile ? 'body3' : 'body4';
   const Icon = icon ? (
-    <Emoji emoji={icon} size={iconSize} className={styles.folderItemIcon} />
+    <span className={styles.folderItemIcon}>
+      {getNodeIcon(icon, ConfigConstant.NodeType.DATASHEET, { size: iconSize })}
+    </span>
   ) : (
     <FolderNormalFilled size={iconSize} className={styles.folderItemIcon} />
   );
