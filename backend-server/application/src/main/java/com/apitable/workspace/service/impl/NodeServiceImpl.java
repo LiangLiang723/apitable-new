@@ -29,6 +29,7 @@ import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -47,6 +48,7 @@ import com.apitable.control.infrastructure.ControlRoleDict;
 import com.apitable.control.infrastructure.ControlTemplate;
 import com.apitable.control.infrastructure.permission.NodePermission;
 import com.apitable.control.infrastructure.role.ControlRole;
+import com.apitable.control.service.IControlService;
 import com.apitable.core.exception.BusinessException;
 import com.apitable.core.support.tree.DefaultTreeBuildFactory;
 import com.apitable.core.util.ExceptionUtil;
@@ -76,6 +78,7 @@ import com.apitable.shared.listener.event.AuditSpaceEvent;
 import com.apitable.shared.listener.event.AuditSpaceEvent.AuditSpaceArg;
 import com.apitable.shared.sysconfig.i18n.I18nStringsUtil;
 import com.apitable.shared.util.CollectionUtil;
+import com.apitable.shared.util.DBUtil;
 import com.apitable.shared.util.IdUtil;
 import com.apitable.shared.util.StringUtil;
 import com.apitable.shared.util.information.ClientOriginInfo;
@@ -90,11 +93,13 @@ import com.apitable.space.vo.SpaceGlobalFeature;
 import com.apitable.template.enums.TemplateException;
 import com.apitable.widget.service.IWidgetService;
 import com.apitable.workspace.dto.CreateNodeDto;
+import com.apitable.workspace.dto.DatasheetMetaColumnDTO;
 import com.apitable.workspace.dto.NodeBaseInfoDTO;
 import com.apitable.workspace.dto.NodeCopyEffectDTO;
 import com.apitable.workspace.dto.NodeCopyOptions;
 import com.apitable.workspace.dto.NodeData;
 import com.apitable.workspace.dto.NodeExtraDTO;
+import com.apitable.workspace.dto.NodeShareDTO;
 import com.apitable.workspace.dto.NodeStatisticsDTO;
 import com.apitable.workspace.dto.NodeTreeDTO;
 import com.apitable.workspace.dto.UrlNodeInfoDTO;
@@ -126,6 +131,7 @@ import com.apitable.workspace.service.IDatasheetRecordService;
 import com.apitable.workspace.service.IDatasheetService;
 import com.apitable.workspace.service.IFieldRoleService;
 import com.apitable.workspace.service.INodeDescService;
+import com.apitable.workspace.service.INodeFavoriteService;
 import com.apitable.workspace.service.INodeRelService;
 import com.apitable.workspace.service.INodeRoleService;
 import com.apitable.workspace.service.INodeService;
@@ -181,6 +187,9 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
     private NodeFacade nodeFacade;
 
     @Resource
+    private INodeFavoriteService iNodeFavoriteService;
+
+    @Resource
     private INodeDescService iNodeDescService;
 
     @Resource
@@ -206,6 +215,9 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
 
     @Resource
     private ControlTemplate controlTemplate;
+
+    @Resource
+    private IControlService iControlService;
 
     @Resource
     private INodeRoleService iNodeRoleService;
@@ -405,13 +417,84 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
             return new ArrayList<>();
         }
         // Batch query node information
-        List<NodeInfoVo> infos = baseMapper.selectNodeInfoByNodeIds(roleDict.keySet(), memberId);
+        List<NodeInfoVo> infos =
+            this.buildNodeInfos(spaceId, roleDict.keySet(), memberId, NodeInfoVo.class);
+        // baseMapper.selectNodeInfoByNodeIds(roleDict.keySet(), memberId);
         // Node switches to memory custom sorting
         CollectionUtil.customSequenceSort(infos, NodeInfoVo::getNodeId,
             new ArrayList<>(roleDict.keySet()));
         SpaceGlobalFeature feature = iSpaceService.getSpaceGlobalFeature(spaceId);
         setRole(infos, roleDict, feature);
         return infos;
+    }
+
+    private <T extends NodeInfoVo> List<T> buildNodeInfos(String spaceId,
+                                                          Set<String> nodeIds,
+                                                          Long memberId, Class<T> targetType) {
+        List<T> nodeInfoVOs = new ArrayList<>();
+        List<NodeEntity> nodes = this.getByNodeIds(nodeIds);
+        if (nodes.isEmpty()) {
+            return nodeInfoVOs;
+        }
+
+        // get star node id
+        List<String> favoriteNodeIds = iNodeFavoriteService.getFavoriteNodeIdsByMemberId(memberId);
+        // get share node id
+        List<NodeShareDTO> shareDTOList =
+            DBUtil.batchSelectByFieldIn(nodeIds, nodeShareSettingMapper::selectDtoByNodeIds);
+        List<String> shareNodeIds = shareDTOList.stream()
+            .filter(s -> s.getIsEnabled().equals(Boolean.TRUE))
+            .map(NodeShareDTO::getNodeId).toList();
+        // get control node id
+        List<String> existedControlIds =
+            DBUtil.batchSelectByFieldIn(nodeIds, iControlService::getExistedControlId);
+
+        // query folder ids with child nodes
+        List<String> folderIdsWithChildren = new ArrayList<>();
+        List<String> folderNodeIds = nodes.stream()
+            .filter(n -> NodeType.toEnum(n.getType()).isFolder())
+            .map(NodeEntity::getNodeId).toList();
+        if (folderNodeIds.size() > 0) {
+            folderIdsWithChildren =
+                DBUtil.batchSelectByFieldIn(folderNodeIds, baseMapper::selectParentIdWithChildren);
+        }
+        // query datasheet column count
+        Map<String, Integer> dstIdToColumnCountMap = new HashMap<>();
+        List<String> datasheetNodeIds = nodes.stream()
+            .filter(n -> n.getType().equals(NodeType.DATASHEET.getNodeType()))
+            .map(NodeEntity::getNodeId).toList();
+        if (datasheetNodeIds.size() > 0) {
+            List<DatasheetMetaColumnDTO> metaColumnDTOs =
+                iDatasheetMetaService.findMetaColumnDTOs(datasheetNodeIds);
+            dstIdToColumnCountMap = metaColumnDTOs.stream().collect(
+                Collectors.toMap(DatasheetMetaColumnDTO::getDstId,
+                    DatasheetMetaColumnDTO::getMdFieldMapSize));
+        }
+
+        for (NodeEntity node : nodes) {
+            String nodeId = node.getNodeId();
+            T nodeInfo = ReflectUtil.newInstanceIfPossible(targetType);
+            BeanUtil.copyProperties(node, nodeInfo);
+            nodeInfo.setNodeFavorite(favoriteNodeIds.contains(nodeId));
+            nodeInfo.setNodeShared(shareNodeIds.contains(nodeId));
+            nodeInfo.setNodePermitSet(existedControlIds.contains(nodeId));
+            nodeInfo.setNodePrivate(!node.getUnitId().equals(0L));
+
+            NodeType nodeType = NodeType.toEnum(node.getType());
+            if (nodeType.isRoot()) {
+                // replace node name if type is root node
+                String spaceName = iSpaceService.getNameBySpaceId(spaceId);
+                nodeInfo.setNodeName(spaceName);
+                nodeInfo.setHasChildren(nodes.size() > 1);
+            } else if (nodeType.isFolder()) {
+                nodeInfo.setHasChildren(folderIdsWithChildren.contains(nodeId));
+            } else if (nodeType.equals(NodeType.DATASHEET)) {
+                nodeInfo.setMdFieldMapSize(dstIdToColumnCountMap.get(nodeId));
+            }
+
+            nodeInfoVOs.add(nodeInfo);
+        }
+        return nodeInfoVOs;
     }
 
     @Override
@@ -699,7 +782,9 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
                 .reduce(new ArrayList<>(),
                     (nodes, item) -> {
                         List<NodeInfoTreeVo> childNodes =
-                            baseMapper.selectNodeInfoTreeByNodeIds(item, memberId);
+                            this.buildNodeInfos(spaceId, roleDict.keySet(), memberId,
+                                NodeInfoTreeVo.class);
+                        // baseMapper.selectNodeInfoTreeByNodeIds(item, memberId);
                         nodes.addAll(childNodes);
                         return nodes;
                     },

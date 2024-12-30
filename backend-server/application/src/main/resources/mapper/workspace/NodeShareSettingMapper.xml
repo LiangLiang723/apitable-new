@@ -90,7 +90,7 @@
     </select>
 
     <select id="selectDtoByNodeIds" resultType="com.apitable.workspace.dto.NodeShareDTO">
-        SELECT node_id, share_id
+        SELECT node_id, share_id, is_enabled
         FROM ${tablePrefix}node_share_setting
         WHERE node_id IN
         <foreach collection="nodeIds" item="item" open="(" separator="," close=")">

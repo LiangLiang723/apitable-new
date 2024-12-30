@@ -33,4 +33,6 @@ public class NodeShareDTO {
     private String spaceId;
 
     private Long operator;
+
+    private Boolean isEnabled;
 }

@@ -40,6 +40,16 @@
         WHERE dst_id = #{dstId} AND is_deleted = 0
     </select>
 
+    <select id="selectMetaColumnDtoByDstIds"
+            resultType="com.apitable.workspace.dto.DatasheetMetaColumnDTO">
+        SELECT dst_id, JSON_LENGTH(meta_data -> '$.fieldMap') AS md_field_map_size
+        FROM ${tablePrefix}datasheet_meta
+        WHERE dst_id IN
+        <foreach item="item" index="index" collection="dstIds" open="(" separator="," close=")">
+            #{item}
+        </foreach> AND is_deleted = 0
+    </select>
+
     <select id="selectDtoByDstIds" resultType="com.apitable.workspace.dto.DatasheetMetaDTO">
         SELECT dst_id, meta_data
         FROM ${tablePrefix}datasheet_meta
