@@ -533,6 +533,32 @@ export function getSubUnitList(teamId?: string, linkId?: string) {
   });
 }
 
+interface IGetOrgYachGroupList {
+  groupName?: string;
+  pageObjectParams: {
+    pageSize: number;
+    pageNo: number;
+  };
+}
+export function getOrgYachGroupList({ groupName, pageObjectParams }: IGetOrgYachGroupList) {
+  return axios.get(Url.GET_ORG_YACH_GROUP, {
+    params: {
+      groupName,
+      pageObjectParams: JSON.stringify(pageObjectParams),
+    },
+  });
+}
+
+interface IYachAddRole {
+  nodeId: string;
+  unitIds: string[];
+  role: string;
+}
+
+export function yachAddRole(data: IYachAddRole) {
+  return axios.post(Url.YACH_ADD_ROLE, data);
+}
+
 /**
  * Update(edit) role
  *

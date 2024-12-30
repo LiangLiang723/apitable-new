@@ -18,6 +18,7 @@
 
 import accept from 'attr-accept';
 import mime from 'mime-types';
+import { browser } from 'modules/shared/browser';
 import {
   cellValueToImageSrc,
   getHostOfAttachment,
@@ -27,7 +28,6 @@ import {
   isPdf,
   isWebp
 } from '@apitable/core';
-import { browser } from 'modules/shared/browser';
 import { byte2Mb } from 'pc/utils';
 import { getEnvVariables } from 'pc/utils/env';
 import IconImg from 'static/icon/datasheet/attachment/attachment_ img_small_placeholder_filled.png'; // img
@@ -225,7 +225,7 @@ export const getCellValueThumbSrc = (file: IAttachmentValue, option: IImageSrcOp
 };
 
 export function getPreviewUrl(fileInfo: IAttachmentValue) {
-  if (fileInfo.token.includes('http')) {
+  if (fileInfo.token.includes('http') || !fileInfo.bucket) {
     return fileInfo.token;
   }
   const host = getHostOfAttachment(fileInfo.bucket);

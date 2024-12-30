@@ -138,27 +138,46 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
       Message.error({ content: t(Strings.no_permission_setting_admin) });
       return;
     }
-    const unitIds = unitInfos.map((item) => {
-      return item.unitId;
-    });
+    const unitInfosNoGroup = unitInfos.filter((item) => item.type !== MemberType.Group);
+    const unitIdsNoGroup = unitInfosNoGroup.map((item) => item.unitId);
+
+    const unitInfosGroup = unitInfos.filter((item) => item.type === MemberType.Group);
+    const groupIds = unitInfosGroup.map((item) => item.unitId);
     const role = permission.value + '';
     const openFieldPermissionRes = await openFieldPermission();
     if (!openFieldPermissionRes) {
       return;
     }
-    const res = await DatasheetApi.addFieldPermissionRole(datasheetId, field.id, {
-      role,
-      unitIds,
-    });
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    if (groupIds.length > 0) {
+      const res = await DatasheetApi.addYachFieldPermissionRole(datasheetId, field.id, {
+        role,
+        unitIds: groupIds,
+      });
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.add_role_success),
+      });
+      await fetchRoleList();
     }
-    Message.success({
-      content: t(Strings.add_role_success),
-    });
-    await fetchRoleList();
+    if (unitIdsNoGroup.length > 0) {
+      const res = await DatasheetApi.addFieldPermissionRole(datasheetId, field.id, {
+        role,
+        unitIds: unitIdsNoGroup,
+      });
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.add_role_success),
+      });
+      await fetchRoleList();
+    }
   };
 
   const permissionList = [
@@ -322,6 +341,7 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
           permissionList={permissionList}
           onSubmit={submitAddRole}
           adminAndOwnerUnitIds={roleList.filter((v) => v.isAdmin || v.isOwner).map((v) => v.unitId)}
+          showGroup
         />
       )}
       <PermissionInfoSetting

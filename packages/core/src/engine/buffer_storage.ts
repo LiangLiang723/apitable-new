@@ -20,6 +20,7 @@ import { LS_DATASHEET_NAMESPACE } from 'config/constant';
 import { ResourceType } from 'types';
 import { generateRandomString } from 'utils';
 import { composeOperations, ILocalChangeset, IOperation } from './ot';
+import { isClient } from 'utils/env';
 
 // Local cache processing interface
 export interface IStoredData {
@@ -193,8 +194,14 @@ export class BufferStorage {
   }
 
   static ops2Changeset(ops: IOperation[], revision: number, resourceId: string, resourceType: ResourceType): ILocalChangeset {
+    const messageId = generateRandomString();
+    if (isClient()) {
+      // register the messageId to event manager
+      new CustomEvent(messageId);
+      localStorage.setItem('doing_op_messageId', messageId);
+    }
     return {
-      messageId: generateRandomString(),
+      messageId,
       baseRevision: revision,
       resourceId,
       resourceType,

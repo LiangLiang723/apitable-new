@@ -25,10 +25,10 @@ import ReactDOM from 'react-dom';
 import { createEditor, Descendant, Editor, Node, Range, Text, Transforms } from 'slate';
 import { HistoryEditor, withHistory } from 'slate-history';
 import { Editable, ReactEditor, Slate, useFocused, useSelected, withReact } from 'slate-react';
-import { Api, DatasheetApi, StoreActions, Strings, t } from '@apitable/core';
+import { Api, DatasheetApi, StoreActions, Strings, t, ConfigConstant } from '@apitable/core';
 import { LoadingOutlined } from '@apitable/icons';
 import { expandUnitModal, SelectUnitSource } from 'pc/components/catalog/permission_settings/permission/select_unit_modal';
-import { Emoji } from 'pc/components/common';
+import { getNodeIcon } from 'pc/components/catalog/tree/node_icon';
 import { MemberOptionList } from 'pc/components/list';
 import { MemberItem } from 'pc/components/multi_grid/cell/cell_member/member_item';
 import { IS_FIREFOX } from 'pc/components/slate_editor/helpers/browser';
@@ -466,7 +466,7 @@ const SlateEditor = (props: any, ref: React.Ref<unknown>) => {
             return (
               <div className={styles.emojiUser} key={index}>
                 <span className={styles.emojiToggle} onClick={() => handleEmoji && handleEmoji(k)}>
-                  <Emoji emoji={k === 'good' ? '+1' : 'ok_hand'} size={16} />
+                  {getNodeIcon(k === 'good' ? '+1' : 'ok_hand', ConfigConstant.NodeType.DATASHEET, { size: 16, emojiSize: 16 })}
                 </span>
                 {names.length > 2 ? (
                   <Tooltip title={namesShow}>

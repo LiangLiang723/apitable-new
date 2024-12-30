@@ -17,14 +17,14 @@
  */
 
 import { has, isEqual } from 'lodash';
-import { Events, ITemporaryView, IViewProperty, Player, Selectors, StoreActions, ViewPropertyFilter } from '@apitable/core';
 import { browser } from 'modules/shared/browser';
+import { Events, ITemporaryView, IViewProperty, Player, Selectors, StoreActions, ViewPropertyFilter } from '@apitable/core';
 import { showViewManualSaveInMobile } from 'pc/components/tab_bar/view_sync_switch/show_view_manual_save_in_mobile';
 import { store } from 'pc/store';
 
 export const executeCommandWithMirror = (commandFunc: Function, viewProperty: Partial<IViewProperty>, cb?: () => void) => {
   const state = store.getState();
-  const { mirrorId, viewId, datasheetId, embedId } = state.pageParams;
+  const { mirrorId, viewId, datasheetId, embedId, shareId } = state.pageParams;
 
   if (!mirrorId) {
     const snapshot = Selectors.getSnapshot(state)!;
@@ -37,7 +37,7 @@ export const executeCommandWithMirror = (commandFunc: Function, viewProperty: Pa
     }
 
     if (browser?.is('mobile')) {
-      showViewManualSaveInMobile();
+      !shareId && !embedId && showViewManualSaveInMobile();
     } else {
       if (!embedId) {
         Player.doTrigger(Events.view_notice_view_auto_false);

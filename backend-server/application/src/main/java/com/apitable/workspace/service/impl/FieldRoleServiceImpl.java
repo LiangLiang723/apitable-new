@@ -54,11 +54,14 @@ import com.apitable.organization.service.IMemberService;
 import com.apitable.organization.service.IOrganizationService;
 import com.apitable.organization.service.IRoleMemberService;
 import com.apitable.organization.service.IRoleService;
+import com.apitable.organization.service.ITagService;
 import com.apitable.organization.service.ITeamService;
 import com.apitable.organization.vo.MemberTeamPathInfo;
 import com.apitable.organization.vo.RoleInfoVo;
+import com.apitable.organization.vo.TagInfoVo;
 import com.apitable.organization.vo.UnitMemberVo;
 import com.apitable.organization.vo.UnitTeamVo;
+import com.apitable.shared.util.IdUtil;
 import com.apitable.shared.util.page.PageInfo;
 import com.apitable.space.service.ISpaceRoleService;
 import com.apitable.workspace.dto.ControlRoleInfo;
@@ -84,6 +87,7 @@ import com.apitable.workspace.vo.FieldRole;
 import com.apitable.workspace.vo.FieldRoleMemberVo;
 import com.apitable.workspace.vo.FieldRoleSetting;
 import com.apitable.workspace.vo.NodeRoleMemberVo;
+import com.apitable.workspace.vo.NodeRoleUnit;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -168,6 +172,9 @@ public class FieldRoleServiceImpl implements IFieldRoleService {
 
     @Resource
     private IRoleMemberService iRoleMemberService;
+
+    @Resource
+    private ITagService iTagService;
 
     @Override
     public boolean getFieldRoleEnabledStatus(String dstId, String fieldId) {
@@ -313,6 +320,7 @@ public class FieldRoleServiceImpl implements IFieldRoleService {
             List<Long> teamIds = new ArrayList<>();
             List<Long> memberIds = new ArrayList<>();
             List<Long> roleIds = new ArrayList<>();
+            List<Long> tagIds = new ArrayList<>();
             for (ControlRoleUnitDTO control : entry.getValue()) {
                 if (unitIdToFieldRoleMap.containsKey(control.getUnitId())) {
                     unitIdToFieldRoleMap.get(control.getUnitId()).setPermissionExtend(false);
@@ -329,6 +337,8 @@ public class FieldRoleServiceImpl implements IFieldRoleService {
                     memberIds.add(control.getUnitRefId());
                 } else if (unitType == UnitType.ROLE) {
                     roleIds.add(control.getUnitRefId());
+                } else if (unitType == UnitType.TAG) {
+                    tagIds.add(control.getUnitRefId());
                 }
                 role.setCanRead(true);
                 role.setCanEdit(true);
@@ -361,6 +371,15 @@ public class FieldRoleServiceImpl implements IFieldRoleService {
                     role.setUnitName(roleVo.getRoleName());
                     role.setMemberCount(roleVo.getMemberCount());
                     role.setUnitRefId(roleVo.getRoleId());
+                }
+            }
+            if (!tagIds.isEmpty()) {
+                List<TagInfoVo> tags = iTagService.getTagVos(spaceId, tagIds);
+                for (TagInfoVo tag : tags) {
+                    FieldRole role = unitIdToFieldRoleMap.get(tag.getUnitId());
+                    role.setUnitRefId(tag.getTagId());
+                    role.setUnitName(tag.getTagName());
+                    role.setMemberCount(tag.getMemberCount());
                 }
             }
         }
@@ -511,13 +530,11 @@ public class FieldRoleServiceImpl implements IFieldRoleService {
             .collect(Collectors.toMap(String::toString,
                 controlId -> controlId.substring(controlId.indexOf(ControlIdBuilder.SYMBOL) + 1)));
         // load field permissions in sharing
-        if (StrUtil.isNotBlank(shareId)) {
+        if ((StrUtil.isNotBlank(shareId) && !IdUtil.isEmbed(shareId)) || null == memberId) {
             // If the datasheet is not collected, directly return the field with the permission set.
             if (type != NodeType.FORM) {
-                Map<String, FieldPermissionInfo> permissionInfoMap =
-                    controlIdToFieldIdMap.values().stream()
-                        .collect(Collectors.toMap(String::toString,
-                            fieldId -> FieldPermissionInfo.builder()
+                Map<String, FieldPermissionInfo> permissionInfoMap = controlIdToFieldIdMap.values().stream()
+                        .collect(Collectors.toMap(String::toString, fieldId -> FieldPermissionInfo.builder()
                                 .fieldId(fieldId)
                                 .permission(new FieldPermission())
                                 .build()));

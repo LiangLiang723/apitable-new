@@ -37,7 +37,7 @@ import styles from './styles.module.less';
 
 export const UnitPermissionSelect: React.FC<React.PropsWithChildren<IUnitPermissionSelectProps>> = (props) => {
   const colors = useThemeColors();
-  const { permissionList, onSubmit, classNames, adminAndOwnerUnitIds = [], showTeams, searchEmail } = props;
+  const { permissionList, onSubmit, classNames, adminAndOwnerUnitIds = [], showTeams, searchEmail, showGroup } = props;
   const unitMap =
     useAppSelector((state) => {
       return Selectors.getUnitMap(state);
@@ -219,6 +219,7 @@ export const UnitPermissionSelect: React.FC<React.PropsWithChildren<IUnitPermiss
                 inputRef={inputRef}
                 searchEmail={searchEmail}
                 showTeams={showTeams}
+                showGroup={showGroup}
               />
             </PopStructure>
           </div>

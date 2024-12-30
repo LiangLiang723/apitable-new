@@ -18,15 +18,16 @@
 
 import { Modal } from 'antd';
 import classNames from 'classnames';
+import DOMPurify from 'dompurify';
 import { useAtom } from 'jotai';
 import { debounce, isEmpty } from 'lodash';
+import { ContextName, ShortcutContext } from 'modules/shared/shortcut_key';
 import * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider, shallowEqual, useDispatch } from 'react-redux';
 import { Api, INodeDescription, IReduxState, Selectors, StoreActions, Strings, t } from '@apitable/core';
 import { CloseCircleOutlined, CloseOutlined } from '@apitable/icons';
-import { ContextName, ShortcutContext } from 'modules/shared/shortcut_key';
 import { useGetDesc } from 'pc/components/custom_page/hooks/use_get_desc';
 import { CustomPageAtom } from 'pc/components/custom_page/store/custon_page_desc_atom';
 import { Deserializer, IEditorData, Serializer, SlateEditor } from 'pc/components/slate_editor';
@@ -202,7 +203,7 @@ const RenderModalBase: React.FC<React.PropsWithChildren<IRenderModalBase>> = (pr
   return (
     <Modal
       destroyOnClose
-      visible={visible}
+      open={visible}
       mask
       footer={null}
       width={'90%'}
@@ -238,7 +239,9 @@ export const RenderModal = React.memo(RenderModalBase);
 
 export function sanitized(str: string) {
   const div = document.createElement('div');
-  div.innerHTML = str;
+  // str xss filter
+  const sanitizedValue = DOMPurify.sanitize(str);
+  div.innerHTML = sanitizedValue;
   return div.innerText.slice(0, 120);
 }
 

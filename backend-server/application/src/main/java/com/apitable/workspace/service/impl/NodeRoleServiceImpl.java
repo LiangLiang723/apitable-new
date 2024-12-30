@@ -46,10 +46,12 @@ import com.apitable.organization.mapper.UnitMapper;
 import com.apitable.organization.service.IMemberService;
 import com.apitable.organization.service.IOrganizationService;
 import com.apitable.organization.service.IRoleService;
+import com.apitable.organization.service.ITagService;
 import com.apitable.organization.service.ITeamService;
 import com.apitable.organization.service.IUnitService;
 import com.apitable.organization.vo.MemberTeamPathInfo;
 import com.apitable.organization.vo.RoleInfoVo;
+import com.apitable.organization.vo.TagInfoVo;
 import com.apitable.organization.vo.UnitMemberVo;
 import com.apitable.organization.vo.UnitTeamVo;
 import com.apitable.shared.cache.service.UserSpaceCacheService;
@@ -143,6 +145,9 @@ public class NodeRoleServiceImpl implements INodeRoleService {
 
     @Resource
     private IRoleService iRoleService;
+
+    @Resource
+    private ITagService iTagService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -413,6 +418,7 @@ public class NodeRoleServiceImpl implements INodeRoleService {
             List<Long> teamIds = new ArrayList<>();
             List<Long> memberIds = new ArrayList<>();
             List<Long> roleIds = new ArrayList<>();
+            List<Long> tagIds = new ArrayList<>();
             for (ControlRoleUnitDTO nodeRoleDto : entry.getValue()) {
                 NodeRoleUnit unit = new NodeRoleUnit();
                 unit.setRole(nodeRoleDto.getRole());
@@ -427,6 +433,8 @@ public class NodeRoleServiceImpl implements INodeRoleService {
                     memberIds.add(nodeRoleDto.getUnitRefId());
                 } else if (unitType == UnitType.ROLE) {
                     roleIds.add(nodeRoleDto.getUnitRefId());
+                } else if (unitType == UnitType.TAG) {
+                    tagIds.add(nodeRoleDto.getUnitRefId());
                 }
             }
             // Batch query supplementary organizational unit information
@@ -466,6 +474,16 @@ public class NodeRoleServiceImpl implements INodeRoleService {
                     unit.setUnitRefId(role.getRoleId());
                     unit.setUnitName(role.getRoleName());
                     unit.setMemberCount(role.getMemberCount());
+                    roleUnits.add(unit);
+                }
+            }
+            if (!tagIds.isEmpty()) {
+                List<TagInfoVo> tags = iTagService.getTagVos(spaceId, tagIds);
+                for (TagInfoVo tag : tags) {
+                    NodeRoleUnit unit = unitIdToFieldRoleMap.get(tag.getUnitId());
+                    unit.setUnitRefId(tag.getTagId());
+                    unit.setUnitName(tag.getTagName());
+                    unit.setMemberCount(tag.getMemberCount());
                     roleUnits.add(unit);
                 }
             }

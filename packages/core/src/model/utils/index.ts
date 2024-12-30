@@ -212,6 +212,10 @@ export const getMaxViewCountPerSheet = () => {
   return getCustomConfig().MAXIMUM_VIEW_COUNT_PER_DATASHEET || 30;
 };
 
+export const getRecordChunkSize = (): number => {
+  return getCustomConfig().RECORD_CHUCK_SIZE || 500;
+};
+
 export const getFieldTypeString = (fieldType: FieldType): APIMetaFieldType => {
   return FieldTypeStringMap[fieldType];
 };

@@ -18,14 +18,12 @@
 
 import { CollaCommandName, IModifySelfView, IMoveSelfView } from 'commands';
 import { IFieldMap, IRecordCellValue, IReduxState, IViewColumn, IViewLockInfo, IViewProperty, IViewRow } from 'exports/store/interfaces';
-import { ViewType } from 'modules/shared/store/constants';
-import {
-  getSnapshot,
-} from 'modules/database/store/selectors/resource/datasheet/base';
-import { getViewIndex } from 'modules/database/store/selectors/resource/datasheet/calc';
 import { keyBy } from 'lodash';
 import { ICellValue } from 'model/record';
 import { getViewClass } from 'model/views';
+import { getSnapshot } from 'modules/database/store/selectors/resource/datasheet/base';
+import { getViewIndex } from 'modules/database/store/selectors/resource/datasheet/calc';
+import { ViewType } from 'modules/shared/store/constants';
 import { Store } from 'redux';
 import type { Datasheet, ICommandExecutionResult, ISaveOptions } from './datasheet';
 import { Field } from './field';
@@ -41,7 +39,11 @@ export class View {
    *
    * @internal This constructor is not intended for public use.
    */
-  constructor(private readonly datasheet: Datasheet, private readonly store: Store<IReduxState>, info: IViewInfo) {
+  constructor(
+    private readonly datasheet: Datasheet,
+    private readonly store: Store<IReduxState>,
+    info: IViewInfo
+  ) {
     const { property, fieldMap } = info;
 
     this.property = property;
@@ -97,28 +99,10 @@ export class View {
   /**
    * Get records in the view.
    */
-  public getRecords(options: IRecordsOptions): Promise<Record[]> {
+  public getRecords(): Promise<Record[]> {
     const { store, fieldMap } = this;
     const snapshot = getSnapshot(store.getState());
     if (!snapshot) {
-      return Promise.resolve([]);
-    }
-
-    const { pagination, maxRecords } = options;
-
-    // Pagination
-    let pageRows = this.rows;
-    if (maxRecords !== undefined && maxRecords < this.rows.length) {
-      pageRows = this.rows.slice(0, maxRecords);
-    }
-
-    if (pagination !== undefined) {
-      const start = (pagination.pageNum - 1) * pagination.pageSize;
-      const end = start + pagination.pageSize;
-      pageRows = pagination.pageSize == -1 ? pageRows : pageRows.slice(start, end);
-    }
-
-    if (pageRows.length === 0) {
       return Promise.resolve([]);
     }
 
@@ -133,12 +117,12 @@ export class View {
     };
 
     const records: Record[] = [];
-    for (const row of pageRows) {
+    for (const row of this.rows) {
       if (recordMap[row.recordId]) {
         records.push(
           new Record(recordMap[row.recordId]!, {
             voTransformOptions,
-          }),
+          })
         );
       }
     }
@@ -158,7 +142,7 @@ export class View {
         ...recordOptions,
         viewId: this.id,
       },
-      saveOptions,
+      saveOptions
     );
   }
 
@@ -203,7 +187,7 @@ export class View {
         data: lockInfo,
         viewId: this.id,
       },
-      saveOptions,
+      saveOptions
     );
   }
 
@@ -219,7 +203,7 @@ export class View {
         autoSave,
         viewId: this.id,
       },
-      saveOptions,
+      saveOptions
     );
   }
 
@@ -276,42 +260,42 @@ export interface IRecordsOptions {
 
 export type IAddRecordsOptions =
   | {
-  /**
-   * The position where new records will be inserted.
-   */
-  index: number;
+      /**
+       * The position where new records will be inserted.
+       */
+      index: number;
 
-  /**
-   * The number of new records. All cells of new records are set to default values, or left empty if no
-   * default values are set for corresponding fields.
-   */
-  count: number;
+      /**
+       * The number of new records. All cells of new records are set to default values, or left empty if no
+       * default values are set for corresponding fields.
+       */
+      count: number;
 
-  /**
-   * The cell values of the group which the new records belongs to.
-   */
-  groupCellValues?: ICellValue[];
+      /**
+       * The cell values of the group which the new records belongs to.
+       */
+      groupCellValues?: ICellValue[];
 
-  ignoreFieldPermission?: boolean;
-}
+      ignoreFieldPermission?: boolean;
+    }
   | {
-  /**
-   * The position where new records will be inserted.
-   */
-  index: number;
+      /**
+       * The position where new records will be inserted.
+       */
+      index: number;
 
-  /**
-   * New record values.
-   */
-  recordValues: IRecordCellValue[];
+      /**
+       * New record values.
+       */
+      recordValues: IRecordCellValue[];
 
-  /**
-   * The cell values of the group which the new records belongs to.
-   */
-  groupCellValues?: ICellValue[];
+      /**
+       * The cell values of the group which the new records belongs to.
+       */
+      groupCellValues?: ICellValue[];
 
-  ignoreFieldPermission?: boolean;
-};
+      ignoreFieldPermission?: boolean;
+    };
 
 /**
  * The options for getting fields in a view.

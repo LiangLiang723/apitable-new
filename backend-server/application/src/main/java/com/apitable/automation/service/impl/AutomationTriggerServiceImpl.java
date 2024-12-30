@@ -18,7 +18,6 @@
 
 package com.apitable.automation.service.impl;
 
-import static com.apitable.automation.enums.AutomationException.AUTOMATION_ROBOT_NOT_EXIST;
 import static com.apitable.automation.enums.AutomationException.AUTOMATION_TRIGGER_LIMIT;
 import static com.apitable.automation.enums.AutomationException.AUTOMATION_TRIGGER_NOT_EXIST;
 import static com.apitable.automation.model.TriggerSimpleVO.triggerComparator;
@@ -29,7 +28,6 @@ import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
-import com.apitable.automation.entity.AutomationRobotEntity;
 import com.apitable.automation.entity.AutomationTriggerEntity;
 import com.apitable.automation.enums.AutomationTriggerType;
 import com.apitable.automation.mapper.AutomationTriggerMapper;
@@ -47,8 +45,6 @@ import com.apitable.interfaces.automation.facede.AutomationServiceFacade;
 import com.apitable.shared.config.properties.LimitProperties;
 import com.apitable.shared.util.IdUtil;
 import com.apitable.starter.databus.client.api.AutomationDaoApiApi;
-import com.apitable.starter.databus.client.model.ApiResponseAutomationTriggerSO;
-import com.apitable.starter.databus.client.model.AutomationRobotTriggerRO;
 import com.apitable.starter.databus.client.model.AutomationTriggerSO;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import jakarta.annotation.Resource;
@@ -61,7 +57,6 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClientException;
 
 /**
  * automation trigger service impl.
@@ -133,19 +128,11 @@ public class AutomationTriggerServiceImpl implements IAutomationTriggerService {
         ExceptionUtil.isNotNull(trigger, AUTOMATION_TRIGGER_NOT_EXIST);
         String scheduleTriggerTypeId = iAutomationTriggerTypeService.getTriggerTypeByEndpoint(
             AutomationTriggerType.SCHEDULED_TIME_ARRIVE.getType());
-        if (StrUtil.isNotBlank(data.getTriggerTypeId())) {
-            // change trigger type to schedule should create schedule
-            if (!trigger.getTriggerId().equals(scheduleTriggerTypeId)
-                && data.getTriggerTypeId().equals(scheduleTriggerTypeId)) {
-                automationServiceFacade.createSchedule(spaceId, triggerId,
-                    JSONUtil.toJsonStr(JSONUtil.createObj()));
-            }
-            // change schedule to another type
-            if (trigger.getTriggerId().equals(scheduleTriggerTypeId)
-                && !data.getTriggerTypeId().equals(scheduleTriggerTypeId)) {
-                automationServiceFacade.updateSchedule(triggerId,
-                    JSONUtil.toJsonStr(JSONUtil.createObj()));
-            }
+        if (StrUtil.isNotBlank(data.getTriggerTypeId())
+            && !trigger.getTriggerTypeId().equals(data.getTriggerTypeId())) {
+            // change trigger type should reset schedule config to empty object {}
+            automationServiceFacade.updateSchedule(triggerId,
+                JSONUtil.toJsonStr(JSONUtil.createObj()));
             trigger.setTriggerTypeId(data.getTriggerTypeId());
         }
         if (StrUtil.isNotBlank(data.getPrevTriggerId())) {
@@ -166,22 +153,6 @@ public class AutomationTriggerServiceImpl implements IAutomationTriggerService {
         return formatVoFromEntities(ListUtil.of(trigger));
     }
 
-    @Override
-    public void deleteByDatabus(String robotId, String triggerId, Long userId) {
-        AutomationRobotTriggerRO ro = new AutomationRobotTriggerRO();
-        ro.setUserId(userId);
-        ro.setIsDeleted(true);
-        ro.setTriggerId(triggerId);
-        try {
-            ApiResponseAutomationTriggerSO response =
-                automationDaoApiApi.daoCreateOrUpdateAutomationRobotTrigger(robotId, ro);
-            ExceptionUtil.isFalse(
-                AUTOMATION_ROBOT_NOT_EXIST.getCode().equals(response.getCode()),
-                AUTOMATION_ROBOT_NOT_EXIST);
-        } catch (RestClientException e) {
-            log.error("Delete trigger: {}", triggerId, e);
-        }
-    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)

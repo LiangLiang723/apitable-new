@@ -23,7 +23,7 @@ import { difference } from 'lodash';
 import Image from 'next/image';
 import * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, IconButton, Loading, Skeleton, Tooltip, Typography } from '@apitable/components';
+import { Box, IconButton, Loading, Skeleton, Tooltip, Typography, TextButton } from '@apitable/components';
 import {
   Api,
   CollaCommandName,
@@ -51,6 +51,7 @@ import { useAppDispatch } from 'pc/hooks/use_app_dispatch';
 import { resourceService } from 'pc/resource_service';
 import { store } from 'pc/store';
 import { useAppSelector } from 'pc/store/react-redux';
+import { getEnvVariables } from 'pc/utils/env';
 import DataEmptyDark from 'static/icon/common/time_machine_empty_dark.png';
 import DataEmptyLight from 'static/icon/common/time_machine_empty_light.png';
 import { TabPaneKeys } from './interface';
@@ -253,6 +254,28 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
     [execute],
   );
 
+  const onRollbackClick = useCallback((index: number) => {
+    Modal.confirm({
+      title: t(Strings.rollback_title, { revision: changesetList![index].revision }),
+      width: 620,
+      zIndex: 5001,
+      content: <>
+        <p>操作前阅读：</p>
+        <p>点击确定后，会将数据从最新版本回滚到指定版本，目标版本以前的所有改动将会被撤销掉。 </p>
+        <p>回滚不是直接删除修改，而是通过新的操作把原来的操作抵消掉，所以回滚操作(Rollback)也会出现在历史记录中。</p>
+        <p>回滚过程中若遇到不可逆的操作，如：关联字段的关联表被删除，则不能恢复此操作相关的数据。</p>
+        <p className={styles.danger}>请在回滚之前先预览要回滚的版本，以确保回退到正确的版本。</p>
+        <p className={styles.danger}>回滚功能目前处于Beta版本，未经严格测试，具有一定风险性，请确认自己非常清楚正在做什么，否则有数据丢失的风险！</p>
+      </>,
+      okButtonProps: {
+        color: 'danger',
+      },
+      onOk() {
+        execute(index, false);
+      },
+    });
+  }, [changesetList, execute]);
+
   return (
     <div className={styles.wrap}>
       <div className={styles.header}>
@@ -319,7 +342,14 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
                             <span style={{ paddingRight: '4px' }}>{title}</span>
                             <span>{getOperationInfo(ops)}</span>
                           </div>
-                          <div className={styles.timestamp}>{dayjs.tz(item.createdAt).format(DATEFORMAT)}</div>
+                          <div className={styles.timestamp}>
+                            {dayjs.tz(item.createdAt).format(DATEFORMAT)}
+                            {getEnvVariables().ENABLE_TIME_MACHINE_ROOLBACK && 
+                            <TextButton size="x-small" color="danger" disabled={isEmpty} onClick={() => onRollbackClick(index)}>
+                              {t(Strings.rollback_revision)}
+                            </TextButton>
+                            }
+                          </div>
                         </div>
                       </div>
                     </section>

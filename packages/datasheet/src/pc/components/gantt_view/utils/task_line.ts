@@ -92,9 +92,12 @@ export const getAllTaskLine = (taskListJson: { [x: string]: any[] }) => {
   const taskLineList: string[][] = [];
 
   Object.keys(taskListJson).forEach((taskLine) => {
-    taskListJson[taskLine].forEach((element) => {
-      taskLineList.push([element, taskLine]);
-    });
+    const listItem = taskListJson[taskLine];
+    if (Array.isArray(listItem)) {
+      listItem.forEach((element) => {
+        taskLineList.push([element, taskLine]);
+      });
+    }
   });
 
   // source adjacency list

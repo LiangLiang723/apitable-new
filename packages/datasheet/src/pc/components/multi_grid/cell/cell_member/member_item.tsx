@@ -44,7 +44,7 @@ export function isUnitLeave(unit: IUnitValue | IUserValue) {
 
 export const MemberItem: React.FC<React.PropsWithChildren<IMemberItemProps>> = (props) => {
   const { unitInfo, children, style, selected, showTeams } = props;
-  const { unitId, avatar, avatarColor, nickName, name, type, userId, isSelf, desc, isMemberNameModified, team, email, isActive } = unitInfo as any;
+  const { unitId, avatar, avatarColor, nickName, name, type, userId, isSelf, desc, isMemberNameModified, team, email, isActive, groupId, groupName } = unitInfo as any;
   const spaceInfo = useAppSelector((state) => state.space.curSpaceInfo);
   const colors = getThemeColors();
 
@@ -59,8 +59,8 @@ export const MemberItem: React.FC<React.PropsWithChildren<IMemberItemProps>> = (
     return (
       <div className={styles.memberWithTeams}>
         <Avatar
-          id={unitId || userId!}
-          title={name}
+          id={unitId || userId! || groupId!}
+          title={name || groupName}
           size={AvatarSize.Size24}
           src={avatar}
           type={type === MemberType.Member ? AvatarType.Member : AvatarType.Team}

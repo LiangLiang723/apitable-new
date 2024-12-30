@@ -59,6 +59,7 @@ export interface ISelectUnitModalProps extends Omit<IModalProps, 'onCancel'> {
   spaceId?: string;
   allowEmtpyCheckedList?: boolean;
   showTab?: boolean; // show role and org tab
+  showGroup?: boolean; // show group tab
 }
 
 export const SelectUnitModal: FC<React.PropsWithChildren<ISelectUnitModalProps>> = (props) => {
@@ -74,6 +75,7 @@ export const SelectUnitModal: FC<React.PropsWithChildren<ISelectUnitModalProps>>
     spaceId,
     allowEmtpyCheckedList,
     showTab,
+    showGroup,
     ...rest
   } = props;
 
@@ -158,6 +160,7 @@ export const SelectUnitModal: FC<React.PropsWithChildren<ISelectUnitModalProps>>
                 setUnits={setUnits}
                 spaceInfo={spaceInfo}
                 showTab={showTab}
+                showGroup={showGroup}
               />
               <SelectUnitRight source={source} checkedList={checkedList} cancelCheck={cancelCheck} spaceInfo={spaceInfo} />
             </div>

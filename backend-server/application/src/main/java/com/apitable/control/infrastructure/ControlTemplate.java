@@ -259,6 +259,10 @@ public class ControlTemplate {
             List<Long> unitIds =
                 iUnitService.getUnitIdsByRefIds(CollUtil.newArrayList(principal.getPrincipal()));
             return doExecute(unitIds, controlId, requestWrapper);
+        } else if (principal.getPrincipalType() == PrincipalType.TAG_ID) {
+            List<Long> unitIds =
+                iUnitService.getUnitIdsByRefIds(CollUtil.newArrayList(principal.getPrincipal()));
+            return doExecute(unitIds, controlId, requestWrapper);
         } else {
             throw new UnknownPrincipalTypeException(principal.getPrincipalType());
         }

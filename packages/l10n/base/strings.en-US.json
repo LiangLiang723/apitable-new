@@ -12,6 +12,9 @@
   "NO_BILLING_PERIOD": "NO BILLING PERIOD",
   "No_open_functionality": "Not available yet",
   "Public_Beta_Period": "Public Beta Period",
+  "label_format_month_day_year_split_by_slash": "Month/Day/Year",
+  "label_format_month_day_year_split_by_dash": "Month-Day-Year",
+  "label_format_month_day_year_two_digit_year_split_by_slash": "Month/Day/Year (Two-digit year)",
   "QR_code_invalid": "QR code is invalid",
   "Standalone_Capacity": "Independent add-on capacity",
   "WEEKS": "Week",
@@ -2171,6 +2174,7 @@
   "gold_grade": "Gold",
   "gold_grade_desc": "For teams with complex business process",
   "gold_seat_200_desc": "200",
+  "gold_seat_300_desc": "300",
   "golden_grade": "Gold",
   "got_it": "Got it",
   "got_v_coins": "V coins rewarded",
@@ -6058,5 +6062,9 @@
   "move_datasheet_link_warn": "Cannot be moved to Team Area alone, because there is a two-way link from the current datasheet to another datasheet, it is recommended to put them in a folder and then move them",
   "move_folder_link_warn": "Cannot be moved to Team Area because the files in the current folder are linked to files outside the folder (may be two-way links or linked by forms, etc.) We recommend that they be placed in a folder before moving",
   "move_other_link_warn": "It is not allowed to move ${node type} to Team Area alone, because it connects to the datasheet of Private Area, it is recommended to put them in a folder before moving them",
-  "move_other_link_no_permission": "Unable to move to the corresponding folder because you do not have administrative rights to the folder"
+  "move_other_link_no_permission": "Unable to move to the corresponding folder because you do not have administrative rights to the folder",
+  "record_chunk_text": "${text} rows, please wait",
+  "stop_chunk_title": "Stop",
+  "stop_chunk_content": "Are you sure you want to stop the operation?",
+  "chunk_stopping_title": "Stopping"
 }

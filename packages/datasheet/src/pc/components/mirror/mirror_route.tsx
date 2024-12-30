@@ -29,13 +29,14 @@ import { Router } from 'pc/components/route_manager/router';
 import { useAppSelector } from 'pc/store/react-redux';
 
 export const MirrorRoute = () => {
-  const { mirrorId, shareId, datasheetId, templateId, categoryId } = useAppSelector((state) => state.pageParams)!;
+  const { mirrorId, shareId, datasheetId, templateId, categoryId, embedId } = useAppSelector((state) => state.pageParams)!;
   const mirrorSourceInfo = useAppSelector((state) => {
     return Selectors.getMirrorSourceInfo(state, mirrorId!);
   });
   const recordId = useAppSelector((state) => {
     return state.pageParams.recordId;
   });
+
   const mirror = useAppSelector((state) => {
     return Selectors.getMirror(state, mirrorId!);
   });
@@ -50,11 +51,18 @@ export const MirrorRoute = () => {
     if (!mirrorSourceInfo) {
       return;
     }
+
     // The mirror route is special compared to other nodes, in order to maintain the mapping relationship,
     // an additional datasheetId will be displayed on the route, so here for the mirror jump will do special treatment
     if (shareId) {
       Router.push(Navigation.SHARE_SPACE, {
         params: { shareId, nodeId: mirrorId, datasheetId: mirrorSourceInfo?.datasheetId, viewId: mirrorSourceInfo?.viewId, recordId },
+      });
+      return;
+    }
+    if (embedId) {
+      Router.push(Navigation.EMBED_SPACE, {
+        params: { embedId, nodeId: mirrorId, datasheetId: mirrorSourceInfo?.datasheetId, viewId: mirrorSourceInfo?.viewId, recordId },
       });
       return;
     }

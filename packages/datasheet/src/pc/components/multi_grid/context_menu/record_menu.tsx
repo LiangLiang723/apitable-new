@@ -17,6 +17,7 @@
  */
 
 import { useMount } from 'ahooks';
+import { Progress } from 'antd';
 import parser from 'html-react-parser';
 import { isInteger } from 'lodash';
 import difference from 'lodash/difference';
@@ -27,7 +28,7 @@ import path from 'path-browserify';
 import * as React from 'react';
 import { KeyboardEvent, useRef, useCallback } from 'react';
 import { batchActions } from 'redux-batched-actions';
-import { ContextMenu, IContextMenuItemProps, useThemeColors } from '@apitable/components';
+import { ContextMenu, IContextMenuItemProps, Typography, useThemeColors, Button } from '@apitable/components';
 import {
   CollaCommandName,
   DatasheetApi,
@@ -39,6 +40,7 @@ import {
   t,
   View,
   ViewType,
+  getRecordChunkSize,
 } from '@apitable/core';
 import {
   ArrowDownOutlined,
@@ -68,9 +70,9 @@ import { getEnvVariables } from 'pc/utils/env';
 import { isWindowsOS } from 'pc/utils/os';
 import { copy2clipBoard } from '../../../utils/dom';
 import { IInputEditor, InputMenuItem } from './input_menu_item';
+import styles from './styles.module.less';
 
 export const GRID_RECORD_MENU = 'GRID_RECORD_MENU';
-const CHUCK_SIZE = 300;
 
 export function copyLink(recordId: string) {
   const url = new URL(window.location.href);
@@ -95,6 +97,19 @@ export function copyRecord(recordId: string): Promise<ICollaCommandExecuteResult
 }
 
 export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (props) => {
+  let chunkSize = getRecordChunkSize();
+  const viewLength = useAppSelector((state) => {
+    const snapshot = Selectors.getSnapshot(state)!;
+    return snapshot.meta.views.length;
+  });
+  const fieldLength = useAppSelector((state) => {
+    const snapshot = Selectors.getSnapshot(state)!;
+    return Object.keys(snapshot.meta.fieldMap).length;
+  });
+  // view length over 10 or field length over 50, set chunkSize to 100
+  if (viewLength > 10 || fieldLength > 50) {
+    chunkSize = 100;
+  }
   const colors = useThemeColors();
   const { insertDirection = 'vertical', hideInsert, menuId, extraData } = props;
   const recordRanges = useAppSelector((state) => Selectors.getSelectionRecordRanges(state));
@@ -134,7 +149,16 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
     wrapperRef.current && wrapperRef.current.focus();
   });
 
-  function archiveRecord(recordId: string) {
+  const [action, setAction] = React.useState('');
+  const [isArchiving, setIsArchiving] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isStopping, setIsStopping] = React.useState(false);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const [completedCount, setCompletedCount] = React.useState(0);
+
+  async function archiveRecord(recordId: string) {
+    setAction(t(Strings.menu_archive_record));
+    setIsArchiving(true);
     const data: string[] = [];
     if (!isCalendar && recordRanges && recordRanges.length) {
       // Handling the deletion of ticked rows
@@ -151,17 +175,43 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
       // Handling right-click menu deletion
       data.push(recordId);
     }
+    setTotalCount(data.length);
     // The setTimeout is used here to ensure that the user is alerted that a large amount of data is being deleted before it is deleted
     let rlt: any;
-    const times = Math.ceil(data.length / CHUCK_SIZE);
+    const times = Math.ceil(data.length / chunkSize);
     for (let i = 0; i < times; i++) {
-      const chunks = data.slice(i * CHUCK_SIZE, (i + 1) * CHUCK_SIZE);
+      if (i === 0) {
+        setCompletedCount(0);
+      }
+      const chunks = data.slice(i * chunkSize, (i + 1) * chunkSize);
       rlt = resourceService.instance!.commandManager.execute({
         cmd: CollaCommandName.ArchiveRecords,
         data: chunks,
       });
-      console.log(`Archiving: ${data.length} records，archived ${CHUCK_SIZE * i + chunks.length}`);
+      await new Promise<void>((resolve) => {
+        const doingOpMessageId = localStorage.getItem('doing_op_messageId');
+        if (doingOpMessageId) {
+          window.addEventListener(doingOpMessageId, () => {
+            resolve();
+            // remove event listener
+            window.removeEventListener(doingOpMessageId, () => {});
+          });
+        }
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setCompletedCount(chunkSize * i + chunks.length);
+      const isChunkStop = localStorage.getItem('stop_chunk') === 'stop';
+      if (isChunkStop) {
+        localStorage.removeItem('stop_chunk');
+        window.location.reload();
+        break;
+      }
     }
+    // await 3 seconds
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setIsArchiving(false);
+    setTotalCount(0);
+    setCompletedCount(0);
 
     if (ExecuteResult.Success === rlt?.result) {
       Message.success({ content: t(Strings.archive_record_success) });
@@ -170,7 +220,9 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
     }
   }
 
-  function deleteRecord(recordId: string) {
+  async function deleteRecord(recordId: string) {
+    setAction(t(Strings.delete));
+    setIsDeleting(true);
     const data: string[] = [];
     if (!isCalendar && recordRanges && recordRanges.length) {
       // Handling the deletion of ticked rows
@@ -187,17 +239,40 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
       // Handling right-click menu deletion
       data.push(recordId);
     }
+    setTotalCount(data.length);
     // The setTimeout is used here to ensure that the user is alerted that a large amount of data is being deleted before it is deleted
     let rlt: any;
-    const times = Math.ceil(data.length / CHUCK_SIZE);
+    const times = Math.ceil(data.length / chunkSize);
     for (let i = 0; i < times; i++) {
-      const chunks = data.slice(i * CHUCK_SIZE, (i + 1) * CHUCK_SIZE);
+      const chunks = data.slice(i * chunkSize, (i + 1) * chunkSize);
       rlt = resourceService.instance!.commandManager.execute({
         cmd: CollaCommandName.DeleteRecords,
         data: chunks,
       });
-      console.log(`Deleting: ${data.length} deleted ${CHUCK_SIZE * i + chunks.length}`);
+      await new Promise<void>((resolve) => {
+        const doingOpMessageId = localStorage.getItem('doing_op_messageId');
+        if (doingOpMessageId) {
+          window.addEventListener(doingOpMessageId, () => {
+            resolve();
+            // remove event listener
+            window.removeEventListener(doingOpMessageId, () => {});
+          });
+        }
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setCompletedCount(chunkSize * i + chunks.length);
+      const isChunkStop = localStorage.getItem('stop_chunk') === 'stop';
+      if (isChunkStop) {
+        localStorage.removeItem('stop_chunk');
+        window.location.reload();
+        break;
+      }
     }
+    // await 3 seconds
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setIsDeleting(false);
+    setTotalCount(0);
+    setCompletedCount(0);
 
     if (ExecuteResult.Success === rlt.result) {
       notifyWithUndo(
@@ -531,6 +606,41 @@ export const RecordMenu: React.FC<React.PropsWithChildren<IRecordMenuProps>> = (
   }
 
   const contextMenuData = flatContextData(data, true);
+  return (
+    <>
+      <ContextMenu menuId={menuId || GRID_RECORD_MENU} overlay={contextMenuData} width={isWindowsOS() ? 320 : 280} />;
+      {totalCount > chunkSize && (
+        <Modal
+          open={isArchiving || isDeleting}
+          footer={null}
+          centered
+          width={440}
+          closable={false}
+        >
+          <div className={styles.archiveProgress}>
+            <Typography variant='h6'>
+              {t(Strings.record_chunk_text, {
+                text: `${action}${completedCount}/${totalCount}`
+              })}
+            </Typography>
+            <Progress percent={Number(((100 * completedCount) / totalCount).toFixed(2))} showInfo={false} />
+            <div className={styles.stopProgress}>
+              <Button size="small" disabled={isStopping} onClick={() => {
+                Modal.warning({
+                  title: t(Strings.stop_chunk_title),
+                  content: t(Strings.stop_chunk_content),
+                  hiddenCancelBtn: false,
+                  onOk: () => {
+                    setIsStopping(true);
+                    localStorage.setItem('stop_chunk', 'stop');
+                  },
+                });
+              }}>{isStopping ? t(Strings.chunk_stopping_title) : t(Strings.stop_chunk_title)}</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
 
-  return <ContextMenu menuId={menuId || GRID_RECORD_MENU} overlay={contextMenuData} width={isWindowsOS() ? 320 : 280} />;
 };

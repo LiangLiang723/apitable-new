@@ -41,22 +41,22 @@ const Search: React.FC<React.PropsWithChildren<ISearch>> = ({ datasheetId, onClo
   const colors = useThemeColors();
   const [keyword, setKeyword] = useState('');
 
-  const lock = useRef<boolean>(false);
+  // const lock = useRef<boolean>(false);
 
-  const [refreshIndex, setRefreshIndex] = useState(0);
+  // const [refreshIndex, setRefreshIndex] = useState(0);
 
   const inputRef = useRef<InputRef>(null);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement> | React.CompositionEvent) => {
-    if (e.type === 'compositionstart') {
-      lock.current = true;
-      return;
-    }
-    if (e.type === 'compositionend') {
-      lock.current = false;
-      setRefreshIndex(refreshIndex + 1);
-      return;
-    }
+    // if (e.type === 'compositionstart') {
+    //   lock.current = true;
+    //   return;
+    // }
+    // if (e.type === 'compositionend') {
+    //   lock.current = false;
+    //   setRefreshIndex(refreshIndex + 1);
+    //   return;
+    // }
     setKeyword((e as React.ChangeEvent<HTMLInputElement>).target.value);
   };
 
@@ -70,7 +70,7 @@ const Search: React.FC<React.PropsWithChildren<ISearch>> = ({ datasheetId, onClo
 
   useEffect(() => {
     dispatch(StoreActions.setSearchKeyword(datasheetId, keyword));
-  }, [dispatch, refreshIndex, keyword, datasheetId]);
+  }, [dispatch, keyword, datasheetId]);
 
   useUnmount(() => {
     dispatch(StoreActions.setSearchKeyword(datasheetId, ''));
@@ -100,8 +100,8 @@ const Search: React.FC<React.PropsWithChildren<ISearch>> = ({ datasheetId, onClo
             </div>
           )
         }
-        onCompositionStart={onChange}
-        onCompositionEnd={onChange}
+        // onCompositionStart={onChange}
+        // onCompositionEnd={onChange}
       />
 
       <div className={styles.cancel}>

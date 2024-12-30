@@ -23,7 +23,14 @@ import { deleteNode } from 'modules/space/store/actions/catalog_tree';
 import { StatusCode } from 'config';
 import { AxiosResponse } from 'axios';
 import { Dispatch } from 'redux';
-import { fetchMirrorDataPack, fetchMirrorInfo, fetchShareMirrorDataPack, fetchShareMirrorInfo } from '../../../../api/mirror_api';
+import {
+  fetchEmbedMirrorDataPack,
+  fetchEmbedMirrorInfo,
+  fetchMirrorDataPack,
+  fetchMirrorInfo,
+  fetchShareMirrorDataPack,
+  fetchShareMirrorInfo,
+} from '../../../../api/mirror_api';
 import * as ActionConstants from 'modules/shared/store/action_constants';
 import { batchActions } from 'redux-batched-actions';
 import { CACHE_TEMPORARY_VIEW, UPDATE_MIRROR_INFO, UPDATE_MIRROR_NAME } from 'modules/shared/store/action_constants';
@@ -36,18 +43,24 @@ interface IFetchMirrorSuccess {
   getState: () => IReduxState;
 }
 
-export const fetchMirrorInfoApi = (mirrorId: string, shareId?: string, _templateId?: string) => {
+export const fetchMirrorInfoApi = (mirrorId: string, shareId?: string, _templateId?: string, embedId?: string) => {
   let requestMethod = fetchMirrorInfo;
   if (shareId) {
     requestMethod = () => fetchShareMirrorInfo(shareId, mirrorId);
   }
+  if (embedId) {
+    requestMethod = () => fetchEmbedMirrorInfo(embedId, mirrorId);
+  }
   return requestMethod(mirrorId);
 };
 
-export const fetchMirrorDataPackApi = (mirrorId: string, shareId?: string, recordIds?: string[]) => {
+export const fetchMirrorDataPackApi = (mirrorId: string, shareId?: string, recordIds?: string[], embedId?: string) => {
   let requestMethod = fetchMirrorDataPack;
   if (shareId) {
     requestMethod = () => fetchShareMirrorDataPack(shareId, mirrorId);
+  }
+  if (embedId) {
+    requestMethod = () => fetchEmbedMirrorDataPack(embedId, mirrorId, recordIds);
   }
   return requestMethod(mirrorId, recordIds);
 };
@@ -57,31 +70,31 @@ export function fetchMirrorPack(
   successCb?: (props?: IFetchMirrorSuccess) => void,
   _overwrite?: boolean,
   extra?: { recordIds: string[] },
-  failCb?: () => void,
+  failCb?: () => void
 ) {
   return (dispatch: any, getState: () => IReduxState) => {
     const state = getState();
     const mirror = getMirror(state, mirrorId);
-    const { shareId, templateId } = state.pageParams;
+    const { shareId, templateId, embedId } = state.pageParams;
     const mirrorLoading = getMirrorLoading(state, mirrorId);
     const datasheet = getDatasheet(state, getMirrorSourceInfo(state, mirrorId)?.datasheetId);
     if (mirrorLoading) {
       return;
     }
     if (!mirror || datasheet?.isPartOfData) {
-      return fetchMirrorInfoApi(mirrorId, shareId, templateId)
-        .then(response => {
+      return fetchMirrorInfoApi(mirrorId, shareId, templateId, embedId)
+        .then((response) => {
           // if (!response.data.success && state.catalogTree.treeNodesMap[mirrorId]) {
           //   // dispatch(deleteNode({ nodeId: mirrorId, parentId: state.catalogTree.treeNodesMap[mirrorId].parentId }));
           //   // return Promise.reject();
           // }
           return Promise.resolve({ mirrorId, response, dispatch, getState });
         })
-        .catch(e => {
+        .catch((e) => {
           dispatch(setMirrorErrorCode(mirrorId, StatusCode.COMMON_ERR));
           throw e;
         })
-        .then(async props => {
+        .then(async (props) => {
           const { recordIds } = extra || {};
           await fetchSuccess(props, recordIds, successCb, failCb);
         });
@@ -103,7 +116,7 @@ const fetchSuccess = (
   { dispatch, getState, response, mirrorId }: { dispatch: any; getState: () => IReduxState; response: any; mirrorId: string },
   recordIds?: string[],
   successCb?: (props?: IFetchMirrorSuccess) => void,
-  failCb?: () => void,
+  failCb?: () => void
 ) => {
   const { data, success, code } = response.data;
   if (success) {
@@ -114,17 +127,18 @@ const fetchSuccess = (
           sourceInfo: data.sourceInfo,
           snapshot: data.snapshot,
         },
-        data.mirror.id,
+        data.mirror.id
       ),
     ];
 
     const state = getState();
     const shareId = state.pageParams.shareId;
+    const embedId = state.pageParams.embedId;
     const sourceDatasheetId = data.sourceInfo.datasheetId;
     const datasheet = getDatasheet(state, sourceDatasheetId);
     if (!datasheet || datasheet.isPartOfData) {
-      fetchMirrorDataPackApi(mirrorId, shareId, recordIds)
-        .then(response => {
+      fetchMirrorDataPackApi(mirrorId, shareId, recordIds, embedId)
+        .then((response) => {
           return Promise.resolve({
             datasheetId: sourceDatasheetId,
             responseBody: response.data,
@@ -133,19 +147,22 @@ const fetchSuccess = (
             isPartOfData: Boolean(recordIds),
           });
         })
-        .catch(e => {
+        .catch((e) => {
           if (state.catalogTree.treeNodesMap[sourceDatasheetId]) {
             dispatch(deleteNode({ nodeId: sourceDatasheetId, parentId: state.catalogTree.treeNodesMap[sourceDatasheetId]!.parentId }));
           }
           dispatch(datasheetErrorCode(sourceDatasheetId, StatusCode.COMMON_ERR));
           throw e;
         })
-        .then(props => {
-          fetchDatasheetPackSuccess(props as any);
-          props.responseBody.success ? successCb && successCb() : failCb && failCb();
-        }, e => {
-          console.error('fetchMirrorDataPackApi error', e);
-        });
+        .then(
+          (props) => {
+            fetchDatasheetPackSuccess(props as any);
+            props.responseBody.success ? successCb && successCb() : failCb && failCb();
+          },
+          (e) => {
+            console.error('fetchMirrorDataPackApi error', e);
+          }
+        );
     } else {
       successCb && successCb();
     }

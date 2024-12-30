@@ -39,6 +39,7 @@ import {
   Strings,
   t,
   ViewType,
+  getRecordChunkSize,
 } from '@apitable/core';
 import { Message } from 'pc/components/common/message/message';
 import { Modal } from 'pc/components/common/modal/modal/modal';
@@ -221,6 +222,7 @@ export class Clipboard {
     rows: IViewRow[];
   };
   isCutting = false;
+  chunkSize = getRecordChunkSize();
 
   selectWithWorkdocField(tableHeader?: IField[]) {
     const state = store.getState() as IReduxState;
@@ -255,7 +257,7 @@ export class Clipboard {
     return _selectWithWorkdocField;
   }
 
-  paste(e: ClipboardEvent, ignoreEdit?: boolean) {
+  paste(e: ClipboardEvent, ignoreEdit?: boolean, cb?: (_total: number, _completed: number) => void) {
     const state = store.getState() as IReduxState;
     if (ShortcutContext.context.isEditing() && !ignoreEdit) {
       return;
@@ -269,8 +271,9 @@ export class Clipboard {
     }
     const selection = selections[0];
 
-    const clipboardData = e.clipboardData;
+    const clipboardData = e.clipboardData || (window as any).clipboardData;
     if (!clipboardData) {
+      console.warn('! ' + 'Clipboard data is not supported');
       return;
     }
 
@@ -319,6 +322,7 @@ export class Clipboard {
               selection,
               stdValueTable!,
               clipboardText,
+              cb,
             )) as any as ICollaCommandExecuteResult<{}> & { isPasteIncompatibleField: boolean };
             this.clearCuttingStatus();
             if (commandResult.result === ExecuteResult.Fail) {
@@ -354,11 +358,18 @@ export class Clipboard {
     pasteRange: IRange,
     stdValueTable: IStandardValueTable,
     clipboardText: string,
+    cb?: (_total: number, _completed: number) => void,
   ) {
     const viewId = pasteView.id;
     const { row, column } = Range.bindModel(pasteRange).toNumberBaseRange(state)!;
     const { id: datasheetId, snapshot } = Selectors.getDatasheet(state)!;
     const rows = Selectors.getVisibleRows(state);
+    const viewLength = snapshot.meta.views.length;
+    const fieldLength = Object.keys(snapshot.meta.fieldMap).length;
+    // view length over 10 or field length over 50, set chunkSize to 100
+    if (viewLength > 10 || fieldLength > 50) {
+      this.chunkSize = 100;
+    }
     const groupFields = Selectors.getGroupFields(pasteView, Selectors.getFieldMap(state, state.pageParams.datasheetId!)!).map((f) => f.id);
     const recordValue = snapshot.recordMap[rows[row].recordId].data;
     const cellValues = groupFields.map((f) => (recordValue ? recordValue[f] : null));
@@ -382,20 +393,55 @@ export class Clipboard {
         }
       }
 
-      commandResult = this.commandManager.execute({
-        cmd: CollaCommandName.PasteSetRecords,
-        row,
-        column,
-        viewId,
-        fields: stdValueTable.header,
-        stdValues: stdValueTable.body,
-        recordIds: stdValueTable.recordIds,
-        cut: isRealCutting ? this.cuttingRangeData : undefined,
-        groupCellValues: cellValues,
-        notifyExistIncompatibleField: () => {
-          isPasteIncompatibleField = true;
-        },
+      const length = stdValueTable.recordIds?.length ?? stdValueTable.body.length ?? 0;
+      const times = Math.ceil(length / this.chunkSize);
+      console.log('paste data', {
+        stdValueTable, times
       });
+      for (let i = 0; i < times; i++) {
+        if (i === 0) {
+          cb?.(length, 0);
+        }
+        const recordIds = stdValueTable.recordIds?.slice(i * this.chunkSize, (i + 1) * this.chunkSize);
+        const stdValues = stdValueTable.body.slice(i * this.chunkSize, (i + 1) * this.chunkSize);
+        const _row = row + i * this.chunkSize;
+        commandResult = this.commandManager.execute({
+          cmd: CollaCommandName.PasteSetRecords,
+          row: _row,
+          column,
+          viewId,
+          fields: stdValueTable.header,
+          stdValues,
+          recordIds,
+          cut: isRealCutting ? this.cuttingRangeData : undefined,
+          groupCellValues: cellValues,
+          notifyExistIncompatibleField: () => {
+            isPasteIncompatibleField = true;
+          },
+        });
+        // cover paste no actions and result is None
+        if (commandResult.result !== ExecuteResult.None) {
+          // await until the operation is completed
+          await new Promise<void>((resolve) => {
+            const doingOpMessageId = localStorage.getItem('doing_op_messageId');
+            if (doingOpMessageId) {
+              window.addEventListener(doingOpMessageId, () => {
+                resolve();
+                // remove event listener
+                window.removeEventListener(doingOpMessageId, () => {});
+              });
+            }
+          });
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        cb?.(length, this.chunkSize * i + (recordIds?.length ?? stdValues?.length ?? 0));
+        const isChunkStop = localStorage.getItem('stop_chunk') === 'stop';
+        if (isChunkStop) {
+          localStorage.removeItem('stop_chunk');
+          window.location.reload();
+          break;
+        }
+      }
       recogClipboardURLData({
         state,
         row,
@@ -557,6 +603,7 @@ export class Clipboard {
     }
     const activeCell = Selectors.getActiveCell(store.getState());
     if (!activeCell) {
+      console.warn('! ' + 'No active cell');
       return;
     }
     const snapshot = Selectors.getSnapshot(store.getState());

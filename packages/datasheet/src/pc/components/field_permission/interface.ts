@@ -44,6 +44,7 @@ export interface IUnitPermissionSelectProps {
   showTeams?: boolean;
 
   searchEmail?: boolean;
+  showGroup?: boolean;
 }
 
 export interface IDisabledPermission extends IFieldPermissionProps {

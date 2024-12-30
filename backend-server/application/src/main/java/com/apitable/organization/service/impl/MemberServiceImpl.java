@@ -73,6 +73,7 @@ import com.apitable.organization.ro.UpdateMemberRo;
 import com.apitable.organization.service.IMemberService;
 import com.apitable.organization.service.IRoleMemberService;
 import com.apitable.organization.service.IRoleService;
+import com.apitable.organization.service.ITagMemberRelService;
 import com.apitable.organization.service.ITeamMemberRelService;
 import com.apitable.organization.service.ITeamService;
 import com.apitable.organization.service.IUnitService;
@@ -91,6 +92,7 @@ import com.apitable.shared.component.notification.NotificationTemplateId;
 import com.apitable.shared.component.notification.NotifyMailFactory;
 import com.apitable.shared.component.notification.NotifyMailFactory.MailWithLang;
 import com.apitable.shared.config.properties.ConstProperties;
+import com.apitable.shared.config.properties.LimitProperties;
 import com.apitable.shared.constants.MailPropConstants;
 import com.apitable.shared.context.LoginContext;
 import com.apitable.shared.context.SessionContext;
@@ -160,6 +162,9 @@ public class MemberServiceImpl extends ExpandServiceImpl<MemberMapper, MemberEnt
     private ConstProperties constProperties;
 
     @Resource
+    private LimitProperties limitProperties;
+
+    @Resource
     private SpaceInviteRecordMapper spaceInviteRecordMapper;
 
     @Resource
@@ -203,6 +208,9 @@ public class MemberServiceImpl extends ExpandServiceImpl<MemberMapper, MemberEnt
 
     @Resource
     private InvitationServiceFacade invitationServiceFacade;
+
+    @Resource
+    private ITagMemberRelService iTagMemberRelService;
 
     @Override
     public String getMemberNameById(Long memberId) {
@@ -314,7 +322,9 @@ public class MemberServiceImpl extends ExpandServiceImpl<MemberMapper, MemberEnt
             refRoles.stream().map(RoleMemberDTO::getRoleId).forEach(unitRefIds::add);
         }
         List<Long> roleIds = iRoleMemberService.getRoleIdsByRoleMemberId(memberId);
+        List<Long> tagIds = iTagMemberRelService.getTagIdsByTagMemberId(memberId);
         unitRefIds.addAll(roleIds);
+        unitRefIds.addAll(tagIds);
         return iUnitService.getUnitIdsByRefIds(unitRefIds);
     }
 
@@ -1520,7 +1530,7 @@ public class MemberServiceImpl extends ExpandServiceImpl<MemberMapper, MemberEnt
             LocalDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0);
         Integer count =
             spaceInviteRecordMapper.selectCountBySpaceIdAndBetween(spaceId, startAt, endAt);
-        return count >= constProperties.getMaxInviteCountForFree();
+        return count >= limitProperties.getMaxInviteCountForFree();
     }
 
     @Override

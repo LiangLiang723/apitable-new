@@ -28,14 +28,22 @@ let mirrorId: string | undefined;
 store.subscribe(function datasheetIdChange() {
   const state = store.getState();
   const spaceId = state.space.activeId || state.share.spaceId;
-  const { shareId, templateId } = state.pageParams;
-  if (!spaceId && !shareId && !templateId) {
+  const { shareId, templateId, embedId } = state.pageParams;
+
+  if (!spaceId && !shareId && !templateId && !embedId) {
     return;
   }
+
   if (shareId && (!spaceId || !resourceService.instance?.initialized)) {
     return;
   }
+
+  if (embedId && (!resourceService.instance?.initialized || !state.embedInfo?.spaceId)) {
+    return;
+  }
+
   const previousMirrorId = mirrorId;
+
   mirrorId = state.pageParams.mirrorId;
 
   if (!mirrorId || previousMirrorId === mirrorId) {

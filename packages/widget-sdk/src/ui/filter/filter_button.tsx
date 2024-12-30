@@ -14,7 +14,7 @@ export const FilterButton = (props: IFilterButtonProps) => {
   return (
     <LinkButton
       prefixIcon={<AddOutlined />}
-      href={'javascript:void(0)'}
+      href={'#'}
       underline={false}
       color={colors.secondLevelText}
       onClick={onClick}

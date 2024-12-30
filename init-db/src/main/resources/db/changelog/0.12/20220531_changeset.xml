@@ -24,6 +24,9 @@
 	  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
     <changeSet id="V0.12-20220531-001" author="Chambers" labels="base">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>Create System Config Table</comment>
         <sql>
             CREATE TABLE `${table.prefix}system_config`
@@ -42,7 +45,32 @@
         </sql>
     </changeSet>
 
+    <changeSet id="V0.12-20220531-001-2" author="Chambers" labels="base">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Create System Config Table</comment>
+        <sql>
+            CREATE TABLE `${table.prefix}system_config`
+            (
+                `id`         bigint unsigned NOT NULL COMMENT 'Primary Key',
+                `type`       tinyint(2) unsigned NOT NULL DEFAULT '0' COMMENT 'Type (0: boot configuration; 1: popular recommendation of template center)',
+                `i18n_name`  varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'i18n key',
+                `config_map` json      NOT NULL                                           DEFAULT (JSON_QUOTE('{}')) COMMENT 'Configuration value',
+                `is_deleted` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'Delete Tag(0: No, 1: Yes)',
+                `created_by` bigint    NOT NULL COMMENT 'Creator',
+                `updated_by` bigint    NOT NULL COMMENT 'Last Update By',
+                `created_at` timestamp NOT NULL                                           DEFAULT CURRENT_TIMESTAMP COMMENT 'Create Time',
+                `updated_at` timestamp NOT NULL                                           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update Time',
+                PRIMARY KEY (`id`) USING BTREE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='System Config Table';
+        </sql>
+    </changeSet>
+
     <changeSet id="V0.12-20220531-002" author="Chambers" labels="template">
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>Template Property Table add i18n_name field</comment>
         <sql>
             ALTER TABLE `${table.prefix}template_property`
@@ -50,11 +78,40 @@
         </sql>
     </changeSet>
 
+    <changeSet id="V0.12-20220531-002-2" author="Chambers" labels="template">
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Template Property Table add i18n_name field</comment>
+        <sql>
+            ALTER TABLE `${table.prefix}template_property`
+                ADD COLUMN `i18n_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'zh_CN' COMMENT 'i18n key';
+            ALTER TABLE `${table.prefix}template_property`
+                MODIFY COLUMN `i18n_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'zh_CN' COMMENT 'i18n key' AFTER `property_code`;
+        </sql>
+    </changeSet>
+
     <changeSet id="V0.12-20220531-003" author="Chambers" labels="template">
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>Template Property Rel Table add property_code field</comment>
         <sql>
             ALTER TABLE `${table.prefix}template_property_rel`
                 ADD COLUMN `property_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Property Code' AFTER `property_id`;
+        </sql>
+    </changeSet>
+
+    <changeSet id="V0.12-20220531-003-2" author="Chambers" labels="template">
+        <preConditions onFail="CONTINUE">
+                <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Template Property Rel Table add property_code field</comment>
+        <sql>
+            ALTER TABLE `${table.prefix}template_property_rel`
+                ADD COLUMN `property_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Property Code';
+            ALTER TABLE `${table.prefix}template_property_rel`
+                MODIFY COLUMN `property_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Property Code' AFTER `property_id`;
         </sql>
     </changeSet>
 

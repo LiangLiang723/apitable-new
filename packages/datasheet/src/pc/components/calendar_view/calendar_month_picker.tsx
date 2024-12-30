@@ -20,12 +20,12 @@ import { useClickAway } from 'ahooks';
 import dayjs from 'dayjs';
 import { get } from 'lodash';
 import { useState } from 'react';
+import { formatDate } from '@apitable/components';
 import { getLanguage } from '@apitable/core';
 import { ComponentDisplay, ScreenSize } from '../common/component_display';
 import MonthPicker from '../editors/date_time_editor/date_picker/month_picker';
 import { PickerContent } from '../editors/date_time_editor/mobile/picker_content';
 import { FORMAT_DATE } from './constants';
-import { formatString2Date } from './utils';
 interface ICalendarMonthPicker {
   showValue: string;
   setDate: (date: dayjs.Dayjs | null) => void;
@@ -50,6 +50,9 @@ export const CalendarMonthPicker = (props: ICalendarMonthPicker) => {
     () => document.querySelector('.cp-calendar'),
   );
 
+  const showValueArray = showValue.split('-');
+  const formatValue = formatDate(Number(showValueArray[0]), Number(showValueArray[1]), lang);
+
   return (
     <>
       <ComponentDisplay minWidthCompatible={ScreenSize.md}>
@@ -60,14 +63,14 @@ export const CalendarMonthPicker = (props: ICalendarMonthPicker) => {
           align={{
             offset: [-8, 31],
           }}
-          value={dayjs.tz(formatString2Date(showValue))}
+          value={dayjs.tz(showValue)}
           onChange={(val) => {
             setDate(val);
             setOpen(!open);
           }}
           open={open}
           readOnly
-          inputDateValue={showValue}
+          inputDateValue={formatValue}
           onOpenChange={() => {
             setOpen(!open);
           }}
@@ -75,7 +78,7 @@ export const CalendarMonthPicker = (props: ICalendarMonthPicker) => {
       </ComponentDisplay>
       <ComponentDisplay maxWidthCompatible={ScreenSize.md}>
         <PickerContent
-          value={new Date(formatString2Date(showValue))}
+          value={new Date(showValue)}
           mode="month"
           editable
           visible={open}

@@ -108,6 +108,7 @@ export interface IViewInfoOptions {
 export interface IFieldRoTransformOptions {
   fieldMap?: IFieldMap;
   spaceId?: string;
+  timeZone?: string;
 }
 
 export interface INodeShareProps {

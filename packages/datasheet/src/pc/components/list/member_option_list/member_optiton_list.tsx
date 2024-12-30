@@ -19,6 +19,8 @@
 import { useUpdateEffect } from 'ahooks';
 import classNames from 'classnames';
 import Fuse from 'fuse.js';
+import { useGetMemberStash } from 'modules/space/member_stash/hooks/use_get_member_stash';
+import { memberStash } from 'modules/space/member_stash/member_stash';
 import * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
@@ -37,8 +39,6 @@ import {
   t,
   UnitItem,
 } from '@apitable/core';
-import { useGetMemberStash } from 'modules/space/member_stash/hooks/use_get_member_stash';
-import { memberStash } from 'modules/space/member_stash/member_stash';
 import { InfoCard } from 'pc/components/common/info_card';
 import { expandInviteModal } from 'pc/components/invite';
 import { CommonList } from 'pc/components/list/common_list';
@@ -67,6 +67,7 @@ export const MemberOptionList: React.FC<
   React.PropsWithChildren<
     IMemberOptionListProps & {
       inputRef?: React.RefObject<HTMLInputElement>;
+      showGroup?: boolean;
     }
   >
 > = (props) => {
@@ -86,6 +87,7 @@ export const MemberOptionList: React.FC<
     monitorId,
     className,
     searchEmail,
+    showGroup,
   } = props;
   const { loading: memberLoading, memberStashList } = useGetMemberStash();
   const initList = Array.isArray(listData) ? listData : memberStashList;
@@ -196,6 +198,17 @@ export const MemberOptionList: React.FC<
         updateMemberInfo(result);
         return result;
       }
+      if ('groupId' in value) {
+        const result = {
+          type: MemberType.Group,
+          unitId: value.groupId,
+          name: value.groupName,
+          avatar: '',
+          isDelete: false,
+        };
+        updateMemberInfo(result);
+        return result;
+      }
       const item = value as IMember;
       const result = {
         type: MemberType.Member,
@@ -295,6 +308,7 @@ export const MemberOptionList: React.FC<
                       checkedList: standardStructure(existValues),
                       onClose: () => refreshMemberList(),
                       showTab: true,
+                      showGroup: showGroup,
                     });
                   }}
                   onMouseDown={(e) => {

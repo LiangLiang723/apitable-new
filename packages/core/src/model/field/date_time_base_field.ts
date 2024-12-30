@@ -704,7 +704,7 @@ export abstract class DateTimeBaseField extends Field {
   }
 
   cellValueToOpenValue(cellValue: ICellValue): string | null {
-    return cellValue ? this.cellValueToString(cellValue) : null;
+    return cellValue ? this.cellValueToString(cellValue): null;
   }
 
   openWriteValueToCellValue(openWriteValue: string | Date | null) {

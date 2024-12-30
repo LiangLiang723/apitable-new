@@ -43,6 +43,19 @@ export const useLinkInvite = () => {
   const inviteLinkTokenInStore = useAppSelector((state: IReduxState) => state.invite);
   const nodeId = useAppSelector((state: IReduxState) => state.invite.nodeId);
 
+  const joinSpace = (spaceId: string, linkToken: string, nodeId: string, inviteLinkData?: string) => {
+    Api.joinViaSpace(linkToken, nodeId, inviteLinkData).then((res) => {
+      if (res.data.success) {
+        Router.redirect(Navigation.WORKBENCH, { query: { spaceId }, clearQuery: true });
+        return;
+      } 
+      if (res.data.code === StatusCode.NVC_FAIL) {
+        execNoTraceVerification((data) => joinSpace(spaceId, linkToken, nodeId, data));
+        return;
+      }
+    });
+  };
+
   // Retrieval of information
   const reGetLinkInfo = (linkToken: string, nodeId: string, inviteLinkData?: string) => {
     Api.linkValid(linkToken, nodeId).then((res) => {
@@ -50,12 +63,7 @@ export const useLinkInvite = () => {
       dispatch(StoreActions.updateInviteLinkInfo(res.data));
       dispatch(StoreActions.updateMailToken(linkToken));
       if (success) {
-        Api.joinViaSpace(linkToken, nodeId, inviteLinkData).then((res) => {
-          if (res.data.success) {
-            Router.redirect(Navigation.WORKBENCH, { query: { spaceId: info.spaceId }, clearQuery: true });
-            return;
-          }
-        });
+        joinSpace(info.spaceId, linkToken, nodeId, inviteLinkData);
       } else {
         Router.push(Navigation.INVITE, {
           params: { invitePath: 'link/invalid' },

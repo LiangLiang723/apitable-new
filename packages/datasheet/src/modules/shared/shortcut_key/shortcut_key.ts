@@ -166,12 +166,13 @@ export class ShortcutActionManager {
   private constructor() {}
 
   static actionMap = new Map<ShortcutActionName, () => boolean | void | Promise<boolean | void>>([
-    [
-      ShortcutActionName.None,
-      () => {
-        console.warn('! ' + 'A shortcut action of None');
-      },
-    ],
+    // Compatible with German Vietnamese special characters
+    // [
+    //   ShortcutActionName.None,
+    //   () => {
+    //     console.warn('! ' + 'A shortcut action of None');
+    //   },
+    // ],
     [
       ShortcutActionName.ToastForSave,
       () => {

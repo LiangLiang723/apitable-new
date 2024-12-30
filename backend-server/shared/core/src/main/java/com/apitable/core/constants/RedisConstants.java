@@ -54,6 +54,10 @@ public class RedisConstants {
      */
     public static final String GENERAL_STATICS = "statics:{}:{}";
     /**
+     * general frequency record ---> frequency:entity:business example: frequency:spc_id:invite.
+     */
+    public static final String GENERAL_FREQUENCY_RECORD = "frequency:{}:{}";
+    /**
      * version release notice ---> lock:lock object.
      */
     public static final String NOTIFICATION_LOCKED = "notify:lock:{}:{}";
@@ -351,6 +355,11 @@ public class RedisConstants {
     public static String getGeneralStaticsOfRecordKey(String spaceId) {
         Assert.notBlank(spaceId, "space does not exist");
         return StrUtil.format(GENERAL_STATICS, "count:record", spaceId);
+    }
+
+    public static String getGeneralFrequencyRecordOfInvite(String spaceId) {
+        Assert.notBlank(spaceId, "space does not exist");
+        return StrUtil.format(GENERAL_FREQUENCY_RECORD, spaceId, "invitation");
     }
 
     /**

@@ -43,9 +43,9 @@ export enum FormulaFuncType {
   Text = 'Text',
 }
 /**
-  * The underlying type of the cell value.
-  */
- export enum BasicValueType {
+ * The underlying type of the cell value.
+ */
+export enum BasicValueType {
   String = 'String',
   Number = 'Number',
   DateTime = 'DateTime',
@@ -102,7 +102,7 @@ export interface ILookUpSortField {
 }
 
 export interface ILookUpSortInfo {
-  rules: ILookUpSortField[]
+  rules: ILookUpSortField[];
 }
 
 export interface ILookUpProperty {
@@ -143,6 +143,7 @@ export enum MemberType {
   Team = 1,
   Role = 2,
   Member = 3,
+  Group = 4,
 }
 
 export type IUnitIds = string[];
@@ -415,6 +416,12 @@ export enum DateFormat {
   'MM',
   /** day */
   'DD',
+  /** month/day/year */
+  'MM/DD/YYYY',
+  /** month-day-year */
+  'MM-DD-YYYY',
+  /** month/day/year */
+  'MM/DD/YY',
 }
 
 export enum TimeFormat {
@@ -476,7 +483,6 @@ export interface ISelectFieldOption {
   name: string;
   color: number;
 }
-
 
 export interface ISelectFieldProperty {
   options: ISelectFieldOption[];
@@ -597,16 +603,16 @@ interface ILinkedFields {
 }
 
 export interface ICascaderProperty {
-  showAll: boolean,
-  linkedDatasheetId: string,
-  linkedViewId: string,
-  linkedFields: ILinkedFields[],
-  fullLinkedFields: ILinkedFields[],
+  showAll: boolean;
+  linkedDatasheetId: string;
+  linkedViewId: string;
+  linkedFields: ILinkedFields[];
+  fullLinkedFields: ILinkedFields[];
 }
 
 export enum ButtonStyleType {
-  Background= 0,
-  OnlyText=1
+  Background = 0,
+  OnlyText = 1,
 }
 
 export enum ButtonActionType {
@@ -615,8 +621,8 @@ export enum ButtonActionType {
 }
 
 export interface IButtonStyle {
-  type: ButtonStyleType,
-  color: number
+  type: ButtonStyleType;
+  color: number;
 }
 
 export enum OpenLinkType {
@@ -638,16 +644,16 @@ export interface IButtonAction {
 
 export interface IButtonActionMeta {
   type?: ButtonActionType;
-    expression?: string;
-    automationId?: string;
-    triggerId?: string;
+  expression?: string;
+  automationId?: string;
+  triggerId?: string;
 }
 
 export interface IButtonProperty {
   datasheetId?: string;
-  text: string,
-  style: IButtonStyle
-  action: IButtonAction,
+  text: string;
+  style: IButtonStyle;
+  action: IButtonAction;
 }
 
 export interface IButtonField extends IBaseField {
@@ -729,7 +735,7 @@ export const readonlyFields = new Set([
   FieldType.LastModifiedTime,
   FieldType.CreatedBy,
   FieldType.LastModifiedBy,
-  FieldType.Button
+  FieldType.Button,
 ]);
 
 export interface IFieldTypeCollection {
@@ -1007,6 +1013,6 @@ export const FieldTypeDescriptionMap: {
     fieldGroup: FieldGroup.Common,
     help: t(Strings.field_help_workdoc),
     hasOptSetting: false,
-    isBeta: true
+    isBeta: true,
   },
 };

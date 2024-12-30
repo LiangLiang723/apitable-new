@@ -128,4 +128,9 @@ public class LimitProperties {
      * max limit of action count.
      */
     private Integer automationActionCount = 9;
+
+    /**
+     * max invited record for a single day.
+     */
+    private Integer maxInviteCountForFree = 10;
 }

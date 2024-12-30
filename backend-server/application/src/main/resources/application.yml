@@ -91,6 +91,7 @@ limit:
   template-max-count: ${TEMPLATE_MAX_COUNT:20}
   dsb-widget-max-count: ${DSB_WIDGET_MAX_COUNT:30}
   dst-robot-max-count: ${DST_ROBOT_MAX_COUNT:10}
+  max-invite-count-for-free: ${MAX_INVITE_COUNT_FOR_FREE:10}
 socket:
   domain: ${SOCKET_DOMAIN:http://127.0.0.1:3333/socket}
 

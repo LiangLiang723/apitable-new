@@ -23,12 +23,31 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
 	  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
     <changeSet id="V0.5-20200819-001" author="Chambers" labels="node">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>Node Table add deleted path、created_by and updated_by</comment>
         <sql>
             ALTER TABLE `${table.prefix}node`
             ADD COLUMN `deleted_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'deleted path' AFTER `creator`,
             ADD COLUMN `created_by` bigint(20) NULL DEFAULT NULL COMMENT 'Creator' AFTER `is_banned`,
             ADD COLUMN `updated_by` bigint(20) NULL DEFAULT NULL COMMENT 'Last Update By' AFTER `created_by`
+        </sql>
+    </changeSet>
+    <changeSet id="V0.5-20200819-001-1" author="Chambers" labels="node">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>Node Table add deleted path、created_by and updated_by</comment>
+        <sql>
+            ALTER TABLE `${table.prefix}node`
+            ADD COLUMN `deleted_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'deleted path',
+            ADD COLUMN `created_by` bigint(20) NULL DEFAULT NULL COMMENT 'Creator',
+            ADD COLUMN `updated_by` bigint(20) NULL DEFAULT NULL COMMENT 'Last Update By';
+            ALTER TABLE `${table.prefix}node`
+            MODIFY COLUMN `deleted_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'deleted path' AFTER `creator`,
+            MODIFY COLUMN `created_by` bigint(20) NULL DEFAULT NULL COMMENT 'Creator' AFTER `is_banned`,
+            MODIFY COLUMN `updated_by` bigint(20) NULL DEFAULT NULL COMMENT 'Last Update By' AFTER `created_by`
         </sql>
     </changeSet>
 </databaseChangeLog>

@@ -39,7 +39,8 @@ import {
   WithOptional,
 } from '@apitable/core';
 import { CommentOutlined, DeleteOutlined, EmojiOutlined } from '@apitable/icons';
-import { Avatar, AvatarSize, Emoji, Modal } from 'pc/components/common';
+import { getNodeIcon } from 'pc/components/catalog/tree/node_icon';
+import { Avatar, AvatarSize, Modal } from 'pc/components/common';
 import { ScreenSize } from 'pc/components/common/component_display';
 import { ReplyBox } from 'pc/components/expand_record/activity_pane/reply_box/reply_box';
 import { useResponsive } from 'pc/hooks';
@@ -249,10 +250,10 @@ const ChangesetItemBase: React.FC<React.PropsWithChildren<IChangesetItem>> = (pr
                         content={
                           <div className={styles.emojiList}>
                             <span onClick={() => handleEmoji('good')}>
-                              <Emoji emoji="+1" size={16} />
+                              {getNodeIcon('+1', ConfigConstant.NodeType.DATASHEET, { size: 16, emojiSize: 16 })}
                             </span>
                             <span onClick={() => handleEmoji('ok')}>
-                              <Emoji emoji="ok_hand" size={16} />
+                              {getNodeIcon('ok_hand', ConfigConstant.NodeType.DATASHEET, { size: 16, emojiSize: 16 })}
                             </span>
                           </div>
                         }

@@ -62,6 +62,7 @@ import {
   updateFieldPermissionMap,
   updateFieldPermissionSetting,
 } from 'modules/database/store/actions/resource';
+import { isClient } from 'utils/env';
 // The maximum number of data retransmission actions is online, beyond this value, no timeout retry operation will be performed
 const MAX_RETRY_LENGTH = 5000;
 const VIKA_OP_BACKUP = 'VIKA_OP_BACKUP';
@@ -570,6 +571,10 @@ export class RoomService {
       await collaEngine.handleAcceptCommit(cs);
       // TODO: There are cookies in changesets to be removed in the middle layer
       console.log('Data returned successfully: ', cs);
+      if (isClient()) {
+        const customEvent = new CustomEvent(cs.messageId);
+        window.dispatchEvent(customEvent);
+      }
     }
 
     this.nextSend();

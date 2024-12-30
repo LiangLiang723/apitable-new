@@ -74,36 +74,66 @@ describe('DatetimeField', () => {
     it('Date Timestamp should pass', () => {
       expect(() => fieldClass.validate(1599893097514, field)).not.toThrow();
     });
+
+    it('Date ISO should pass', () => {
+      expect(() => fieldClass.validate("2024-06-04T00:00:00+08:00", field)).not.toThrow();
+    });
+
+    it('Date String 2024/05/29 09:36 PM (UTC-10) should throw', () => {
+      expect(() => {
+        fieldClass.validate('2024/05/29 09:36 PM (UTC-10)', field);
+      }).toThrow(/^api_param_datetime_field_type_error$/);
+    });
+
+    it('Date String 2024-05-29 09:36 PM (UTC-10) should throw', () => {
+      expect(() => {
+        fieldClass.validate('2024/05/29 09:36 PM (UTC-10)', field);
+      }).toThrow(/^api_param_datetime_field_type_error$/);
+    });
+
+    it('Date String 2024-05-29 09:36 PM', () => {
+      expect(() => {
+        fieldClass.validate('2024/05/29 09:36 PM (UTC-10)', field);
+      }).toThrow(/^api_param_datetime_field_type_error$/);
+    });
   });
 
   describe('roTransform', () => {
     it('Date [2021] should return 1609430400000', async () => {
-      expect(await fieldClass.roTransform(2021, field)).toBe(1609459200000);
+      expect(await fieldClass.roTransform(2021, field, {})).toBe(2021);
     });
 
     it("Date ['2021'] should return 1609430400000", async () => {
-      expect(await fieldClass.roTransform('2021', field)).toBe(1609459200000);
+      expect(await fieldClass.roTransform('2021', field, {})).toBe(1609459200000);
     });
 
     it("Date ['2021-01-01 00:00:00'] should return 1609430400000", async () => {
-      expect(await fieldClass.roTransform('2021-01-01 00:00:00', field)).toBe(1609459200000);
+      expect(await fieldClass.roTransform('2021-01-01 00:00:00', field, {})).toBe(1609459200000);
     });
 
     it("Date ['2021-01-01T00:00:00Z'] should return 1609430400000", async () => {
       // 00
-      expect(await fieldClass.roTransform('2021-01-01T00:00:00Z', field)).toBe(1609459200000);
+      expect(await fieldClass.roTransform('2021-01-01T00:00:00Z', field, {})).toBe(1609459200000);
     });
 
     it("Date ['2020-09-12 18:37 +0800'] should return 1599907020000", async () => {
-      expect(await fieldClass.roTransform('2020-09-12 18:37 +0800', field)).toBe(1599907020000);
+      expect(await fieldClass.roTransform('2020-09-12 18:37 +0800', field, {})).toBe(1599907020000);
     });
 
     it('Date [1609430400000] should return 1609430400000', async () => {
-      expect(await fieldClass.roTransform(1609430400000, field)).toBe(1609430400000);
+      expect(await fieldClass.roTransform(1609430400000, field, {})).toBe(1609430400000);
     });
 
     it('Date [55521445] should return 55521445', async () => {
-      expect(await fieldClass.roTransform(55521445, field)).toBe(55521445);
+      expect(await fieldClass.roTransform(55521445, field, {})).toBe(55521445);
+    });
+
+    it('Date [2024-05-30 15:36] should return 1717047360000', async () => {
+      expect(await fieldClass.roTransform('2024-05-30 13:36', field, { timeZone: 'Asia/Shanghai' })).toBe(1717047360000);
+    });
+
+    it('Date [2024-05-30 00:00] utc-10 should return ', async () => {
+      expect(await fieldClass.roTransform('2024-05-30 00:00', field, { timeZone: 'Pacific/Johnston' })).toBe(1717063200000);
     });
   });
 

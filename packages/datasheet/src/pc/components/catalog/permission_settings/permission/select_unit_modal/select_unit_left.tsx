@@ -23,12 +23,13 @@ import { RadioChangeEvent } from 'antd/lib/radio';
 import classnames from 'classnames';
 import * as React from 'react';
 import { ReactChild, useCallback, useEffect, useState } from 'react';
-import { Loading, stopPropagation, useThemeColors } from '@apitable/components';
-import { IBreadCrumbData, IMember, ISpaceBasicInfo, ISpaceInfo, ITeam, IUnit, Selectors, Strings, t, UnitItem } from '@apitable/core';
+import { Loading, stopPropagation, useThemeColors, TextButton, Button } from '@apitable/components';
+import { IBreadCrumbData, IMember, ISpaceBasicInfo, ISpaceInfo, ITeam, IUnit, Selectors, Strings, t, UnitItem, StoreActions } from '@apitable/core';
 import { ChevronRightOutlined } from '@apitable/icons';
 import { AvatarType, ButtonPlus, HorizontalScroll, InfoCard, SearchInput } from 'pc/components/common';
 import { ScreenSize } from 'pc/components/common/component_display';
 import { useCatalogTreeRequest, useRequest, useResponsive } from 'pc/hooks';
+import { useAppDispatch } from 'pc/hooks/use_app_dispatch';
 import { IRoleItem, useRoleRequest } from 'pc/hooks/use_role';
 import { useAppSelector } from 'pc/store/react-redux';
 import { getEnvVariables } from 'pc/utils/env';
@@ -37,6 +38,11 @@ import { SearchResult } from '../search_result';
 import { getSocialWecomUnitName } from 'enterprise/home/social_platform/utils';
 import { SelectUnitSource } from '.';
 import styles from './style.module.less';
+
+interface IGroupItem {
+  groupName: string;
+  groupId: string;
+}
 
 export interface ISelectUnitLeftProps {
   isSingleSelect?: boolean;
@@ -49,11 +55,13 @@ export interface ISelectUnitLeftProps {
   setUnits: React.Dispatch<React.SetStateAction<IUnit | null>>;
   spaceInfo?: ISpaceInfo | ISpaceBasicInfo | null;
   showTab?: boolean;
+  showGroup?: boolean;
 }
 
 enum TabKey {
   Org = 'org',
   Role = 'role',
+  Group = 'group',
 }
 
 const BreadcrumbItem = Breadcrumb.Item;
@@ -81,11 +89,13 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
     setCheckedList,
     spaceInfo: defaultSpaceInfo,
     showTab,
+    showGroup,
   } = props;
-  const { getSubUnitListReq, searchUnitReq } = useCatalogTreeRequest();
+  const dispatch = useAppDispatch();
+  const { getSubUnitListReq, searchUnitReq, getOrgYachGroupListReq } = useCatalogTreeRequest();
   const { run: getSubUnitList, data: unitsData, loading: unitListloading } = useRequest(getSubUnitListReq, { manual: true });
   const { run: searchUnit, data: searchUnitData } = useRequest(searchUnitReq, { manual: true });
-  const { run: search } = useDebounceFn(searchUnit, { wait: 100 });
+  const { run: search } = useDebounceFn(searchUnit, { wait: 300 });
   // Breadcrumb data source
   const [breadCrumbData, setBreadCrumbData] = useState<IBreadCrumbData[]>([{ name: t(Strings.contacts), teamId: '' }]);
   // Search by keyword
@@ -95,21 +105,41 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
 
   const [clickedTeamId, setClickedTeamId] = useState<string>();
 
-  const [tabActiveKey, setTabActiveKey] = useState<TabKey>(TabKey.Org);
+  const [groupList, setGroupList] = useState<IGroupItem[]>([]);
+  const [groupMore, setGroupMore] = useState<boolean>(false);
+  const [pageNo, setPageNo] = useState<number>(1);
+  const [groupListLoading, setGroupListLoading] = useState<boolean>(false);
+  const [moreLoading, setMoreLoading] = useState<boolean>(false);
 
-  // role
-  const isRole = tabActiveKey === TabKey.Role;
+  const { run: getOrgYachGroupListReqDebounce } = useDebounceFn((keyword) => {
+    getOrgYachGroupListReq(1, keyword).then((res) => {
+      setGroupList(res.records);
+      setGroupMore(res.hasNextPage);
+      setPageNo(2);
+      dispatch(StoreActions.updateGroupList(res.records));
+      setGroupListLoading(false);
+    });
+  }, { wait: 300 });
+
   const { run: getRoleList, data } = useRoleRequest();
   const { isOpen: roleIsOpen, roles: roleList } = data;
 
   let linkId = useAppSelector(Selectors.getLinkId);
   const spaceInfo = useAppSelector((state) => state.space.curSpaceInfo) || defaultSpaceInfo;
   const embedId = useAppSelector((state) => state.pageParams.embedId);
-  const { CUSTOM_SYNC_CONTACTS_LINKID } = getEnvVariables();
+  const { CUSTOM_SYNC_CONTACTS_LINKID, YACH_ENABLED } = getEnvVariables();
 
   if (CUSTOM_SYNC_CONTACTS_LINKID && source === SelectUnitSource.SyncMember) {
     linkId = CUSTOM_SYNC_CONTACTS_LINKID;
   }
+
+  const [tabActiveKey, setTabActiveKey] = useState<TabKey>(TabKey.Org);
+
+  // group
+  const isGroup = tabActiveKey === TabKey.Group;
+
+  // role
+  const isRole = tabActiveKey === TabKey.Role;
 
   const { screenIsAtMost } = useResponsive();
   const isMobile = screenIsAtMost(ScreenSize.md);
@@ -126,12 +156,22 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
   }, [keyword, getSubUnitList, breadCrumbData, linkId, isRole]);
 
   useEffect(() => {
+    if (isGroup) {
+      return;
+    }
     if (isRole || !keyword) {
       return;
     }
     search(keyword, linkId);
     // eslint-disable-next-line
-  }, [keyword, linkId, isRole]);
+  }, [keyword, linkId, isRole, isGroup]);
+
+  useEffect(() => {
+    if (isGroup) {
+      !keyword && setGroupListLoading(true);
+      getOrgYachGroupListReqDebounce(keyword);
+    }
+  }, [isGroup, keyword]);
 
   useEffect(() => {
     if (source === SelectUnitSource.ChangeMemberTeam && unitsData && 'members' in unitsData) {
@@ -148,7 +188,7 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
         return true;
       }
       if (disableList) {
-        return disableList.includes(data.unitId);
+        return disableList.includes(data.unitId!);
       }
       if (source === SelectUnitSource.Admin && disableIdList) {
         return disableIdList.includes((data as IMember).memberId);
@@ -219,7 +259,7 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
     setCheckedList([...checkedList, unit]);
   };
 
-  if (!units) {
+  if (!units || groupListLoading) {
     return (
       <div className={styles.left}>
         <Loading />
@@ -374,7 +414,33 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
     </div>
   );
 
-  function RadioList(data: IUnit | IRoleItem[], inSearch = false) {
+  const GroupItem = (item: {
+    groupName: string;
+    unitId: string;
+  }) => (
+    <div className={styles.item} key={item.unitId}>
+      <div className={styles.checkWrapper}>
+        <Checkbox value={item.unitId} onChange={(e) => onChangeChecked(e, item as any)}>
+          <div className={styles.itemContent}>
+            <InfoCard
+              title={item.groupName}
+              originTitle={item.groupName}
+              style={{ backgroundColor: 'transparent' }}
+              avatarProps={{
+                id: item.unitId,
+                src: '',
+                title: item.groupName,
+                type: AvatarType.Team,
+                isRole,
+              }}
+            />
+          </div>
+        </Checkbox>
+      </div>
+    </div>
+  );
+
+  function RadioList(data: IUnit | IRoleItem[] | IGroupItem[], inSearch = false) {
     if (!data) return;
 
     const units = isRole ? null : (data as IUnit);
@@ -407,6 +473,8 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
         <Radio.Group value={checkedList.length && checkedList[0].unitId} onChange={handleRadioChecked}>
           {isRole ? (
             <>{roleList.map(RoleItem)}</>
+          ) : isGroup ? (
+            <>{groupList.map(item => ({ ...item, unitId: item.groupId })).map(GroupItem)}</>
           ) : (
             <>
               {inSearch && teams.length !== 0 && <div className={styles.unitType}>{t(Strings.team)}</div>}
@@ -420,7 +488,7 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
     );
   }
 
-  function CheckboxList(data: IUnit | IRoleItem[], inSearch = false) {
+  function CheckboxList(data: IUnit | IRoleItem[] | IGroupItem[], inSearch = false) {
     if (!data) return;
 
     const units = isRole ? ({} as IUnit) : (data as IUnit);
@@ -478,9 +546,36 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
           </div>
         )}
         <div className={styles.dataListWrapper}>
-          <Checkbox.Group value={checkedList.map((item) => item.unitId)}>
+          <Checkbox.Group value={checkedList.map((item) => item.unitId!)}>
             {isRole ? (
               <>{roleList.map(RoleItem)}</>
+            ) : isGroup ? (
+              <>
+                {groupList.map(item => ({ ...item, unitId: item.groupId })).map(GroupItem)}
+                {groupMore && (
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    {moreLoading ? (
+                      <Button loading variant="jelly">
+                        {t(Strings.loading)}
+                      </Button>
+                    ) : (
+                      <TextButton color="primary" onClick={() => {
+                        setMoreLoading(true);
+                        getOrgYachGroupListReq(pageNo, keyword)?.then((res) => {
+                          setGroupList([...groupList, ...res.records]);
+                          setGroupMore(res.hasNextPage);
+                          setPageNo(pageNo + 1);
+                          setMoreLoading(false);
+                        });
+                  
+                      }}>
+                        {t(Strings.click_load_more)}
+                                       
+                      </TextButton>
+                    )}
+                  </div>
+                )}
+              </>
             ) : (
               <>
                 {inSearch && teams.length !== 0 && <div className={styles.unitType}>{t(Strings.team)}</div>}
@@ -498,13 +593,13 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
   const orgSearchData =
     source === SelectUnitSource.ChangeMemberTeam ? searchUnitData && { ...searchUnitData, tags: [], members: [] } : searchUnitData;
 
-  const listData = isRole ? roleList : units;
-  const searchData = isRole ? roleList.filter((v) => !keyword || v.roleName.includes(keyword)) : orgSearchData;
+  const listData = isRole ? roleList : isGroup ? groupList : units;
+  const searchData = isRole ? roleList.filter((v) => !keyword || v.roleName.includes(keyword)) : isGroup ? groupList : orgSearchData;
 
   // search result is empty
   const isEmptySearch = isRole
-    ? !roleList.length
-    : !orgSearchData || (!orgSearchData.teams?.length && !orgSearchData.members?.length && !orgSearchData.tags?.length);
+    ? !roleList.length : isGroup ? !groupList.length
+      : !orgSearchData || (!orgSearchData.teams?.length && !orgSearchData.members?.length && !orgSearchData.tags?.length);
 
   return (
     <div className={styles.left}>
@@ -524,6 +619,17 @@ export const SelectUnitLeft: React.FC<React.PropsWithChildren<ISelectUnitLeftPro
         >
           <TabPane key={TabKey.Org} tab={t(Strings.tab_org)} />
           <TabPane key={TabKey.Role} tab={t(Strings.tab_role)} />
+          {showGroup && YACH_ENABLED && <TabPane key={TabKey.Group} tab={'群组'} />}
+        </Tabs>
+      )}
+      {!roleIsOpen && showGroup && YACH_ENABLED && (
+        <Tabs
+          className={classnames(styles.tabWrap, isRole && styles.tabWrapRole)}
+          activeKey={tabActiveKey}
+          onChange={(value) => setTabActiveKey(value as TabKey)}
+        >
+          <TabPane key={TabKey.Org} tab={t(Strings.tab_org)} />
+          <TabPane key={TabKey.Group} tab={'群组'} />
         </Tabs>
       )}
       {!isRole && (

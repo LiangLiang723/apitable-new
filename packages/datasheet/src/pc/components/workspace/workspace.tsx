@@ -34,9 +34,10 @@ import WorkspaceRoute from 'pc/components/route_manager/workspace_route';
 import { expandUpgradeSpace } from 'pc/components/space_manage/upgrade_space/expand_upgrade_space';
 import Trash from 'pc/components/trash/trash';
 import { ISideBarContextProps, SideBarClickType, SideBarContext, SideBarType } from 'pc/context';
-import { getPageParams, useCatalogTreeRequest, useQuery, useRequest, useResponsive } from 'pc/hooks';
+import { getPageParams, useCatalogTreeRequest, usePageParams, useQuery, useRequest, useResponsive } from 'pc/hooks';
 import { store } from 'pc/store';
 import { useAppSelector } from 'pc/store/react-redux';
+import { getEnvVariables } from 'pc/utils/env';
 import { StorageMethod, StorageName, getStorage, setStorage } from 'pc/utils/storage/storage';
 import UpgradeSucceedDark from 'static/icon/workbench/workbench_upgrade_succeed_dark.png';
 import UpgradeSucceedLight from 'static/icon/workbench/workbench_upgrade_succeed_light.png';
@@ -44,6 +45,10 @@ import { Tooltip, VikaSplitPanel } from '../common';
 import { ComponentDisplay, ScreenSize } from '../common/component_display';
 import { CommonSide } from '../common_side';
 import { usePaymentReminder } from './hooks/usePaymentReminder';
+// @ts-ignore
+import { subscribeUsageCheck } from 'enterprise/billing/subscribe_usage_check';
+// @ts-ignore
+import { SubscribeUsageTipType, triggerUsageAlert } from 'enterprise/billing/trigger_usage_alert';
 // @ts-ignore
 import { showOrderModal } from 'enterprise/subscribe_system/order_modal/pay_order_success';
 import styles from './style.module.less';
@@ -107,6 +112,7 @@ export const Workspace: React.FC<React.PropsWithChildren<unknown>> = () => {
   const theme = useTheme();
   const spaceInfo = useAppSelector((state) => state.space.curSpaceInfo);
   const social = spaceInfo?.social;
+  const nodeId = useAppSelector((state) => state.pageParams.nodeId);
 
   // Directory tree toggle source status, directory tree click status, sidebar switch.
   const [toggleType, setToggleType] = useState<SideBarType>(SideBarType.None);
@@ -127,6 +133,15 @@ export const Workspace: React.FC<React.PropsWithChildren<unknown>> = () => {
     showUpgradeSpaceModal.current = true;
     expandUpgradeSpace();
   });
+
+  useEffect(() => {
+    if (getEnvVariables().IS_APITABLE) return;
+    if (document.querySelector('#VIKA_USAGE_WARN_MODAL')) return;
+    if (!SubscribeUsageTipType || !triggerUsageAlert || !subscribeUsageCheck || !spaceInfo) return;
+    if (subscribeUsageCheck.shouldAlertToUser('maxSeats', spaceInfo?.seats, true)) {
+      triggerUsageAlert('maxSeats', { usage: spaceInfo?.seats, alwaysAlert: true }, SubscribeUsageTipType.Alert);
+    }
+  }, [nodeId, spaceInfo]);
 
   useMount(() => {
     if (!query.get('stripePaySuccess') || isMobile) return;

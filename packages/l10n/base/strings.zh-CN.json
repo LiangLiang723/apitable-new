@@ -51,6 +51,9 @@
   "add_attachment": "添加附件",
   "add_cover": "添加封面",
   "add_dashboard": "新建仪表盘",
+  "label_format_month_day_year_split_by_slash": "月/日/年",
+  "label_format_month_day_year_split_by_dash": "月-日-年",
+  "label_format_month_day_year_two_digit_year_split_by_slash": "月/日/年（两位数年份）",
   "add_datasheet_editor": "在「只可更新」基础上，还可以删除记录和增删视图",
   "add_datasheet_manager": "拥有该表格的所有操作权限",
   "add_datasheet_reader": "可查看该表格内容或进行评论",
@@ -332,7 +335,7 @@
   "api_delete_error": "删除数据失败",
   "api_delete_error_foreign_datasheet_deleted": "删除记录失败，因为关联表已被删除",
   "api_embed_link_id_not_exist": "指定的嵌入链接不存在，请调整 linkId 后再试",
-  "api_embed_link_instance_limit": "抱歉, 暂时仅支持表格、仪表盘、表单类的节点创建嵌入链接",
+  "api_embed_link_instance_limit": "抱歉, 暂时仅支持表格、仪表盘、表单、镜像类的节点创建嵌入链接",
   "api_embed_link_limit": "创建的嵌入链接数量已达上限，单个维格表的嵌入链接数量不能超过{value}个",
   "api_enterprise_limit": "抱歉，此接口仅可在黄金级以上的空间站中调用",
   "api_example_request": "示例请求",
@@ -2419,6 +2422,7 @@
   "gold_grade": "黄金级",
   "gold_grade_desc": "适用于有复杂业务流程的团队或组织",
   "gold_seat_200_desc": "200人",
+  "gold_seat_300_desc": "300人",
   "golden_grade": "黄金级",
   "got_it": "知道了",
   "got_v_coins": "已获得 V 币奖励",
@@ -6062,5 +6066,9 @@
   "move_datasheet_link_warn": "无法单独移到团队工作区，因为当前表存在关联关系，建议将关联的所有表放在一个文件夹里进行移动",
   "move_folder_link_warn": "无法移到团队工作区，因为当前文件夹内的文件与文件夹外的文件有连接关系（可能是关联关系或者被表单等所连接）建议将它们放在一个文件夹里再进行移动",
   "move_other_link_warn": "无法单独将${nodeType}移动至团队工作区，因为它连接了个人工作区的表，建议将它们放在一个文件夹里进行移动",
-  "move_other_link_no_permission": "你无法移动文件至目标文件夹，因为你缺少该文件夹的管理权限"
+  "move_other_link_no_permission": "你无法移动文件至目标文件夹，因为你缺少该文件夹的管理权限",
+  "record_chunk_text": "正在${text}条行记录，请稍后",
+  "stop_chunk_title": "终止",
+  "stop_chunk_content": "终止后将不会继续执行操作，确定终止？",
+  "chunk_stopping_title": "正在终止"
 }

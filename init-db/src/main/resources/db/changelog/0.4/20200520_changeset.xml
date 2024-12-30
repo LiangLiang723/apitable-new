@@ -38,8 +38,28 @@
     </changeSet>
 
     <changeSet id="V0.4-20200520-005" author="Chambers" labels="node">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="mysql"/>
+        </preConditions>
         <comment>New cover page and template identification field of node table</comment>
         <sqlFile path="db/changelog/0.4/20200520_changeset_005.sql"/>
+    </changeSet>
+
+    <changeSet id="V0.4-20200520-005-2" author="Chambers" labels="node">
+        <preConditions onFail="CONTINUE">
+            <changeLogPropertyDefined property="DB_ENGINE" value="tidb"/>
+        </preConditions>
+        <comment>New cover page and template identification field of node table</comment>
+        <sql>
+            ALTER TABLE `${table.prefix}node`
+                ADD COLUMN `cover`       varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL     DEFAULT NULL COMMENT 'Cover Draw TOKEN';
+            ALTER TABLE `${table.prefix}node`
+                ADD COLUMN `is_template` tinyint(1) UNSIGNED                                           NOT NULL DEFAULT 0 COMMENT 'Is Template (0: No, 1: Yes)';
+            ALTER TABLE `${table.prefix}node`
+                MODIFY COLUMN `cover`       varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL     DEFAULT NULL COMMENT 'Cover Draw TOKEN' AFTER `type`;
+            ALTER TABLE `${table.prefix}node`
+                MODIFY COLUMN `is_template` tinyint(1) UNSIGNED                                           NOT NULL DEFAULT 0 COMMENT 'Is Template (0: No, 1: Yes)' AFTER `cover`;
+        </sql>
     </changeSet>
 
     <changeSet id="V0.4-20200520-006" author="Zoe" labels="notification">

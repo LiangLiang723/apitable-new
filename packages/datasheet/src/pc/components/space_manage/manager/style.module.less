@@ -8,13 +8,17 @@
   padding: 32px;
   display: flex;
   flex-direction: column;
-
-  .pageTitle {
-  }
+  overflow: auto;
 
   .pageSubscribe {
     margin-top: 8px;
     margin-bottom: 40px;
     color: var(--thirdLevelText);
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .managerContainer {
+    padding: 16px;
   }
 }
