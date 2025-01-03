@@ -1,8 +1,8 @@
 import { Modal } from 'antd';
+import { apiErrorManager } from 'api/utils/error_manager';
 import axios from 'axios';
 import { Store } from 'redux';
 import { IReduxState, Navigation, StatusCode, StoreActions, Strings, t } from '@apitable/core';
-import { apiErrorManager } from 'api/utils/error_manager';
 import { Router } from 'pc/components/route_manager/router';
 import { store } from 'pc/store';
 import { getInitializationData, getReleaseVersion, getSpaceIdFormTemplate } from 'pc/utils/env';
@@ -28,6 +28,8 @@ declare let window: any;
 //
 //   return false;
 // }
+
+const isDingtalkFunc = () => !process.env.SSR && navigator.userAgent.toLowerCase().indexOf('dingtalk') > -1;
 
 export function redirectIfUserApplyLogout() {
   const state = store.getState();
@@ -84,6 +86,11 @@ export function handleResponse<T>(response, headers: any | undefined, url: strin
           content: t(Strings.login_status_expired_content),
           okText: t(Strings.login_status_expired_button),
           onOk: () => {
+            const isDingding = isDingtalkFunc();
+            if (isDingding) {
+              window.location.href = `/user/dingtalk/social_login${window.location.search}`;
+              return;
+            }
             const IS_EMBED_LINK_REG = /^\/embed/;
             const reference = !IS_EMBED_LINK_REG.test(location.pathname)
               ? new URLSearchParams(window.location.search).get('reference')?.toString()
