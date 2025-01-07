@@ -97,6 +97,8 @@ const SlateEditor = (props: any, ref: React.Ref<unknown>) => {
   } = useContext(ActivityContext);
   const imeInputText = useRef('');
 
+  const { embedId, shareId } = useAppSelector((state) => state.pageParams);
+
   const fixFirefoxImeInputRepeatWordBug = () => {
     if (imeInputText.current && IS_FIREFOX) {
       const imeText = imeInputText.current;
@@ -384,7 +386,7 @@ const SlateEditor = (props: any, ref: React.Ref<unknown>) => {
                     uniqId={'unitId'}
                     unitMap={unitMap}
                   />
-                  {members.length > 0 && (
+                  {members.length > 0 && !shareId && !embedId && (
                     <div
                       className={styles.seeMore}
                       onMouseUp={() => {

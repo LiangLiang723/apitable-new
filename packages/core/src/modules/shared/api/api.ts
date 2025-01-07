@@ -385,6 +385,9 @@ export function searchUnitInfoVo(names: string, linkId?: string) {
  * @returns
  */
 export function commitRemind(data: ICommitRemind) {
+  if(process.env.NEXT_PUBLIC_DISABLED_REMIND_ENDPOINT === 'true') {
+    return Promise.reject();
+  }
   return axios.post(Url.COMMIT_REMIND, data);
 }
 
@@ -861,6 +864,9 @@ export function getNodeInfoWindow(nodeId: string) {
  * @returns
  */
 export function getNoPermissionMember(nodeId: string, unitIds: string[]) {
+  if(process.env.NEXT_PUBLIC_DISABLED_REMIND_ENDPOINT === 'true') {
+    return Promise.reject();
+  }
   return axios.post<IApiWrapper & INoPermissionMemberResponse>(Url.NO_PERMISSION_MEMBER, { nodeId, unitIds });
 }
 

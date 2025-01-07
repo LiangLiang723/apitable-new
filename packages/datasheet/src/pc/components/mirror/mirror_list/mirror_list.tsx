@@ -17,6 +17,7 @@
  */
 
 import classnames from 'classnames';
+import { get } from 'lodash';
 import Trigger from 'rc-trigger';
 import { FC, useEffect, useState } from 'react';
 import { shallowEqual } from 'react-redux';
@@ -36,7 +37,14 @@ export const MirrorList: FC<React.PropsWithChildren<IForeignFormProps>> = (props
   const [loading, setLoading] = useState(false);
   const [panelVisible, setPanelVisible] = useState(false);
   const [mirrorList, setMirrorList] = useState<IMirrorItem[]>([]);
+  const embedInfo = useAppSelector((state) => Selectors.getEmbedInfo(state));
   // const spaceId = useAppSelector(state => state.space.activeId);
+  const { embedId } = useAppSelector((state) => {
+    return state.pageParams;
+  });
+
+  const preventPopup = embedId && get(embedInfo, 'viewControl.toolBar.mirrorBtn', false);
+
   const {
     folderId,
     datasheetId,
@@ -72,7 +80,21 @@ export const MirrorList: FC<React.PropsWithChildren<IForeignFormProps>> = (props
     });
   };
 
-  const onClick = () => {
+  const onClick = (e: React.MouseEvent) => {
+    if (preventPopup) {
+      window.parent.postMessage(
+        {
+          message: 'mirrorBtnClick',
+          data: {
+            nodeId: datasheetId,
+            url: window.location.href,
+            // e: JSON.stringify(e),
+          },
+        },
+        '*',
+      );
+      return;
+    }
     setPanelVisible(true);
     fetchMirrorList();
   };
@@ -86,12 +108,15 @@ export const MirrorList: FC<React.PropsWithChildren<IForeignFormProps>> = (props
     <>
       <Trigger
         action={['click']}
-        popup={<MirrorListInner creatable={creatable} mirrorList={mirrorList} loading={loading} />}
+        popup={preventPopup ? null : <MirrorListInner creatable={creatable} mirrorList={mirrorList} loading={loading} />}
         destroyPopupOnHide
         popupAlign={{ points: ['tr', 'br'], offset: [0, 0], overflow: { adjustX: true, adjustY: true } }}
         popupStyle={{ width: 400 }}
         popupVisible={panelVisible}
-        onPopupVisibleChange={(visible) => setPanelVisible(visible)}
+        onPopupVisibleChange={(visible) => {
+          if (preventPopup) return;
+          setPanelVisible(visible);
+        }}
         zIndex={1000}
       >
         <ToolItem

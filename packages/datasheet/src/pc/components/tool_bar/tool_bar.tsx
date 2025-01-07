@@ -19,6 +19,7 @@
 import { useMount, useSize, useThrottleFn } from 'ahooks';
 import classNames from 'classnames';
 import { get } from 'lodash';
+import { ShortcutActionManager, ShortcutActionName } from 'modules/shared/shortcut_key';
 import * as React from 'react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isMobile } from 'react-device-detect';
@@ -65,7 +66,6 @@ import {
   StyleOutlined,
   WidgetOutlined,
 } from '@apitable/icons';
-import { ShortcutActionManager, ShortcutActionName } from 'modules/shared/shortcut_key';
 import { ArchivedRecords } from 'pc/components/archive_record';
 import { MirrorList } from 'pc/components/mirror/mirror_list';
 import { getFieldTypeIcon } from 'pc/components/multi_grid/field_setting';
@@ -407,6 +407,7 @@ const ToolbarBase = () => {
       formBtn: true,
       historyBtn: true,
       robotBtn: true,
+      mirrorBtn: true,
     };
     if (!embedId) {
       return defaultValue;
@@ -419,6 +420,7 @@ const ToolbarBase = () => {
       formBtn: get(embedInfo, 'viewControl.toolBar.formBtn', false),
       historyBtn: get(embedInfo, 'viewControl.toolBar.historyBtn', false),
       robotBtn: get(embedInfo, 'viewControl.toolBar.robotBtn', false),
+      mirrorBtn: get(embedInfo, 'viewControl.toolBar.mirrorBtn', false),
     };
   }, [embedInfo, embedId]);
 
@@ -455,7 +457,7 @@ const ToolbarBase = () => {
       ),
       label: 'Copilot',
       key: 'copilot',
-      show:  getEnvVariables().AI_ENTRANCE_VISIBLE && getEnvVariables().IS_APITABLE && !shareId
+      show: getEnvVariables().AI_ENTRANCE_VISIBLE && getEnvVariables().IS_APITABLE && !shareId,
     },
     {
       component: <ForeignForm key="foreignForm" className={styles.toolbarItem} showLabel={showIconBarLabel} />,
@@ -465,7 +467,7 @@ const ToolbarBase = () => {
     {
       component: <MirrorList key="mirror" className={styles.toolbarItem} showLabel={showIconBarLabel} />,
       key: 'mirror',
-      show: !shareId && !templateId && !mirrorId && !embedId,
+      show: !shareId && !templateId && !mirrorId && (!embedId || (embedId && embedSetting.mirrorBtn)),
     },
     {
       component: (
@@ -533,11 +535,7 @@ const ToolbarBase = () => {
       show: !mirrorId && !shareId && !templateId && embedSetting.historyBtn && getEnvVariables().TIME_MACHINE_VISIBLE,
     },
     {
-      component: <ArchivedRecords
-        key="archived-records"
-        className={styles.toolbarItem}
-        showLabel={showIconBarLabel}
-      />,
+      component: <ArchivedRecords key="archived-records" className={styles.toolbarItem} showLabel={showIconBarLabel} />,
       key: 'archivedRecords',
       show: !shareId && !mirrorId && !shareId && !templateId && permissions.manageable,
     },
