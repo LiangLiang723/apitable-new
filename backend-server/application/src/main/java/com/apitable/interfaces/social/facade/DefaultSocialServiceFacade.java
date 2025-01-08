@@ -102,4 +102,15 @@ public class DefaultSocialServiceFacade implements SocialServiceFacade {
     public <T extends SocialEvent> void eventCall(T event) {
 
     }
+
+    /**
+     * get union id map.
+     *
+     * @param userIds user ids
+     * @return map
+     */
+    @Override
+    public Map<Long, String> getUnionIdMap(List<Long> userIds) {
+        return Collections.emptyMap();
+    }
 }
