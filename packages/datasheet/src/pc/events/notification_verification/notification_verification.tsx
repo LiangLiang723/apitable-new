@@ -54,7 +54,10 @@ export const getNoPermissionMemberList = async (nodeId: string, unitsIds: string
 export const verificationPermission = async (commitRemindParam: IApi.ICommitRemind) => {
   const state = store.getState();
   const activeNodePrivate = Selectors.getActiveNodePrivate(state);
-  if (!getEnvVariables().ALLOW_EMBED_SEND_REMIND || activeNodePrivate) return;
+  const embedId = state.pageParams.embedId;
+
+  if ((embedId && !getEnvVariables().ALLOW_EMBED_SEND_REMIND) || activeNodePrivate) return;
+        
   const newCommitRemindParam = fastCloneDeep(commitRemindParam);
   dispatch(StoreActions.setPermissionCommitRemindParameter(newCommitRemindParam));
 

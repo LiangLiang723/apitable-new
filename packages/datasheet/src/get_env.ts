@@ -236,6 +236,6 @@ export const getEnvVars = () => {
     YACH_ENABLED: process.env.YACH_ENABLED === 'true',
 
     HIDDEN_SEE_MORE_MEMBER_LIST: process.env.HIDDEN_SEE_MORE_MEMBER_LIST === 'true',
-    ALLOW_EMBED_SEND_NOTIFIED_REMIND: process.env.ALLOW_EMBED_SEND_NOTIFIED_REMIND === 'true',
+    ALLOW_EMBED_SEND_REMIND: process.env.ALLOW_EMBED_SEND_REMIND === 'true',
   };
 };
