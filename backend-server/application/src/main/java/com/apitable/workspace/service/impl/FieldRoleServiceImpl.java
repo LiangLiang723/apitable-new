@@ -760,6 +760,14 @@ public class FieldRoleServiceImpl implements IFieldRoleService {
                     fieldRole.setMemberCount(role.getMemberCount());
                     fieldRole.setUnitRefId(role.getRoleId());
                 });
+            } else if (key == UnitType.TAG) {
+                List<TagInfoVo> tagVos = iTagService.getTagVos(spcId, unitRefIds);
+                tagVos.forEach(tag -> {
+                    FieldRole fieldRole = unitIdToFieldRoleMap.get(tag.getUnitId());
+                    fieldRole.setUnitRefId(tag.getTagId());
+                    fieldRole.setUnitName(tag.getTagName());
+                    fieldRole.setMemberCount(tag.getMemberCount());
+                });
             }
         });
     }
