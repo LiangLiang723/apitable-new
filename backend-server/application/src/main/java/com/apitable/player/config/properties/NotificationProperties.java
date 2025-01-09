@@ -18,6 +18,9 @@ package com.apitable.player.config.properties;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * notification properties.
+ */
 @Data
 @ConfigurationProperties(prefix = "notification")
 public class NotificationProperties {
