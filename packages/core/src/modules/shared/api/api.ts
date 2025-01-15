@@ -292,7 +292,7 @@ export const useTemplate = (templateId: string, parentId: string, data?: boolean
     templateId,
     parentId,
     data,
-    unitId
+    unitId,
   });
 };
 
@@ -336,6 +336,7 @@ export function loadOrSearch({ filterIds, keyword, names, unitIds, linkId, all, 
   if (unitIds && unitIds.includes('opt')) {
     return Promise.reject();
   }
+
   return axios.get(Url.LOAD_OR_SEARCH, {
     params: {
       filterIds,
@@ -345,6 +346,7 @@ export function loadOrSearch({ filterIds, keyword, names, unitIds, linkId, all, 
       linkId,
       all,
       searchEmail,
+      type: process.env.NEXT_PUBLIC_UNIT_SEARCH_TYPE,
     },
   });
 }
@@ -360,6 +362,7 @@ export function loadOrSearchEmbed(embedId: string, { filterIds, keyword, names, 
       linkId,
       all,
       searchEmail,
+      type: process.env.NEXT_PUBLIC_UNIT_SEARCH_TYPE,
     },
   });
 }
@@ -410,10 +413,12 @@ export function enableRoleExtend(nodeId: string) {
  */
 export function disableRoleExtend(nodeId: string, includeExtend?: boolean) {
   const params = includeExtend ? { includeExtend } : {};
-  if (getBrowserDatabusApiEnabled()){
-    WasmApi.getInstance().delete_cache(nodeId).then((result) => {
-      console.log('delete indexDb cache', result);
-    });
+  if (getBrowserDatabusApiEnabled()) {
+    WasmApi.getInstance()
+      .delete_cache(nodeId)
+      .then((result) => {
+        console.log('delete indexDb cache', result);
+      });
   }
   return axios.post(Url.DISABLE_ROLE_EXTEND + `?nodeId=${nodeId}`, params);
 }
@@ -844,7 +849,7 @@ export function applyResourceChangesets(changesets: ILocalChangeset[], roomId: s
     },
     {
       baseURL: nestBaseURL,
-    },
+    }
   );
 }
 
@@ -868,7 +873,6 @@ export function getNoPermissionMember(nodeId: string, unitIds: string[]) {
   // if(process.env.NEXT_PUBLIC_DISABLED_REMIND_ENDPOINT === 'true') {
   //   return Promise.reject();
   // }
-
   return axios.post<IApiWrapper & INoPermissionMemberResponse>(Url.NO_PERMISSION_MEMBER, { nodeId, unitIds });
 }
 
