@@ -18,7 +18,7 @@
 
 import { IGetCommentsByIdsResponse } from '../../database/api/datasheet_api.interface';
 import axios from 'axios';
-import { ConfigConstant } from 'config';
+import { ConfigConstant, getCustomConfig } from 'config';
 import * as Url from './url';
 import { ILocalChangeset } from 'engine';
 import { IApiWrapper, IRubbishListParams } from '../../../exports/store/interfaces';
@@ -346,7 +346,6 @@ export function loadOrSearch({ filterIds, keyword, names, unitIds, linkId, all, 
       linkId,
       all,
       searchEmail,
-      type: process.env.NEXT_PUBLIC_UNIT_SEARCH_TYPE,
     },
   });
 }
@@ -362,7 +361,7 @@ export function loadOrSearchEmbed(embedId: string, { filterIds, keyword, names, 
       linkId,
       all,
       searchEmail,
-      type: process.env.NEXT_PUBLIC_UNIT_SEARCH_TYPE,
+      type: getCustomConfig().NEXT_PUBLIC_UNIT_SEARCH_TYPE 
     },
   });
 }
