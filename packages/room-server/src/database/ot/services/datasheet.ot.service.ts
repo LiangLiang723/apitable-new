@@ -196,6 +196,7 @@ export class DatasheetOtService {
       toCancelRecordSubscriptions: [], // unitId - recordId
       creatorAutoSubscribedRecordIds: [], // creator auto subscribed recordIds
       spaceId: '',
+      roomId: '',
     };
   }
 

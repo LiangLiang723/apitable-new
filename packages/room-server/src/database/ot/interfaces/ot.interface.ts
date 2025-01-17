@@ -77,6 +77,7 @@ export interface IReadMetaData {
 export interface IRoomChannelMessage {
   roomId: string;
   shareId?: string;
+  embedId?: string; // embedId for embed message, param throws from shareId
   sourceDatasheetId?: string;
   sourceType?: SourceTypeEnum;
   changesets: ILocalChangeset[];

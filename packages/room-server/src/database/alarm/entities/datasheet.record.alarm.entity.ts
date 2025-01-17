@@ -47,6 +47,14 @@ export class DatasheetRecordAlarmEntity extends BaseEntity {
   dstId!: string;
 
   @Column({
+    name: 'resource_id',
+    nullable: true,
+    comment: 'resource ID',
+    length: 50,
+  })
+  resourceId?: string;
+
+  @Column({
     name: 'record_id',
     nullable: false,
     comment: 'datasheet record ID',
