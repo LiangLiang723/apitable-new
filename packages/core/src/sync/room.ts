@@ -527,12 +527,13 @@ export class RoomService {
     }, 500);
     const state = this.store.getState();
     const shareId = state.pageParams.shareId;
+    const embedId = state.pageParams.embedId;
     return this.io
       .request<ISocketResponseData, IClientRoomMessage>({
         type: SyncRequestTypes.CLIENT_ROOM_CHANGE,
         roomId: this.roomId,
         changesets,
-        shareId,
+        shareId: shareId || embedId,
       })
       .then((data) => {
         clearTimeout(timer);

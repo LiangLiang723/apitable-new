@@ -29,12 +29,12 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.apitable.organization.service.IMemberService;
 import com.apitable.player.ro.NotificationCreateRo;
+import com.apitable.shared.clock.spring.ClockManager;
 import com.apitable.shared.component.notification.NotificationHelper;
 import com.apitable.shared.sysconfig.i18n.I18nStringsUtil;
 import com.apitable.space.service.ISpaceService;
 import com.apitable.workspace.service.INodeService;
 import jakarta.annotation.Resource;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -43,9 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * <p>
  * base notify observer.
- * </p>
  *
  * @author zoe zheng
  */
@@ -92,8 +90,8 @@ public abstract class AbstractNotifyObserver<M, T> implements NotifyObserver<M, 
         if (extras != null) {
             extras.forEach((k, v) -> {
                 if (StrUtil.endWith(k, "At")) {
-                    LocalDateTime dateTime = DateUtil.toLocalDateTime(
-                        Instant.ofEpochMilli(Long.parseLong(v.toString())));
+                    LocalDateTime dateTime =
+                        ClockManager.me().convertMillis(Long.parseLong(v.toString()));
                     bindingMap.put(k, DateUtil.format(dateTime, NORM_DATETIME_MINUTE_PATTERN));
                 } else if (Objects.equals(k, INVOLVE_RECORD_IDS)) {
                     bindingMap.put(StrUtil.toCamelCase(EMAIL_RECORD_ID),

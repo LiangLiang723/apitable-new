@@ -203,3 +203,7 @@ system:
 databus:
   client:
     host: ${DATABUS_SERVER_BASE_URL:http://127.0.0.1:8625}
+
+notification:
+  callback-url: ${NOTIFICATION_CALLBACK_URL:}
+  template-ids: ${NOTIFICATION_TEMPLATE_IDS:single_record_member_mention,single_record_comment_mentioned,task_reminder}

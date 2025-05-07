@@ -19,12 +19,12 @@
 package com.apitable.workspace.service;
 
 import com.apitable.internal.dto.SimpleDatasheetMetaDTO;
+import com.apitable.workspace.dto.DatasheetMetaColumnDTO;
 import com.apitable.workspace.dto.DatasheetMetaDTO;
 import com.apitable.workspace.dto.DatasheetSnapshot;
 import com.apitable.workspace.entity.DatasheetMetaEntity;
 import com.apitable.workspace.ro.MetaOpRo;
 import java.util.List;
-import org.apache.ibatis.annotations.Param;
 
 /**
  * datasheet meta service.
@@ -47,12 +47,21 @@ public interface IDatasheetMetaService {
     SimpleDatasheetMetaDTO findByDstId(String dstId);
 
     /**
+     * get meta column dto list.
+     *
+     * @param dstIds    datasheet ids
+     * @return DatasheetMetaColumnDTO List
+     */
+    List<DatasheetMetaColumnDTO> findMetaColumnDTOs(List<String> dstIds);
+
+
+    /**
      * get dto by datasheet id list.
      *
      * @param dstIds datasheet ids
      * @return DatasheetMetaDTO
      */
-    List<DatasheetMetaDTO> findMetaDtoByDstIds(@Param("list") List<String> dstIds);
+    List<DatasheetMetaDTO> findMetaDtoByDstIds(List<String> dstIds);
 
     /**
      * create.

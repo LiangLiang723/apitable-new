@@ -264,8 +264,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, TeamEntity> impleme
     public boolean checkHasSubUnitByTeamId(String spaceId, Long teamId) {
         log.info("Check whether the team has members or teams");
         List<Long> subTeamIds = baseMapper.selectTeamIdsByParentId(spaceId, teamId);
-        long subMemberCount =
-            SqlTool.retCount(teamMemberRelMapper.countByTeamId(Collections.singletonList(teamId)));
+        long subMemberCount = this.getMemberCount(Collections.singletonList(teamId));
         return CollUtil.isNotEmpty(subTeamIds) || subMemberCount > 0;
     }
 
@@ -273,14 +272,21 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, TeamEntity> impleme
     public long countMemberCountByParentId(Long teamId) {
         log.info("count the team's members, includes the sub teams' members.");
         List<Long> allSubTeamIds = this.getAllTeamIdsInTeamTree(teamId);
-        return CollUtil.isNotEmpty(allSubTeamIds)
-            ? SqlTool.retCount(teamMemberRelMapper.countByTeamId(allSubTeamIds)) : 0;
+        return this.getMemberCount(allSubTeamIds);
     }
 
     @Override
     public long getMemberCount(List<Long> teamIds) {
-        // obtain the number of all members in a department
-        return SqlTool.retCount(teamMemberRelMapper.countByTeamId(teamIds));
+        if (CollUtil.isEmpty(teamIds)) {
+            return 0;
+        }
+        // obtain the count of all members in departments
+        List<TeamMemberRelEntity> teamMemberRelEntities =
+            DBUtil.batchSelectByFieldIn(teamIds, teamMemberRelMapper::selectByTeamIds, 100);
+        // deduplication
+        Set<Long> memberIds = teamMemberRelEntities.stream()
+            .map(TeamMemberRelEntity::getMemberId).collect(Collectors.toSet());
+        return memberIds.size();
     }
 
     @Override
@@ -504,7 +510,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, TeamEntity> impleme
         }
         teamInfo.setTeamId(teamId);
         List<Long> teamIds = this.getAllTeamIdsInTeamTree(teamId);
-        Long memberCount = SqlHelper.retCount(teamMemberRelMapper.countByTeamId(teamIds));
+        Long memberCount = this.getMemberCount(teamIds);
         teamInfo.setMemberCount(memberCount);
         return teamInfo;
     }

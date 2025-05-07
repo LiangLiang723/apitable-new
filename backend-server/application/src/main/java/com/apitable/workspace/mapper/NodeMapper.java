@@ -155,6 +155,7 @@ public interface NodeMapper extends BaseMapper<NodeEntity> {
      * @param memberId member id
      * @return NodeInfoVos
      */
+    @Deprecated
     List<NodeInfoVo> selectNodeInfoByNodeIds(@Param("nodeIds") Collection<String> nodeIds,
                                              @Param("memberId") Long memberId);
 
@@ -165,6 +166,7 @@ public interface NodeMapper extends BaseMapper<NodeEntity> {
      * @param memberId member id
      * @return NodeInfoTreeVo
      */
+    @Deprecated
     List<NodeInfoTreeVo> selectNodeInfoTreeByNodeIds(@Param("nodeIds") Collection<String> nodeIds,
                                                      @Param("memberId") Long memberId);
 
@@ -221,6 +223,14 @@ public interface NodeMapper extends BaseMapper<NodeEntity> {
     List<NodeTreeDTO> selectNodeTreeDTOByParentIdIn(
         @Param("parentIds") Collection<String> parentIds, @Param("isRubbish") Boolean isRubbish,
         @Param("unitIds") List<Long> unitIds);
+
+    /**
+     * Query parent id with children nodes.
+     *
+     * @param parentIds parent node ids
+     * @return  parent node ids
+     */
+    List<String> selectParentIdWithChildren(@Param("parentIds") Collection<String> parentIds);
 
     /**
      * Query the ID of the direct child node.

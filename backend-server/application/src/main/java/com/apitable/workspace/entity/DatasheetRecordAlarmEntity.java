@@ -73,6 +73,11 @@ public class DatasheetRecordAlarmEntity implements Serializable {
     private String dstId;
 
     /**
+     * Resource ID(link#node#node_id).
+     */
+    private String resourceId;
+
+    /**
      * Record ID(link#datasheet_record#record_id).
      */
     private String recordId;

@@ -18,7 +18,7 @@
 
 import { IGetCommentsByIdsResponse } from '../../database/api/datasheet_api.interface';
 import axios from 'axios';
-import { ConfigConstant } from 'config';
+import { ConfigConstant, getCustomConfig } from 'config';
 import * as Url from './url';
 import { ILocalChangeset } from 'engine';
 import { IApiWrapper, IRubbishListParams } from '../../../exports/store/interfaces';
@@ -292,7 +292,7 @@ export const useTemplate = (templateId: string, parentId: string, data?: boolean
     templateId,
     parentId,
     data,
-    unitId
+    unitId,
   });
 };
 
@@ -336,6 +336,7 @@ export function loadOrSearch({ filterIds, keyword, names, unitIds, linkId, all, 
   if (unitIds && unitIds.includes('opt')) {
     return Promise.reject();
   }
+
   return axios.get(Url.LOAD_OR_SEARCH, {
     params: {
       filterIds,
@@ -360,6 +361,7 @@ export function loadOrSearchEmbed(embedId: string, { filterIds, keyword, names, 
       linkId,
       all,
       searchEmail,
+      type: getCustomConfig().NEXT_PUBLIC_UNIT_SEARCH_TYPE 
     },
   });
 }
@@ -385,6 +387,10 @@ export function searchUnitInfoVo(names: string, linkId?: string) {
  * @returns
  */
 export function commitRemind(data: ICommitRemind) {
+  // if(process.env.NEXT_PUBLIC_DISABLED_REMIND_ENDPOINT === 'true') {
+  //   return Promise.reject();
+  // }
+
   return axios.post(Url.COMMIT_REMIND, data);
 }
 
@@ -406,10 +412,12 @@ export function enableRoleExtend(nodeId: string) {
  */
 export function disableRoleExtend(nodeId: string, includeExtend?: boolean) {
   const params = includeExtend ? { includeExtend } : {};
-  if (getBrowserDatabusApiEnabled()){
-    WasmApi.getInstance().delete_cache(nodeId).then((result) => {
-      console.log('delete indexDb cache', result);
-    });
+  if (getBrowserDatabusApiEnabled()) {
+    WasmApi.getInstance()
+      .delete_cache(nodeId)
+      .then((result) => {
+        console.log('delete indexDb cache', result);
+      });
   }
   return axios.post(Url.DISABLE_ROLE_EXTEND + `?nodeId=${nodeId}`, params);
 }
@@ -840,7 +848,7 @@ export function applyResourceChangesets(changesets: ILocalChangeset[], roomId: s
     },
     {
       baseURL: nestBaseURL,
-    },
+    }
   );
 }
 
@@ -861,6 +869,9 @@ export function getNodeInfoWindow(nodeId: string) {
  * @returns
  */
 export function getNoPermissionMember(nodeId: string, unitIds: string[]) {
+  // if(process.env.NEXT_PUBLIC_DISABLED_REMIND_ENDPOINT === 'true') {
+  //   return Promise.reject();
+  // }
   return axios.post<IApiWrapper & INoPermissionMemberResponse>(Url.NO_PERMISSION_MEMBER, { nodeId, unitIds });
 }
 

@@ -72,6 +72,7 @@ import com.apitable.shared.component.ClientEntryTemplateConfig;
 import com.apitable.shared.component.TaskManager;
 import com.apitable.shared.component.notification.INotificationFactory;
 import com.apitable.shared.component.notification.NotificationHelper;
+import com.apitable.shared.component.notification.NotificationManager;
 import com.apitable.shared.component.notification.NotificationRenderMap;
 import com.apitable.shared.component.notification.NotificationTemplateId;
 import com.apitable.shared.component.notification.NotificationToTag;
@@ -552,6 +553,7 @@ public class PlayerNotificationServiceImpl
         return baseMapper.deleteNotificationByIds(ids);
     }
 
+
     @Override
     public boolean createBatch(List<PlayerNotificationEntity> notifyEntities,
                                List<PlayerNotificationEntity> createEntities) {
@@ -562,7 +564,10 @@ public class PlayerNotificationServiceImpl
             // Therefore, if there is a key, no message will be sent, but the number of messages will be increased.
         }
         if (CollUtil.isNotEmpty(createEntities)) {
-            return SqlHelper.retBool(baseMapper.insertBatch(createEntities));
+            boolean result = SqlHelper.retBool(baseMapper.insertBatch(createEntities));
+            TaskManager.me().execute(() -> NotificationManager.me().doCallback(notifyEntities));
+            return result;
+
         }
         return true;
     }

@@ -23,6 +23,7 @@ import {
   DEFAULT_EDITOR_PERMISSION,
   FieldType,
   IChangeset,
+  IDPrefix,
   IFieldMap,
   IJOTAction,
   ILocalChangeset,
@@ -231,6 +232,10 @@ export class OtService {
    */
   @Span()
   async applyRoomChangeset(message: IRoomChannelMessage, auth: IAuthHeader): Promise<IRemoteChangeset[]> {
+    if (message.shareId?.startsWith(IDPrefix.EmbedLink)) {
+      message.embedId = message.shareId;
+      message.shareId = undefined;
+    }
     // Validate that sharing enables editing
     if (message.shareId) {
       await this.nodeShareSettingService.checkNodeShareCanBeEdited(message.shareId, message.roomId);
@@ -335,7 +340,7 @@ export class OtService {
 
   @Span()
   async parseChanges(spaceId: string, message: IRoomChannelMessage, changeset: ILocalChangeset, auth: IAuthHeader): Promise<IChangesetParseResult> {
-    const { sourceDatasheetId, sourceType, shareId, roomId, internalAuth, allowAllEntrance } = message;
+    const { sourceDatasheetId, sourceType, shareId, roomId, internalAuth, allowAllEntrance , embedId} = message;
     const { resourceId } = changeset;
 
     // Fill in resourceType if it is null
@@ -429,6 +434,7 @@ export class OtService {
     switch (resourceType) {
       case ResourceType.Datasheet: {
         resultSet = this.datasheetOtService.createResultSet();
+        resultSet.roomId  = embedId || roomId;
         transaction = await this.datasheetOtService.analyseOperates(
           spaceId,
           sourceDatasheetId || roomId,

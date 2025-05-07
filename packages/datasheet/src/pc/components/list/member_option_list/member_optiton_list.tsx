@@ -295,7 +295,7 @@ export const MemberOptionList: React.FC<
         }}
         // The share page is not allowed to appear View More, the organization in the space station will be leaked
         footerComponent={
-          showMoreTipButton && !shareId && !embedId
+          showMoreTipButton && !shareId && !embedId && !getEnvVariables().HIDDEN_SEE_MORE_MEMBER_LIST 
             ? () => {
               return (
                 <div

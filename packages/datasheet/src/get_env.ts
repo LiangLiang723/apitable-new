@@ -234,5 +234,9 @@ export const getEnvVars = () => {
     EDITION: process.env.EDITION,
     ENABLE_TIME_MACHINE_ROOLBACK: process.env.ENABLE_TIME_MACHINE_ROOLBACK === 'true',
     YACH_ENABLED: process.env.YACH_ENABLED === 'true',
+
+    HIDDEN_SEE_MORE_MEMBER_LIST: process.env.HIDDEN_SEE_MORE_MEMBER_LIST === 'true',
+    ALLOW_EMBED_SEND_REMIND: process.env.ALLOW_EMBED_SEND_REMIND === 'true',
+    NEXT_PUBLIC_UNIT_SEARCH_TYPE: process.env.NEXT_PUBLIC_UNIT_SEARCH_TYPE,
   };
 };

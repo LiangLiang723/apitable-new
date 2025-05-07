@@ -53,6 +53,7 @@ public interface TeamMemberRelMapper extends ExpandBaseMapper<TeamMemberRelEntit
      * @param teamIds team ids
      * @return the team members amount
      */
+    @Deprecated
     Long countByTeamId(@Param("teamIds") List<Long> teamIds);
 
     /**

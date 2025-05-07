@@ -67,6 +67,7 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -289,7 +290,9 @@ public class OrganizationController {
         @Parameter(name = "all", description = "whether to load all departments and members",
             schema = @Schema(type = "boolean"), in = ParameterIn.QUERY),
         @Parameter(name = "searchEmail", description = "whether to search for emails",
-            schema = @Schema(type = "boolean"), in = ParameterIn.QUERY)
+            schema = @Schema(type = "boolean"), in = ParameterIn.QUERY),
+        @Parameter(name = "type", description = "the return unit type, 1-department, 3-member", schema = @Schema(type = "integer"),
+            in = ParameterIn.QUERY, example = "3")
     })
     public ResponseData<List<UnitInfoVo>> loadOrSearch(@Valid LoadSearchDTO params) {
         // sharing node/template: un login users invoke processing
@@ -321,6 +324,11 @@ public class OrganizationController {
             iOrganizationService.loadOrSearchInfo(userId, spaceId, params, sharer);
         List<UnitInfoVo> existUnitInfo =
             vos.stream().filter(unitInfoVo -> !unitInfoVo.getIsDeleted()).collect(toList());
+        if (null != params.getType()) {
+            existUnitInfo = existUnitInfo.stream()
+                .filter(unitInfoVo -> Objects.equals(unitInfoVo.getType(), params.getType()))
+                .collect(toList());
+        }
         return ResponseData.success(existUnitInfo);
     }
 

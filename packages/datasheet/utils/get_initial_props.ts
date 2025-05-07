@@ -25,6 +25,15 @@ const LANG_MAP = {
   zh_CN: 'zh-CN',
 };
 
+export function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 const filterCustomHeader = (headers?: Record<string, string | string[] | undefined>): Record<string, string> => {
   if (!headers) return {};
   const _headers = {};
@@ -72,6 +81,7 @@ export const getInitialProps = (context: { ctx: NextPageContext }) => {
 
   return {
     ...baseResponse,
-    locale,
+    locale: escapeHtml(locale),
   };
 };
+

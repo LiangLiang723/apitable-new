@@ -21,6 +21,7 @@ package com.apitable.workspace.mapper;
 import com.apitable.workspace.dto.NodeShareDTO;
 import com.apitable.workspace.entity.NodeShareSettingEntity;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import java.util.Collection;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
@@ -107,7 +108,7 @@ public interface NodeShareSettingMapper extends BaseMapper<NodeShareSettingEntit
      * @param nodeIds node ids
      * @return NodeShareDTOs
      */
-    List<NodeShareDTO> selectDtoByNodeIds(@Param("nodeIds") List<String> nodeIds);
+    List<NodeShareDTO> selectDtoByNodeIds(@Param("nodeIds") Collection<String> nodeIds);
 
     /**
      * Find the list of shared node IDs last modified by the specified member.

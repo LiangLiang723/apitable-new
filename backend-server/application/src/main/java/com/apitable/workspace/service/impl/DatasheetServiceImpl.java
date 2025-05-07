@@ -964,6 +964,7 @@ public class DatasheetServiceImpl extends ServiceImpl<DatasheetMapper, Datasheet
                 .set("fieldName", remindUnitRecRo.getFieldName())
                 .set("recordTitle", recordTitle)
                 .set("viewId", ro.getViewId())
+                .set("linkId", ro.getLinkId())
                 .set("recordIds", remindUnitRecRo.getRecordIds());
             if (null != ro.getExtra() && null != ro.getExtra().getContent()) {
                 // comments

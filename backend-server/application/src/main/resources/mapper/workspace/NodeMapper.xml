@@ -157,6 +157,19 @@
         AND is_deleted = 0
     </select>
 
+    <select id="selectParentIdWithChildren" resultType="java.lang.String">
+        SELECT parent_id
+        FROM ${tablePrefix}node
+        WHERE parent_id IN
+        <foreach item="item" index="index" collection="parentIds" open="("
+                 separator="," close=")">
+            #{item}
+        </foreach>
+        AND is_rubbish = 0
+        GROUP BY parent_id
+        HAVING COUNT(*) > 0
+    </select>
+
     <select id="selectSubNodeIds" resultType="java.lang.String">
         SELECT node_id
         FROM ${tablePrefix}node

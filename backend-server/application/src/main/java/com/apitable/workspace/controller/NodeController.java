@@ -66,6 +66,7 @@ import com.apitable.shared.context.SessionContext;
 import com.apitable.shared.holder.SpaceHolder;
 import com.apitable.shared.listener.event.AuditSpaceEvent;
 import com.apitable.shared.listener.event.AuditSpaceEvent.AuditSpaceArg;
+import com.apitable.shared.util.IdUtil;
 import com.apitable.shared.util.information.ClientOriginInfo;
 import com.apitable.shared.util.information.InformationUtil;
 import com.apitable.space.enums.AuditSpaceAction;
@@ -931,9 +932,11 @@ public class NodeController {
             LoginContext.me().getUserSpaceDto(spaceId);
         } else {
             // node sharing
-            String shareSpaceId = nodeShareSettingMapper.selectSpaceIdByShareId(ro.getLinkId());
-            ExceptionUtil.isNotNull(shareSpaceId, NodeException.SHARE_EXPIRE);
-            ExceptionUtil.isTrue(shareSpaceId.equals(spaceId), SpaceException.NOT_IN_SPACE);
+            if (!IdUtil.isEmbed(ro.getLinkId())) {
+                String shareSpaceId = nodeShareSettingMapper.selectSpaceIdByShareId(ro.getLinkId());
+                ExceptionUtil.isNotNull(shareSpaceId, NodeException.SHARE_EXPIRE);
+                ExceptionUtil.isTrue(shareSpaceId.equals(spaceId), SpaceException.NOT_IN_SPACE);
+            }
         }
         if (iNodeService.nodePrivate(ro.getNodeId())) {
             return ResponseData.success();

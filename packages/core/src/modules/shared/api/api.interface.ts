@@ -74,6 +74,7 @@ export interface ILoadOrSearchArg {
   // `linkId` use to mark the operations that off-site. Now support templateId and shareId.
   linkId?: string | undefined;
   all?: boolean;
+  type?: string;
 }
 
 export interface ISignIn {

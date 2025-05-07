@@ -24,6 +24,8 @@ import com.apitable.base.enums.DatabaseException;
 import com.apitable.core.util.ExceptionUtil;
 import com.apitable.core.util.SqlTool;
 import com.apitable.internal.dto.SimpleDatasheetMetaDTO;
+import com.apitable.shared.util.DBUtil;
+import com.apitable.workspace.dto.DatasheetMetaColumnDTO;
 import com.apitable.workspace.dto.DatasheetMetaDTO;
 import com.apitable.workspace.dto.DatasheetSnapshot;
 import com.apitable.workspace.dto.DatasheetSnapshot.View;
@@ -66,6 +68,12 @@ public class DatasheetMetaServiceImpl implements IDatasheetMetaService {
         SimpleDatasheetMetaDTO meta = datasheetMetaMapper.selectByNodeId(dstId);
         ExceptionUtil.isNotNull(meta, DatabaseException.QUERY_EMPTY_BY_ID);
         return meta;
+    }
+
+    @Override
+    public List<DatasheetMetaColumnDTO> findMetaColumnDTOs(List<String> dstIds) {
+        return DBUtil.batchSelectByFieldIn(dstIds,
+            datasheetMetaMapper::selectMetaColumnDtoByDstIds, 100);
     }
 
     @Override

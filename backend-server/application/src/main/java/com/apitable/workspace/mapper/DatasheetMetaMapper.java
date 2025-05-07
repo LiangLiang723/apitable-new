@@ -19,6 +19,7 @@
 package com.apitable.workspace.mapper;
 
 import com.apitable.internal.dto.SimpleDatasheetMetaDTO;
+import com.apitable.workspace.dto.DatasheetMetaColumnDTO;
 import com.apitable.workspace.dto.DatasheetMetaDTO;
 import com.apitable.workspace.dto.DatasheetSnapshot;
 import com.apitable.workspace.entity.DatasheetMetaEntity;
@@ -57,7 +58,15 @@ public interface DatasheetMetaMapper extends BaseMapper<DatasheetMetaEntity> {
     SimpleDatasheetMetaDTO selectByNodeId(@Param("dstId") String dstId);
 
     /**
-     * quert DTO by datasheet ids.
+     * query meta column DTO.
+     *
+     * @param dstIds datasheet ids
+     * @return DatasheetMetaColumnDTO
+     */
+    List<DatasheetMetaColumnDTO> selectMetaColumnDtoByDstIds(@Param("dstIds") Collection<String> dstIds);
+
+    /**
+     * query DTO by datasheet ids.
      *
      * @param dstIdList datasheet ids
      * @return DatasheetMetaDTO

@@ -27,6 +27,7 @@ import { Message } from 'pc/components/common/message';
 import { Modal } from 'pc/components/common/modal/modal/modal';
 import { useResponsive } from 'pc/hooks';
 import { store } from 'pc/store';
+import { getEnvVariables } from 'pc/utils/env';
 import { dispatch } from 'pc/worker/store';
 import styles from './style.module.less';
 
@@ -54,7 +55,9 @@ export const verificationPermission = async (commitRemindParam: IApi.ICommitRemi
   const state = store.getState();
   const activeNodePrivate = Selectors.getActiveNodePrivate(state);
   const embedId = state.pageParams.embedId;
-  if (embedId || activeNodePrivate) return;
+
+  if ((embedId && !getEnvVariables().ALLOW_EMBED_SEND_REMIND) || activeNodePrivate) return;
+        
   const newCommitRemindParam = fastCloneDeep(commitRemindParam);
   dispatch(StoreActions.setPermissionCommitRemindParameter(newCommitRemindParam));
 

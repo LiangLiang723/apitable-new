@@ -45,4 +45,6 @@ public class LoadSearchDTO {
     private Boolean searchEmail;
 
     private String userId;
+
+    private Integer type;
 }
