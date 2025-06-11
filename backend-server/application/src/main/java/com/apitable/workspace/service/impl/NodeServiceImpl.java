@@ -866,7 +866,7 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
             .type(nodeOpRo.getType())
             .extra(JSONUtil.toJsonStr(nodeOpRo.getExtra()))
             .nodeId(nodeId)
-            .unitId(NumberUtil.parseLong(nodeOpRo.getUnitId()))
+            .unitId(0L) // Force unitId to 0L to make all nodes non-private
             .build();
         // Change the front node ID of the next node to the new node ID(A <- C => B <- C)
         baseMapper.updatePreNodeIdBySelf(nodeId, preNodeId, nodeOpRo.getParentId());
@@ -906,7 +906,7 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, NodeEntity> impleme
             .extra(dto.getExtra())
             .createdBy(userId)
             .updatedBy(userId)
-            .unitId(dto.getUnitId())
+            .unitId(0L) // Force unitId to 0L to make all nodes non-private
             .build();
 
         boolean flag = save(nodeEntity);
