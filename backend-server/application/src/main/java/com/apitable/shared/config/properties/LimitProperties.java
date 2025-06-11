@@ -40,97 +40,97 @@ public class LimitProperties {
     /**
      * Maximum user space.
      */
-    private Integer spaceMaxCount = 10;
+    private Integer spaceMaxCount = -1; // No limit
 
     /**
      * Maximum file size of imported data table.
      */
-    private Integer maxFileSize = 20 * 1024 * 1024;
+    private Integer maxFileSize = -1; // No limit, or a very large number like 1024 * 1024 * 1024 (1GB)
 
     /**
      * Maximum number of columns in the number table.
      */
-    private Integer maxColumnCount = 200;
+    private Integer maxColumnCount = -1; // No limit
 
     /**
      * Maximum Views.
      */
     @Deprecated
-    private Integer viewMaxCount = 100;
+    private Integer viewMaxCount = -1; // No limit
 
     /**
      * Maximum number of templates.
      */
-    private Integer templateMaxCount = 20;
+    private Integer templateMaxCount = -1; // No limit
 
     /**
      * Maximum loading numbers of member field in datasheet.
      */
-    private Integer memberFieldMaxLoadCount = 10;
+    private Integer memberFieldMaxLoadCount = -1; // No limit
 
     /**
      * Maximum rows.
      */
-    private Integer maxRowCount = 50000;
+    private Integer maxRowCount = -1; // No limit
 
     /**
      * limitation of attachment(byte).
      */
     @Deprecated
-    private Long spaceMemoryMaxSize = 1024 * 1024 * 1024L;
+    private Long spaceMemoryMaxSize = -1L; // No limit
 
     /**
      * Maximum node number.
      */
     @Deprecated
-    private Integer nodeMaxCount = 1000;
+    private Integer nodeMaxCount = -1; // No limit
 
     /**
      * Maximum days of recycle bin.
      */
     @Deprecated
-    private Integer rubbishRetainDay = 7;
+    private Integer rubbishRetainDay = -1; // No limit (or a very large number)
 
     /**
      * Maximum member count of space.
      */
     @Deprecated
-    private Integer memberMaxCount = 100;
+    private Integer memberMaxCount = -1; // No limit
 
     /**
      * Maximum admin number of space.
      */
     @Deprecated
-    private Integer adminMaxCount = 20;
+    private Integer adminMaxCount = -1; // No limit
 
     /**
      * Maximum api usage of space.
      */
     @Deprecated
-    private Integer apiUsageMaxCount = 10000;
+    private Integer apiUsageMaxCount = -1; // No limit
 
     /**
      * Maximum dashboard numbers of space.
      */
-    private Integer dsbWidgetMaxCount = 15;
+    private Integer dsbWidgetMaxCount = -1; // No limit
 
     /**
      * Maximum robot number of space.
      */
-    private Integer dstRobotMaxCount = 30;
+    private Integer dstRobotMaxCount = -1; // No limit
 
     /**
      * max limit of trigger count.
      */
-    private Integer automationTriggerCount = 3;
+    private Integer automationTriggerCount = -1; // No limit
 
     /**
      * max limit of action count.
      */
-    private Integer automationActionCount = 9;
+    private Integer automationActionCount = -1; // No limit
 
     /**
      * max invited record for a single day.
      */
-    private Integer maxInviteCountForFree = 10;
+    private Integer maxInviteCountForFree = -1; // No limit
 }

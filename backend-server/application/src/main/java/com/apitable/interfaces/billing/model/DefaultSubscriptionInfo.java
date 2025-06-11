@@ -32,7 +32,7 @@ public class DefaultSubscriptionInfo implements SubscriptionInfo {
     private final SubscriptionFeature feature;
 
     public DefaultSubscriptionInfo() {
-        this("CE", "ce_unlimited", new DefaultSubscriptionFeature());
+        this("Enterprise", "enterprise_plan", new DefaultSubscriptionFeature());
     }
 
     /**
