@@ -82,6 +82,7 @@ jobs:
           fi
 
           candidates=(
+            "packaging/all-in-one/all-in-one/Dockerfile"
             "Dockerfile.all-in-one"
             "Dockerfile.allinone"
             "all-in-one/Dockerfile"
@@ -150,10 +151,9 @@ jobs:
           provenance: false
           sbom: false
           build-args: |
-            SELF_HOSTED_ENTERPRISE=true
-            API_MAX_MODIFY_RECORD_COUNTS=1000
+            IMAGE_TAG=${{ github.ref_name }}
+            SEMVER_FULL=${{ github.ref_name }}
             GIT_COMMIT=${{ github.sha }}
-            VERSION=${{ github.ref_name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
