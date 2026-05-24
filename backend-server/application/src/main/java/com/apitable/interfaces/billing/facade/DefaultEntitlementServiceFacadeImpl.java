@@ -35,10 +35,11 @@ public class DefaultEntitlementServiceFacadeImpl implements EntitlementServiceFa
 
     @Override
     public SubscriptionInfo getSpaceSubscription(String spaceId) {
-        if (isSelfHostedEnterprise()) {
-            return new SelfHostedEnterpriseSubscriptionInfo();
+        if (Boolean.FALSE.toString()
+            .equalsIgnoreCase(System.getenv(SELF_HOSTED_ENTERPRISE))) {
+            return new DefaultSubscriptionInfo();
         }
-        return new DefaultSubscriptionInfo();
+        return new SelfHostedEnterpriseSubscriptionInfo();
     }
 
     @Override
@@ -47,7 +48,4 @@ public class DefaultEntitlementServiceFacadeImpl implements EntitlementServiceFa
             .collect(Collectors.toMap(s -> s, s -> getSpaceSubscription(s).getFeature()));
     }
 
-    private boolean isSelfHostedEnterprise() {
-        return Boolean.parseBoolean(System.getenv(SELF_HOSTED_ENTERPRISE));
-    }
 }

@@ -21,10 +21,8 @@ package com.apitable.interfaces.billing.model;
 /**
  * Self-hosted enterprise subscription.
  *
- * <p>This subscription is only enabled when SELF_HOSTED_ENTERPRISE=true. It is
- * intended for legal self-hosted forks and avoids touching scattered runtime
- * limit checks: existing checks remain in place, while the entitlement layer
- * reports enterprise/unlimited capabilities.</p>
+ * <p>This subscription is the default for this self-hosted build. Existing checks remain in place,
+ * while the entitlement layer reports enterprise/unlimited capabilities.</p>
  */
 public class SelfHostedEnterpriseSubscriptionInfo extends DefaultSubscriptionInfo {
 

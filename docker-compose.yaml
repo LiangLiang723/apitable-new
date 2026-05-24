@@ -65,7 +65,7 @@ services:
       - TZ=${TIMEZONE}
       - NODE_ENV=${ENV}
       - NODE_OPTIONS=--max-old-space-size=2048 --max-http-header-size=80000
-      - API_MAX_MODIFY_RECORD_COUNTS=${API_MAX_MODIFY_RECORD_COUNTS:-30}
+      - API_MAX_MODIFY_RECORD_COUNTS=${API_MAX_MODIFY_RECORD_COUNTS:-9007199254740991}
       - INSTANCE_MAX_MEMORY=4096M
       - ENABLE_SOCKET=true
     networks:

@@ -2,8 +2,8 @@ FROM amazoncorretto:17 AS builder
 
 WORKDIR /app
 COPY ./backend-server/. .
-RUN ./gradlew -v
-RUN ./gradlew build -x test
+RUN --mount=type=cache,target=/root/.gradle ./gradlew -v
+RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon -Dorg.gradle.vfs.watch=false :application:bootJar
 
 
 FROM amazoncorretto:17
