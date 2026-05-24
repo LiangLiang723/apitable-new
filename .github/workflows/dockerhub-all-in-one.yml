@@ -1,0 +1,177 @@
+name: Build and push all-in-one Docker image
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '*.*.*'
+  workflow_dispatch:
+    inputs:
+      dockerfile:
+        description: 'Path to the all-in-one Dockerfile. Leave empty to auto-detect.'
+        required: false
+        default: ''
+      image:
+        description: 'Docker Hub image name, for example username/apitable-new. Leave empty to use DOCKERHUB_IMAGE variable or DOCKERHUB_USERNAME/apitable-new.'
+        required: false
+        default: ''
+      push_latest:
+        description: 'Also push latest tag.'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: dockerhub-all-in-one-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dockerhub-all-in-one:
+    name: Build and push all-in-one image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Docker image name
+        id: image
+        shell: bash
+        env:
+          INPUT_IMAGE: ${{ github.event.inputs.image }}
+          DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          set -euo pipefail
+
+          image="${INPUT_IMAGE:-}"
+          if [[ -z "$image" ]]; then
+            image="${DOCKERHUB_IMAGE:-}"
+          fi
+          if [[ -z "$image" ]]; then
+            if [[ -z "${DOCKERHUB_USERNAME:-}" ]]; then
+              echo "ERROR: Set repository secret DOCKERHUB_USERNAME or repository variable DOCKERHUB_IMAGE." >&2
+              exit 1
+            fi
+            image="${DOCKERHUB_USERNAME}/apitable-new"
+          fi
+
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "Using Docker image: ${image}"
+
+      - name: Resolve all-in-one Dockerfile
+        id: dockerfile
+        shell: bash
+        env:
+          INPUT_DOCKERFILE: ${{ github.event.inputs.dockerfile }}
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${INPUT_DOCKERFILE:-}" ]]; then
+            if [[ ! -f "${INPUT_DOCKERFILE}" ]]; then
+              echo "ERROR: workflow input dockerfile does not exist: ${INPUT_DOCKERFILE}" >&2
+              exit 1
+            fi
+            echo "file=${INPUT_DOCKERFILE}" >> "$GITHUB_OUTPUT"
+            echo "Using Dockerfile from workflow input: ${INPUT_DOCKERFILE}"
+            exit 0
+          fi
+
+          candidates=(
+            "Dockerfile.all-in-one"
+            "Dockerfile.allinone"
+            "all-in-one/Dockerfile"
+            "allinone/Dockerfile"
+            "docker/all-in-one/Dockerfile"
+            "docker/allinone/Dockerfile"
+            "deploy/all-in-one/Dockerfile"
+            "deploy/allinone/Dockerfile"
+            "deploy/docker/all-in-one/Dockerfile"
+            "deploy/docker/allinone/Dockerfile"
+            "packaging/docker/all-in-one/Dockerfile"
+            "packaging/docker/allinone/Dockerfile"
+            "packaging/dockerfile/all-in-one/Dockerfile"
+            "packaging/dockerfile/allinone/Dockerfile"
+          )
+
+          for candidate in "${candidates[@]}"; do
+            if [[ -f "$candidate" ]]; then
+              echo "file=${candidate}" >> "$GITHUB_OUTPUT"
+              echo "Auto-detected all-in-one Dockerfile: ${candidate}"
+              exit 0
+            fi
+          done
+
+          echo "ERROR: Could not find an all-in-one Dockerfile." >&2
+          echo "Add one of these files or re-run workflow_dispatch with the dockerfile input:" >&2
+          printf '  - %s\n' "${candidates[@]}" >&2
+          exit 1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.image }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.event_name == 'push' || github.event.inputs.push_latest == 'true' }}
+            type=sha,format=short
+          labels: |
+            org.opencontainers.image.title=APITable self-hosted enterprise all-in-one
+            org.opencontainers.image.description=All-in-one Docker image for the self-hosted enterprise fork
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.dockerfile.outputs.file }}
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          sbom: false
+          build-args: |
+            SELF_HOSTED_ENTERPRISE=true
+            API_MAX_MODIFY_RECORD_COUNTS=1000
+            GIT_COMMIT=${{ github.sha }}
+            VERSION=${{ github.ref_name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Docker Hub image pushed
+
+          Image: \`${{ steps.image.outputs.image }}\`
+
+          Dockerfile: \`${{ steps.dockerfile.outputs.file }}\`
+
+          Tags:
+
+          \`\`\`
+          ${{ steps.meta.outputs.tags }}
+          \`\`\`
+          EOF
