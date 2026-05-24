@@ -33,6 +33,8 @@ env:
   BACKEND_IMAGE: benxianyu/apitable-backend-server
   ROOM_IMAGE: benxianyu/apitable-room-server
   WEB_IMAGE: benxianyu/apitable-web-server
+  DATAENV_PM2_IMAGE: benxianyu/apitable-dataenv-pm2
+  DATAENV_LIQUIBASE_PM2_IMAGE: benxianyu/apitable-dataenv-liquibase-pm2
   ALL_IN_ONE_CONTEXT: packaging/all-in-one/all-in-one
 
 jobs:
@@ -100,14 +102,41 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 拉取官方 all-in-one 基础镜像
+      - name: 拉取外部运行时镜像
         shell: bash
         run: |
           set -euo pipefail
-          docker pull apitable/dataenv-liquibase-pm2:latest
           docker pull apitable/databus-server:latest
           docker pull apitable/init-appdata:latest
           docker pull apitable/imageproxy-server:latest
+
+      - name: 构建 dataenv-pm2 基础镜像
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.vars.outputs.version_tag }}"
+
+          docker build \
+            -f packaging/all-in-one/dataenv-pm2/Dockerfile \
+            -t apitable/dataenv-pm2:latest \
+            -t "${DATAENV_PM2_IMAGE}:${tag}" \
+            -t "${DATAENV_PM2_IMAGE}:${{ steps.vars.outputs.short_sha }}" \
+            -t "${DATAENV_PM2_IMAGE}:latest" \
+            packaging/all-in-one/dataenv-pm2
+
+      - name: 构建 dataenv-liquibase-pm2 基础镜像
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.vars.outputs.version_tag }}"
+
+          docker build \
+            -f packaging/all-in-one/dataenv-liquibase-pm2/Dockerfile \
+            -t apitable/dataenv-liquibase-pm2:latest \
+            -t "${DATAENV_LIQUIBASE_PM2_IMAGE}:${tag}" \
+            -t "${DATAENV_LIQUIBASE_PM2_IMAGE}:${{ steps.vars.outputs.short_sha }}" \
+            -t "${DATAENV_LIQUIBASE_PM2_IMAGE}:latest" \
+            packaging/all-in-one/dataenv-liquibase-pm2
 
       - name: 构建 backend-server 镜像
         shell: bash
@@ -193,6 +222,21 @@ jobs:
             docker tag "${final_image}:${tag}" "${final_image}:latest"
           fi
 
+      - name: 推送基础镜像到 Docker Hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.vars.outputs.version_tag }}"
+          short_sha="${{ steps.vars.outputs.short_sha }}"
+
+          for image in "${DATAENV_PM2_IMAGE}" "${DATAENV_LIQUIBASE_PM2_IMAGE}"; do
+            docker push "${image}:${tag}"
+            docker push "${image}:${short_sha}"
+            if [[ "${{ steps.vars.outputs.push_latest }}" == "true" ]]; then
+              docker push "${image}:latest"
+            fi
+          done
+
       - name: 推送组件镜像到 Docker Hub
         shell: bash
         run: |
@@ -234,6 +278,13 @@ jobs:
           docker pull ${{ steps.vars.outputs.final_image }}:${{ steps.vars.outputs.version_tag }}
           docker pull ${{ steps.vars.outputs.final_image }}:${{ steps.vars.outputs.short_sha }}
           docker pull ${{ steps.vars.outputs.final_image }}:latest
+          \`\`\`
+
+          基础镜像：
+
+          \`\`\`text
+          ${DATAENV_PM2_IMAGE}:${{ steps.vars.outputs.version_tag }}
+          ${DATAENV_LIQUIBASE_PM2_IMAGE}:${{ steps.vars.outputs.version_tag }}
           \`\`\`
 
           组件镜像：
