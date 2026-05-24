@@ -15,14 +15,14 @@ module.exports = {
     restart_delay: 1000
   }, {
     name: 'gateway',
-    script: 'while ! curl -fLI http://web-server:3000; do sleep 5; done && openresty -g "daemon off; error_log stderr;"',
+    script: 'while ! curl -fsI -o /dev/null http://web-server:3000/favicon.ico || ! curl -fs -o /dev/null http://backend-server:8081/api/v1/actuator/health; do sleep 5; done && openresty -g "daemon off; error_log stderr;"',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
     restart_delay: 1000
   }, {
     name: 'rabbitmq',
-    script: 'RABBITMQ_MNESIA_BASE=/apitable/rabbitmq RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME} RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD} gosu "${GOSU_USER}" rabbitmq-server',
+    script: 'ERL_AFLAGS="+JMsingle true" RABBITMQ_MNESIA_BASE=/apitable/rabbitmq RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME} RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD} gosu "${GOSU_USER}" rabbitmq-server',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
@@ -38,7 +38,7 @@ module.exports = {
   }, {
     name: 'backend-server',
     cwd: '/app/backend-server',
-    script: 'init-appdata.sh && java -Djava.security.egd=file:/dev/./urandom -jar app.jar',
+    script: 'while ! mysqladmin ping -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u"${MYSQL_USERNAME}" -p"${MYSQL_PASSWORD}" --silent >/dev/null 2>&1; do sleep 2; done && init-appdata.sh && java -Dlogging.config=/app/backend-server/logback-all-in-one.xml -Dspring.autoconfigure.exclude=io.sentry.spring.boot.jakarta.SentryAutoConfiguration -Djava.security.egd=file:/dev/./urandom -jar app.jar',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
@@ -46,7 +46,7 @@ module.exports = {
   }, {
     name: 'databus-server',
     cwd: '/app/databus-server',
-    script: './databus-server',
+    script: 'while ! mysqladmin ping -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u"${MYSQL_USERNAME}" -p"${MYSQL_PASSWORD}" --silent >/dev/null 2>&1; do sleep 2; done && ./databus-server',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
@@ -59,7 +59,7 @@ module.exports = {
       PORT: "3333",
       ENABLE_SOCKET: "true"
     },
-    script: './dist/main.js',
+    script: 'while ! rabbitmq-diagnostics -q check_running >/dev/null 2>&1; do sleep 2; done && node ./dist/main.js',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
