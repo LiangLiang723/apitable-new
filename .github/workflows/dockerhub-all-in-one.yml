@@ -1,0 +1,414 @@
+---
+name: 构建并推送自定义 APITable all-in-one 镜像
+
+on:
+  push:
+    branches:
+      - self-hosted-enterprise
+      - 'v*'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      image:
+        description: '最终 all-in-one 镜像名'
+        required: false
+        default: 'benxianyu/apitable-new'
+      push_latest:
+        description: '是否同时推送 latest 标签'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: dockerhub-all-in-one-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FINAL_IMAGE: benxianyu/apitable-new
+  BACKEND_IMAGE: benxianyu/apitable-backend-server
+  ROOM_IMAGE: benxianyu/apitable-room-server
+  WEB_IMAGE: benxianyu/apitable-web-server
+  INIT_DB_IMAGE: benxianyu/apitable-init-db
+  DATAENV_IMAGE: benxianyu/apitable-dataenv-pm2
+  DATAENV_LIQUIBASE_IMAGE: benxianyu/apitable-dataenv-liquibase-pm2
+  DATABUS_IMAGE: benxianyu/apitable-databus-server
+  INIT_APPDATA_IMAGE: benxianyu/apitable-init-appdata
+  IMAGEPROXY_IMAGE: benxianyu/apitable-imageproxy-server
+  ALL_IN_ONE_DOCKERFILE: packaging/all-in-one/all-in-one/Dockerfile
+
+jobs:
+  prepare:
+    name: 准备构建参数
+    runs-on: ubuntu-latest
+    outputs:
+      final_image: ${{ steps.vars.outputs.final_image }}
+      version_tag: ${{ steps.vars.outputs.version_tag }}
+      short_sha: ${{ steps.vars.outputs.short_sha }}
+      push_latest: ${{ steps.vars.outputs.push_latest }}
+
+    steps:
+      - name: 解析镜像标签
+        id: vars
+        shell: bash
+        env:
+          INPUT_IMAGE: ${{ github.event.inputs.image }}
+          INPUT_PUSH_LATEST: ${{ github.event.inputs.push_latest }}
+        run: |
+          set -euo pipefail
+
+          image="${INPUT_IMAGE:-}"
+          if [[ -z "${image}" ]]; then
+            image="${FINAL_IMAGE}"
+          fi
+
+          ref_name="${GITHUB_REF_NAME}"
+          version_tag="${ref_name//\//-}"
+          short_sha="${GITHUB_SHA::12}"
+
+          if [[ "${GITHUB_REF_TYPE}" == "branch" && \
+            ! "${version_tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-._A-Za-z0-9]+)?$ ]]; then
+            version_tag="${version_tag}-${short_sha}"
+          fi
+
+          push_latest="true"
+          if [[ -n "${INPUT_PUSH_LATEST:-}" ]]; then
+            push_latest="${INPUT_PUSH_LATEST}"
+          fi
+
+          {
+            echo "final_image=${image}"
+            echo "version_tag=${version_tag}"
+            echo "short_sha=${short_sha}"
+            echo "push_latest=${push_latest}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "最终镜像: ${image}"
+          echo "版本标签: ${version_tag}"
+          echo "短 SHA: ${short_sha}"
+          echo "推送 latest: ${push_latest}"
+
+  build-dataenv:
+    name: 构建 dataenv 镜像
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    steps:
+      - name: 拉取源码
+        uses: actions/checkout@v4
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 生成 dataenv 镜像标签
+        id: dataenv-tags
+        shell: bash
+        env:
+          IMAGE: ${{ env.DATAENV_IMAGE }}
+          VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'tags<<EOF'
+            echo "${IMAGE}:${VERSION_TAG}"
+            echo "${IMAGE}:${SHORT_SHA}"
+            if [[ "${PUSH_LATEST}" == "true" ]]; then
+              echo "${IMAGE}:latest"
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 构建并推送 dataenv-pm2 镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: packaging/all-in-one/dataenv-pm2
+          file: packaging/all-in-one/dataenv-pm2/Dockerfile
+          platforms: linux/amd64
+          provenance: false
+          push: true
+          tags: ${{ steps.dataenv-tags.outputs.tags }}
+          cache-from: type=gha,scope=dataenv-pm2
+          cache-to: type=gha,mode=max,scope=dataenv-pm2
+
+      - name: 生成 dataenv-liquibase 镜像标签
+        id: liquibase-tags
+        shell: bash
+        env:
+          IMAGE: ${{ env.DATAENV_LIQUIBASE_IMAGE }}
+          VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'tags<<EOF'
+            echo "${IMAGE}:${VERSION_TAG}"
+            echo "${IMAGE}:${SHORT_SHA}"
+            if [[ "${PUSH_LATEST}" == "true" ]]; then
+              echo "${IMAGE}:latest"
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 构建并推送 dataenv-liquibase 镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: packaging/all-in-one/dataenv-liquibase-pm2
+          file: packaging/all-in-one/dataenv-liquibase-pm2/Dockerfile
+          platforms: linux/amd64
+          provenance: false
+          push: true
+          tags: ${{ steps.liquibase-tags.outputs.tags }}
+          build-args: |
+            DATAENV_PM2_IMAGE=${{ env.DATAENV_IMAGE }}
+            DATAENV_PM2_IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
+          cache-from: |
+            type=gha,scope=dataenv-pm2
+            type=gha,scope=dataenv-liquibase-pm2
+          cache-to: type=gha,mode=max,scope=dataenv-liquibase-pm2
+
+  mirror-runtime-deps:
+    name: 镜像外部运行依赖到自有 DockerHub
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    steps:
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 并行镜像外部运行依赖
+        shell: bash
+        env:
+          VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
+        run: |
+          set -euo pipefail
+
+          mirror_image() {
+            local source_image="$1"
+            local target_image="$2"
+
+            docker pull "${source_image}:latest"
+            docker tag "${source_image}:latest" "${target_image}:${VERSION_TAG}"
+            docker tag "${source_image}:latest" "${target_image}:${SHORT_SHA}"
+
+            if [[ "${PUSH_LATEST}" == "true" ]]; then
+              docker tag "${source_image}:latest" "${target_image}:latest"
+            fi
+
+            docker push "${target_image}:${VERSION_TAG}"
+            docker push "${target_image}:${SHORT_SHA}"
+
+            if [[ "${PUSH_LATEST}" == "true" ]]; then
+              docker push "${target_image}:latest"
+            fi
+          }
+
+          mirror_image apitable/databus-server "${DATABUS_IMAGE}" &
+          mirror_image apitable/init-appdata "${INIT_APPDATA_IMAGE}" &
+          mirror_image apitable/imageproxy-server "${IMAGEPROXY_IMAGE}" &
+          wait
+
+  build-component-images:
+    name: 构建组件镜像 (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: backend-server
+            image: benxianyu/apitable-backend-server
+            context: .
+            dockerfile: packaging/Dockerfile.backend-server
+          - target: room-server
+            image: benxianyu/apitable-room-server
+            context: .
+            dockerfile: packaging/Dockerfile.room-server
+          - target: web-server
+            image: benxianyu/apitable-web-server
+            context: .
+            dockerfile: packaging/Dockerfile.web-server
+          - target: init-db
+            image: benxianyu/apitable-init-db
+            context: ./init-db
+            dockerfile: ./init-db/Dockerfile
+
+    steps:
+      - name: 拉取源码
+        uses: actions/checkout@v4
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 生成组件镜像标签
+        id: image-tags
+        shell: bash
+        env:
+          IMAGE: ${{ matrix.image }}
+          VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'tags<<EOF'
+            echo "${IMAGE}:${VERSION_TAG}"
+            echo "${IMAGE}:${SHORT_SHA}"
+            if [[ "${PUSH_LATEST}" == "true" ]]; then
+              echo "${IMAGE}:latest"
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 构建并推送 ${{ matrix.target }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          provenance: false
+          push: true
+          tags: ${{ steps.image-tags.outputs.tags }}
+          build-args: |
+            SEMVER_FULL=${{ needs.prepare.outputs.version_tag }}
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+
+  build-all-in-one:
+    name: 构建并推送最终 all-in-one 镜像
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - build-dataenv
+      - mirror-runtime-deps
+      - build-component-images
+
+    steps:
+      - name: 拉取源码
+        uses: actions/checkout@v4
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 校验 all-in-one Dockerfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "${ALL_IN_ONE_DOCKERFILE}"
+          echo "使用 Dockerfile: ${ALL_IN_ONE_DOCKERFILE}"
+
+      - name: 生成最终镜像标签
+        id: final-tags
+        shell: bash
+        env:
+          IMAGE: ${{ needs.prepare.outputs.final_image }}
+          VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'tags<<EOF'
+            echo "${IMAGE}:${VERSION_TAG}"
+            echo "${IMAGE}:${SHORT_SHA}"
+            if [[ "${PUSH_LATEST}" == "true" ]]; then
+              echo "${IMAGE}:latest"
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 构建并推送最终 all-in-one 镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ env.ALL_IN_ONE_DOCKERFILE }}
+          platforms: linux/amd64
+          provenance: false
+          push: true
+          tags: ${{ steps.final-tags.outputs.tags }}
+          build-args: |
+            IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
+            DATAENV_IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
+            SEMVER_FULL=${{ needs.prepare.outputs.version_tag }}
+            BACKEND_IMAGE=${{ env.BACKEND_IMAGE }}
+            ROOM_IMAGE=${{ env.ROOM_IMAGE }}
+            WEB_IMAGE=${{ env.WEB_IMAGE }}
+            INIT_DB_IMAGE=${{ env.INIT_DB_IMAGE }}
+            DATAENV_LIQUIBASE_IMAGE=${{ env.DATAENV_LIQUIBASE_IMAGE }}
+            DATABUS_IMAGE=${{ env.DATABUS_IMAGE }}
+            DATABUS_IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
+            INIT_APPDATA_IMAGE=${{ env.INIT_APPDATA_IMAGE }}
+            INIT_APPDATA_IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
+            IMAGEPROXY_IMAGE=${{ env.IMAGEPROXY_IMAGE }}
+            IMAGEPROXY_IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
+          cache-from: type=gha,scope=all-in-one
+          cache-to: type=gha,mode=max,scope=all-in-one
+
+      - name: 输出结果
+        shell: bash
+        env:
+          FINAL_IMAGE_NAME: ${{ needs.prepare.outputs.final_image }}
+          VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
+        run: |
+          set -euo pipefail
+          latest_pull=''
+          if [[ "${PUSH_LATEST}" == "true" ]]; then
+            latest_pull="docker pull ${FINAL_IMAGE_NAME}:latest"
+          fi
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Docker Hub 推送完成
+
+          最终 all-in-one 镜像：
+
+          \`\`\`bash
+          docker pull ${FINAL_IMAGE_NAME}:${VERSION_TAG}
+          docker pull ${FINAL_IMAGE_NAME}:${SHORT_SHA}
+          ${latest_pull}
+          \`\`\`
+
+          组件镜像：
+
+          \`\`\`text
+          ${BACKEND_IMAGE}:${VERSION_TAG}
+          ${ROOM_IMAGE}:${VERSION_TAG}
+          ${WEB_IMAGE}:${VERSION_TAG}
+          ${INIT_DB_IMAGE}:${VERSION_TAG}
+          ${DATAENV_IMAGE}:${VERSION_TAG}
+          ${DATAENV_LIQUIBASE_IMAGE}:${VERSION_TAG}
+          ${DATABUS_IMAGE}:${VERSION_TAG}
+          ${INIT_APPDATA_IMAGE}:${VERSION_TAG}
+          ${IMAGEPROXY_IMAGE}:${VERSION_TAG}
+          \`\`\`
+          EOF

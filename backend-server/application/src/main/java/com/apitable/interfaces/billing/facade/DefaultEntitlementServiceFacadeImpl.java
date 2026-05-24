@@ -19,6 +19,7 @@
 package com.apitable.interfaces.billing.facade;
 
 import com.apitable.interfaces.billing.model.DefaultSubscriptionInfo;
+import com.apitable.interfaces.billing.model.SelfHostedEnterpriseSubscriptionInfo;
 import com.apitable.interfaces.billing.model.SubscriptionFeature;
 import com.apitable.interfaces.billing.model.SubscriptionInfo;
 import java.util.List;
@@ -30,8 +31,13 @@ import java.util.stream.Collectors;
  */
 public class DefaultEntitlementServiceFacadeImpl implements EntitlementServiceFacade {
 
+    private static final String SELF_HOSTED_ENTERPRISE = "SELF_HOSTED_ENTERPRISE";
+
     @Override
     public SubscriptionInfo getSpaceSubscription(String spaceId) {
+        if (isSelfHostedEnterprise()) {
+            return new SelfHostedEnterpriseSubscriptionInfo();
+        }
         return new DefaultSubscriptionInfo();
     }
 
@@ -39,5 +45,9 @@ public class DefaultEntitlementServiceFacadeImpl implements EntitlementServiceFa
     public Map<String, SubscriptionFeature> getSpaceSubscriptions(List<String> spaceIds) {
         return spaceIds.stream()
             .collect(Collectors.toMap(s -> s, s -> getSpaceSubscription(s).getFeature()));
+    }
+
+    private boolean isSelfHostedEnterprise() {
+        return Boolean.parseBoolean(System.getenv(SELF_HOSTED_ENTERPRISE));
     }
 }

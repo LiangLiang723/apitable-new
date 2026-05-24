@@ -19,6 +19,7 @@
 import { ApiTipConstant } from '@apitable/core';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { DatasheetService } from 'database/datasheet/services/datasheet.service';
+import { skipApiUsageVerification } from 'app.environment';
 import { RestService } from 'shared/services/rest/rest.service';
 import { Logger } from 'winston';
 import {
@@ -67,6 +68,9 @@ export class ApiUsageGuard implements CanActivate {
     }
     // TODO: /spaceList should be validated
     if (!spaceId) {
+      return true;
+    }
+    if (skipApiUsageVerification) {
       return true;
     }
     let res;
