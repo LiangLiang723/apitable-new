@@ -26,6 +26,24 @@ export const automationExchangeName = 'apitable.automation.exchange';
 export const automationRunning = 'automation.running';
 export const automationRunningQueueName = 'apitable.automation.running';
 
+const MIN_ALLOWED_RABBITMQ_FRAME_MAX = 8192;
+const DEFAULT_RABBITMQ_FRAME_MAX = 131072;
+
+const ensureRabbitMqFrameMax = (uri: string): string => {
+  try {
+    const parsedUri = new URL(uri);
+    const currentFrameMax = Number(parsedUri.searchParams.get('frameMax'));
+
+    if (!Number.isFinite(currentFrameMax) || currentFrameMax < MIN_ALLOWED_RABBITMQ_FRAME_MAX) {
+      parsedUri.searchParams.set('frameMax', String(DEFAULT_RABBITMQ_FRAME_MAX));
+    }
+
+    return parsedUri.toString();
+  } catch {
+    return uri;
+  }
+};
+
 @Module({
   imports: [
     RabbitMQModule.forRootAsync(RabbitMQModule, {
@@ -36,8 +54,10 @@ export const automationRunningQueueName = 'apitable.automation.running';
           ? `amqp://${process.env.RABBITMQ_USERNAME}:${process.env.RABBITMQ_PASSWORD}@${process.env.RABBITMQ_HOST}:${process.env.RABBITMQ_PORT}`
           : process.env.QUEUE_URI;
         const vhost = process.env.RABBITMQ_VHOST || configService.get<string>('queue.vhost', '');
+        const resolvedUri = ensureRabbitMqFrameMax(`${uri}/${vhost}`);
+
         return {
-          uri: `${uri}/${vhost}`,
+          uri: resolvedUri,
           exchanges: [
             {
               name: notificationQueueExchangeName,
