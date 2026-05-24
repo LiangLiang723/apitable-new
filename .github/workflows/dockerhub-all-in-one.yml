@@ -33,7 +33,7 @@ env:
   BACKEND_IMAGE: benxianyu/apitable-backend-server
   ROOM_IMAGE: benxianyu/apitable-room-server
   WEB_IMAGE: benxianyu/apitable-web-server
-  ALL_IN_ONE_DOCKERFILE: packaging/all-in-one/all-in-one/Dockerfile
+  ALL_IN_ONE_CONTEXT: packaging/all-in-one/all-in-one
 
 jobs:
   build-and-push:
@@ -88,8 +88,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f "${ALL_IN_ONE_DOCKERFILE}"
-          echo "使用 Dockerfile: ${ALL_IN_ONE_DOCKERFILE}"
+          test -f "${ALL_IN_ONE_CONTEXT}/Dockerfile"
+          test -f "${ALL_IN_ONE_CONTEXT}/ecosystem.config.js"
+          test -f "${ALL_IN_ONE_CONTEXT}/script/add-host.sh"
+          test -f "${ALL_IN_ONE_CONTEXT}/script/init-appdata.sh"
+          echo "使用构建上下文: ${ALL_IN_ONE_CONTEXT}"
 
       - name: 登录 Docker Hub
         uses: docker/login-action@v3
@@ -169,6 +172,13 @@ jobs:
             -t apitable/init-db:"${tag}" \
             ./init-db
 
+      - name: 准备 all-in-one 构建上下文
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${ALL_IN_ONE_CONTEXT}/gateway"
+          cp -pr gateway "${ALL_IN_ONE_CONTEXT}/gateway"
+
       - name: 构建最终 all-in-one 镜像
         shell: bash
         run: |
@@ -178,12 +188,12 @@ jobs:
           final_image="${{ steps.vars.outputs.final_image }}"
 
           docker build \
-            -f "${ALL_IN_ONE_DOCKERFILE}" \
+            -f "${ALL_IN_ONE_CONTEXT}/Dockerfile" \
             --build-arg IMAGE_TAG="${tag}" \
             --build-arg SEMVER_FULL="${tag}" \
             -t "${final_image}:${tag}" \
             -t "${final_image}:${short_sha}" \
-            .
+            "${ALL_IN_ONE_CONTEXT}"
 
           if [[ "${{ steps.vars.outputs.push_latest }}" == "true" ]]; then
             docker tag "${final_image}:${tag}" "${final_image}:latest"
