@@ -31,7 +31,7 @@ import { EmbedDynamicModule } from 'embed/embed.dynamic.module';
 import { FusionApiDynamicModule } from 'fusion/fusion-api.dynamic.module';
 import { FusionApiModule } from 'fusion/fusion.api.module';
 import { GrpcModule } from 'grpc/grpc.module';
-import { I18nModule } from 'nestjs-i18n';
+import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
 import { NodeModule } from 'node/node.module';
 import { resolve } from 'path';
 import { I18nJsonParser } from 'shared/adapters/I18n.json.parser';
@@ -68,6 +68,7 @@ import { WorkDocDynamicModule } from 'workdoc/workdoc.dynamic.module';
       loaderOptions: {},
       fallbackLanguage: defaultLanguage,
       loader: I18nJsonParser,
+      resolvers: [AcceptLanguageResolver],
     }),
     JaegerDynamicModule.register(enableOtelJaeger),
     ScheduleModule.forRoot(),
