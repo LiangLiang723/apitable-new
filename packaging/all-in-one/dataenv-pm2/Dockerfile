@@ -14,12 +14,9 @@ RUN set -euxo pipefail; \
   *) echo >&2 "error: unsupported architecture: '${arch}'"; exit 1 ;; \
   esac; \
   \
-  key_id='859BE8D7C586F538430B19C2467B942D3A79BD29'; \
-  GNUPGHOME="$(mktemp -d)"; \
-  export GNUPGHOME; \
-  gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "${key_id}"; \
-  gpg --batch --export --armor "${key_id}" > /etc/pki/rpm-gpg/RPM-GPG-KEY-mysql; \
-  rm -rf "$GNUPGHOME"; \
+  curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 \
+    -o /etc/pki/rpm-gpg/RPM-GPG-KEY-mysql; \
+  rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-mysql; \
   microdnf -y update; \
   microdnf -y install shadow-utils; \
   groupadd --system --gid 999 "${GOSU_USER}"; \
