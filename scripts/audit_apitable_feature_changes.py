@@ -33,6 +33,16 @@ LIMIT_PATTERNS = re.compile(
     re.I,
 )
 
+PRIVATE_DEPENDENCY_PATTERNS = re.compile(
+    r"(enterprise/|/enterprise|hosted|cloud|payment|billing|subscribe|subscription|sso|saml|audit|backup|private|license)",
+    re.I,
+)
+
+LIKELY_SAFE_RESTORE_PATTERNS = re.compile(
+    r"(template|mail|qiniu|callback|task|reminder|widget)",
+    re.I,
+)
+
 
 @dataclass
 class Candidate:
@@ -41,6 +51,7 @@ class Candidate:
     subject: str
     classification: str
     files: str
+    recommendation: str
     reasons: str
 
 
@@ -54,6 +65,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--head", default="develop")
     parser.add_argument("--out", default="apitable_feature_audit.csv")
     return parser.parse_args()
+
+
+def recommend(files: list[str], reasons: list[str]) -> str:
+    blob = "\n".join(files + reasons)
+    if PRIVATE_DEPENDENCY_PATTERNS.search(blob):
+        return "KEEP_HIDDEN_OR_UNSUPPORTED_UNLESS_FULL_DEPENDENCIES_EXIST"
+    if LIKELY_SAFE_RESTORE_PATTERNS.search(blob):
+        return "MANUAL_REVIEW_POSSIBLY_RESTORABLE"
+    return "MANUAL_REVIEW_REQUIRED"
 
 
 def audit_commit(sha: str) -> Candidate | None:
@@ -100,13 +120,16 @@ def audit_commit(sha: str) -> Candidate | None:
     if not classes:
         return None
 
+    unique_files = sorted(set(files))[:40]
+    limited_reasons = reasons[:12]
     return Candidate(
         sha=sha,
         date=date,
         subject=subject,
         classification=",".join(sorted(classes)),
-        files=" | ".join(sorted(set(files))[:40]),
-        reasons=" || ".join(reasons[:12]),
+        files=" | ".join(unique_files),
+        recommendation=recommend(unique_files, limited_reasons),
+        reasons=" || ".join(limited_reasons),
     )
 
 
@@ -119,7 +142,7 @@ def main() -> None:
     with out_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f,
-            fieldnames=["sha", "date", "subject", "classification", "files", "reasons"],
+            fieldnames=["sha", "date", "subject", "classification", "files", "recommendation", "reasons"],
         )
         writer.writeheader()
         writer.writerows(candidate.__dict__ for candidate in candidates)
