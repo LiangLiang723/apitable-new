@@ -1,15 +1,27 @@
 ARG IMAGE_TAG=latest
+ARG BACKEND_IMAGE=apitable/backend-server
+ARG ROOM_IMAGE=apitable/room-server
+ARG WEB_IMAGE=apitable/web-server
+ARG INIT_DB_IMAGE=apitable/init-db
+ARG DATABUS_IMAGE=apitable/databus-server
+ARG DATABUS_IMAGE_TAG=latest
+ARG INIT_APPDATA_IMAGE=apitable/init-appdata
+ARG INIT_APPDATA_IMAGE_TAG=latest
+ARG IMAGEPROXY_IMAGE=apitable/imageproxy-server
+ARG IMAGEPROXY_IMAGE_TAG=latest
+ARG DATAENV_LIQUIBASE_IMAGE=apitable/dataenv-liquibase-pm2
+ARG DATAENV_IMAGE_TAG=latest
 
-FROM apitable/backend-server:${IMAGE_TAG} as backend-server
-FROM apitable/room-server:${IMAGE_TAG} as room-server
-FROM apitable/web-server:${IMAGE_TAG} as web-server
-FROM apitable/init-db:${IMAGE_TAG} as init-db
+FROM ${BACKEND_IMAGE}:${IMAGE_TAG} as backend-server
+FROM ${ROOM_IMAGE}:${IMAGE_TAG} as room-server
+FROM ${WEB_IMAGE}:${IMAGE_TAG} as web-server
+FROM ${INIT_DB_IMAGE}:${IMAGE_TAG} as init-db
 
-FROM apitable/databus-server:latest as databus-server
-FROM apitable/init-appdata:latest as init-appdata
-FROM apitable/imageproxy-server:latest as imageproxy-server
+FROM ${DATABUS_IMAGE}:${DATABUS_IMAGE_TAG} as databus-server
+FROM ${INIT_APPDATA_IMAGE}:${INIT_APPDATA_IMAGE_TAG} as init-appdata
+FROM ${IMAGEPROXY_IMAGE}:${IMAGEPROXY_IMAGE_TAG} as imageproxy-server
 
-FROM apitable/dataenv-liquibase-pm2:latest
+FROM ${DATAENV_LIQUIBASE_IMAGE}:${DATAENV_IMAGE_TAG}
 
 COPY --from=backend-server /app/ /app/backend-server/
 COPY --from=databus-server /usr/local/bin/ /app/databus-server/
@@ -20,7 +32,11 @@ COPY --from=init-db /liquibase/changelog/ /liquibase/changelog/
 COPY --from=init-appdata /app/ /app/init-appdata/
 
 RUN set -euxo pipefail; \
-  curl -LO https://github.com/Automattic/node-canvas/releases/download/v2.9.1/canvas-v2.9.1-node-v93-linux-glibc-x64.tar.gz; \
+  for i in 1 2 3 4 5; do \
+    curl -fL -O https://github.com/Automattic/node-canvas/releases/download/v2.9.1/canvas-v2.9.1-node-v93-linux-glibc-x64.tar.gz && break; \
+    test "$i" != "5"; \
+    sleep 3; \
+  done; \
   tar -xzf canvas-v2.9.1-node-v93-linux-glibc-x64.tar.gz; \
   rm -rf /app/web-server/node_modules/.pnpm/node_modules/canvas/build/Release; \
   mv Release /app/web-server/node_modules/.pnpm/node_modules/canvas/build/; \
@@ -32,10 +48,10 @@ RUN set -euxo pipefail; \
     sed -i 's| /dev/stdout ||' /etc/nginx/conf.d/default.conf; \
     sed -i 's/\<8080\>/3000/' /etc/nginx/conf.d/upstream/ups-web-server.conf
 
-COPY script/add-host.sh /usr/local/bin/
-COPY script/init-appdata.sh /usr/local/bin/
+COPY packaging/all-in-one/all-in-one/script/add-host.sh /usr/local/bin/
+COPY packaging/all-in-one/all-in-one/script/init-appdata.sh /usr/local/bin/
 
-COPY ecosystem.config.js /
+COPY packaging/all-in-one/all-in-one/ecosystem.config.js /
 
 CMD ["bash", "-c", "init-dataenv.sh && add-host.sh && pm2-runtime start ecosystem.config.js"]
 

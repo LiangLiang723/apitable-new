@@ -123,9 +123,10 @@ export const DEFAULT_X_MAX_AGE = parseInt(process.env.DEFAULT_X_MAX_AGE!, 10) ||
  */
 export const API_CACHE_KEY = 'apitable:cache:fusion:';
 /**
- * the maximum number of records could be changed in the API
+ * the maximum number of records could be changed in the API.
+ * Keep this as a request-safety guard, but make it configurable for self-hosted deployments.
  */
-export const API_MAX_MODIFY_RECORD_COUNTS = process.env.API_MAX_MODIFY_RECORD_COUNTS ? parseInt(process.env.API_MAX_MODIFY_RECORD_COUNTS, 10) : 10;
+export const API_MAX_MODIFY_RECORD_COUNTS = process.env.API_MAX_MODIFY_RECORD_COUNTS ? parseInt(process.env.API_MAX_MODIFY_RECORD_COUNTS, 10) : 1000;
 /**
  * maximum page size
  */
