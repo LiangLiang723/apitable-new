@@ -100,20 +100,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 构建本地 all-in-one 基础镜像
+      - name: 拉取官方 all-in-one 基础镜像
         shell: bash
         run: |
           set -euo pipefail
-
-          docker build \
-            -f packaging/all-in-one/dataenv-pm2/Dockerfile \
-            -t apitable/dataenv-pm2:latest \
-            packaging/all-in-one/dataenv-pm2
-
-          docker build \
-            -f packaging/all-in-one/dataenv-liquibase-pm2/Dockerfile \
-            -t apitable/dataenv-liquibase-pm2:latest \
-            packaging/all-in-one/dataenv-liquibase-pm2
+          docker pull apitable/dataenv-liquibase-pm2:latest
+          docker pull apitable/databus-server:latest
+          docker pull apitable/init-appdata:latest
+          docker pull apitable/imageproxy-server:latest
 
       - name: 构建 backend-server 镜像
         shell: bash
