@@ -1,22 +1,20 @@
-name: Build and push all-in-one Docker image
+name: 构建并推送自定义 APITable all-in-one 镜像
 
 on:
   push:
+    branches:
+      - self-hosted-enterprise
     tags:
       - 'v*'
       - '*.*.*'
   workflow_dispatch:
     inputs:
-      dockerfile:
-        description: 'Path to the all-in-one Dockerfile. Leave empty to auto-detect.'
-        required: false
-        default: ''
       image:
-        description: 'Docker Hub image name, for example username/apitable-new. Leave empty to use DOCKERHUB_IMAGE variable or DOCKERHUB_USERNAME/apitable-new.'
+        description: '最终 all-in-one 镜像名'
         required: false
-        default: ''
+        default: 'benxianyu/apitable-new'
       push_latest:
-        description: 'Also push latest tag.'
+        description: '是否同时推送 latest 标签'
         required: false
         type: boolean
         default: true
@@ -29,149 +27,212 @@ concurrency:
   group: dockerhub-all-in-one-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FINAL_IMAGE: benxianyu/apitable-new
+  BACKEND_IMAGE: benxianyu/apitable-backend-server
+  ROOM_IMAGE: benxianyu/apitable-room-server
+  WEB_IMAGE: benxianyu/apitable-web-server
+  ALL_IN_ONE_DOCKERFILE: packaging/all-in-one/all-in-one/Dockerfile
+
 jobs:
-  dockerhub-all-in-one:
-    name: Build and push all-in-one image
+  build-and-push:
+    name: 构建并推送镜像
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: 拉取源码
         uses: actions/checkout@v4
 
-      - name: Resolve Docker image name
-        id: image
+      - name: 解析镜像标签
+        id: vars
         shell: bash
         env:
           INPUT_IMAGE: ${{ github.event.inputs.image }}
-          DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          INPUT_PUSH_LATEST: ${{ github.event.inputs.push_latest }}
         run: |
           set -euo pipefail
 
           image="${INPUT_IMAGE:-}"
-          if [[ -z "$image" ]]; then
-            image="${DOCKERHUB_IMAGE:-}"
-          fi
-          if [[ -z "$image" ]]; then
-            if [[ -z "${DOCKERHUB_USERNAME:-}" ]]; then
-              echo "ERROR: Set repository secret DOCKERHUB_USERNAME or repository variable DOCKERHUB_IMAGE." >&2
-              exit 1
-            fi
-            image="${DOCKERHUB_USERNAME}/apitable-new"
+          if [[ -z "${image}" ]]; then
+            image="${FINAL_IMAGE}"
           fi
 
-          echo "image=${image}" >> "$GITHUB_OUTPUT"
-          echo "Using Docker image: ${image}"
+          ref_name="${GITHUB_REF_NAME}"
+          version_tag="${ref_name//\//-}"
+          short_sha="${GITHUB_SHA::12}"
 
-      - name: Resolve all-in-one Dockerfile
-        id: dockerfile
+          if [[ "${GITHUB_REF_TYPE}" == "branch" ]]; then
+            version_tag="${version_tag}-${short_sha}"
+          fi
+
+          push_latest="true"
+          if [[ -n "${INPUT_PUSH_LATEST:-}" ]]; then
+            push_latest="${INPUT_PUSH_LATEST}"
+          fi
+
+          echo "final_image=${image}" >> "$GITHUB_OUTPUT"
+          echo "version_tag=${version_tag}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "push_latest=${push_latest}" >> "$GITHUB_OUTPUT"
+
+          echo "最终镜像: ${image}"
+          echo "版本标签: ${version_tag}"
+          echo "短 SHA: ${short_sha}"
+          echo "推送 latest: ${push_latest}"
+
+      - name: 校验 all-in-one Dockerfile
         shell: bash
-        env:
-          INPUT_DOCKERFILE: ${{ github.event.inputs.dockerfile }}
         run: |
           set -euo pipefail
+          test -f "${ALL_IN_ONE_DOCKERFILE}"
+          echo "使用 Dockerfile: ${ALL_IN_ONE_DOCKERFILE}"
 
-          if [[ -n "${INPUT_DOCKERFILE:-}" ]]; then
-            if [[ ! -f "${INPUT_DOCKERFILE}" ]]; then
-              echo "ERROR: workflow input dockerfile does not exist: ${INPUT_DOCKERFILE}" >&2
-              exit 1
-            fi
-            echo "file=${INPUT_DOCKERFILE}" >> "$GITHUB_OUTPUT"
-            echo "Using Dockerfile from workflow input: ${INPUT_DOCKERFILE}"
-            exit 0
-          fi
-
-          candidates=(
-            "packaging/all-in-one/all-in-one/Dockerfile"
-            "Dockerfile.all-in-one"
-            "Dockerfile.allinone"
-            "all-in-one/Dockerfile"
-            "allinone/Dockerfile"
-            "docker/all-in-one/Dockerfile"
-            "docker/allinone/Dockerfile"
-            "deploy/all-in-one/Dockerfile"
-            "deploy/allinone/Dockerfile"
-            "deploy/docker/all-in-one/Dockerfile"
-            "deploy/docker/allinone/Dockerfile"
-            "packaging/docker/all-in-one/Dockerfile"
-            "packaging/docker/allinone/Dockerfile"
-            "packaging/dockerfile/all-in-one/Dockerfile"
-            "packaging/dockerfile/allinone/Dockerfile"
-          )
-
-          for candidate in "${candidates[@]}"; do
-            if [[ -f "$candidate" ]]; then
-              echo "file=${candidate}" >> "$GITHUB_OUTPUT"
-              echo "Auto-detected all-in-one Dockerfile: ${candidate}"
-              exit 0
-            fi
-          done
-
-          echo "ERROR: Could not find an all-in-one Dockerfile." >&2
-          echo "Add one of these files or re-run workflow_dispatch with the dockerfile input:" >&2
-          printf '  - %s\n' "${candidates[@]}" >&2
-          exit 1
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
+      - name: 登录 Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.image.outputs.image }}
-          tags: |
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.event_name == 'push' || github.event.inputs.push_latest == 'true' }}
-            type=sha,format=short
-          labels: |
-            org.opencontainers.image.title=APITable self-hosted enterprise all-in-one
-            org.opencontainers.image.description=All-in-one Docker image for the self-hosted enterprise fork
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
+      - name: 构建本地 all-in-one 基础镜像
+        shell: bash
+        run: |
+          set -euo pipefail
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ steps.dockerfile.outputs.file }}
-          platforms: linux/amd64
-          push: true
-          provenance: false
-          sbom: false
-          build-args: |
-            IMAGE_TAG=${{ github.ref_name }}
-            SEMVER_FULL=${{ github.ref_name }}
-            GIT_COMMIT=${{ github.sha }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          docker build \
+            -f packaging/all-in-one/dataenv-pm2/Dockerfile \
+            -t apitable/dataenv-pm2:latest \
+            packaging/all-in-one/dataenv-pm2
 
-      - name: Summary
+          docker build \
+            -f packaging/all-in-one/dataenv-liquibase-pm2/Dockerfile \
+            -t apitable/dataenv-liquibase-pm2:latest \
+            packaging/all-in-one/dataenv-liquibase-pm2
+
+      - name: 构建 backend-server 镜像
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.vars.outputs.version_tag }}"
+
+          docker build \
+            -f packaging/Dockerfile.backend-server \
+            --build-arg SEMVER_FULL="${tag}" \
+            -t apitable/backend-server:"${tag}" \
+            -t "${BACKEND_IMAGE}:${tag}" \
+            -t "${BACKEND_IMAGE}:${{ steps.vars.outputs.short_sha }}" \
+            -t "${BACKEND_IMAGE}:latest" \
+            .
+
+      - name: 构建 room-server 镜像
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.vars.outputs.version_tag }}"
+
+          docker build \
+            -f packaging/Dockerfile.room-server \
+            --build-arg SEMVER_FULL="${tag}" \
+            -t apitable/room-server:"${tag}" \
+            -t "${ROOM_IMAGE}:${tag}" \
+            -t "${ROOM_IMAGE}:${{ steps.vars.outputs.short_sha }}" \
+            -t "${ROOM_IMAGE}:latest" \
+            .
+
+      - name: 构建 web-server 镜像
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.vars.outputs.version_tag }}"
+
+          docker build \
+            -f packaging/Dockerfile.web-server \
+            --build-arg SEMVER_FULL="${tag}" \
+            -t apitable/web-server:"${tag}" \
+            -t "${WEB_IMAGE}:${tag}" \
+            -t "${WEB_IMAGE}:${{ steps.vars.outputs.short_sha }}" \
+            -t "${WEB_IMAGE}:latest" \
+            .
+
+      - name: 构建 init-db 本地镜像
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.vars.outputs.version_tag }}"
+
+          docker build \
+            -f init-db/Dockerfile \
+            --build-arg SEMVER_FULL="${tag}" \
+            -t apitable/init-db:"${tag}" \
+            ./init-db
+
+      - name: 构建最终 all-in-one 镜像
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.vars.outputs.version_tag }}"
+          short_sha="${{ steps.vars.outputs.short_sha }}"
+          final_image="${{ steps.vars.outputs.final_image }}"
+
+          docker build \
+            -f "${ALL_IN_ONE_DOCKERFILE}" \
+            --build-arg IMAGE_TAG="${tag}" \
+            --build-arg SEMVER_FULL="${tag}" \
+            -t "${final_image}:${tag}" \
+            -t "${final_image}:${short_sha}" \
+            .
+
+          if [[ "${{ steps.vars.outputs.push_latest }}" == "true" ]]; then
+            docker tag "${final_image}:${tag}" "${final_image}:latest"
+          fi
+
+      - name: 推送组件镜像到 Docker Hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.vars.outputs.version_tag }}"
+          short_sha="${{ steps.vars.outputs.short_sha }}"
+
+          for image in "${BACKEND_IMAGE}" "${ROOM_IMAGE}" "${WEB_IMAGE}"; do
+            docker push "${image}:${tag}"
+            docker push "${image}:${short_sha}"
+            if [[ "${{ steps.vars.outputs.push_latest }}" == "true" ]]; then
+              docker push "${image}:latest"
+            fi
+          done
+
+      - name: 推送最终 all-in-one 镜像到 Docker Hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.vars.outputs.version_tag }}"
+          short_sha="${{ steps.vars.outputs.short_sha }}"
+          final_image="${{ steps.vars.outputs.final_image }}"
+
+          docker push "${final_image}:${tag}"
+          docker push "${final_image}:${short_sha}"
+          if [[ "${{ steps.vars.outputs.push_latest }}" == "true" ]]; then
+            docker push "${final_image}:latest"
+          fi
+
+      - name: 输出结果
         shell: bash
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
-          ## Docker Hub image pushed
+          ## Docker Hub 推送完成
 
-          Image: \`${{ steps.image.outputs.image }}\`
+          最终 all-in-one 镜像：
 
-          Dockerfile: \`${{ steps.dockerfile.outputs.file }}\`
-
-          Tags:
-
+          \`\`\`bash
+          docker pull ${{ steps.vars.outputs.final_image }}:${{ steps.vars.outputs.version_tag }}
+          docker pull ${{ steps.vars.outputs.final_image }}:${{ steps.vars.outputs.short_sha }}
+          docker pull ${{ steps.vars.outputs.final_image }}:latest
           \`\`\`
-          ${{ steps.meta.outputs.tags }}
+
+          组件镜像：
+
+          \`\`\`text
+          ${BACKEND_IMAGE}:${{ steps.vars.outputs.version_tag }}
+          ${ROOM_IMAGE}:${{ steps.vars.outputs.version_tag }}
+          ${WEB_IMAGE}:${{ steps.vars.outputs.version_tag }}
           \`\`\`
           EOF
