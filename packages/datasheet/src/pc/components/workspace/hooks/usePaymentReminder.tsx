@@ -25,6 +25,7 @@ const LAST_PAYMENT_REMINDER_TIME = 'LAST_PAYMENT_REMINDER_TIME';
 function isSelfHostedEnterpriseMode(subscription: any) {
   const env = getEnvVariables();
   return (
+    env.SELF_HOSTED_ENTERPRISE ||
     env.IS_SELFHOST ||
     env.IS_ENTERPRISE ||
     subscription?.product?.toLowerCase?.() === 'enterprise' ||
