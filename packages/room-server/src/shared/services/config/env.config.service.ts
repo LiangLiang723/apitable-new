@@ -30,14 +30,21 @@ export class EnvConfigService implements OnApplicationShutdown {
   private configStore: ConfigStoreInMemory = new ConfigStoreInMemory();
 
   constructor() {
+    const selfHostedEnterprise = process.env.SELF_HOSTED_ENTERPRISE !== 'false';
+    const unlimitedServerLimit = selfHostedEnterprise ? Number.MAX_SAFE_INTEGER : undefined;
+    const readNumber = (value: string | undefined, fallback: number) => {
+      const parsedValue = value ? parseInt(value, 10) : NaN;
+      return Number.isNaN(parsedValue) ? fallback : parsedValue;
+    };
+
     // server constants configuration
     const server: IServerConfig = {
       url: process.env.BACKEND_BASE_URL!,
-      transformLimit: parseInt(process.env.SERVER_TRANSFORM_LIMIT!) || 100000,
-      maxViewCount: parseInt(process.env.SERVER_MAX_VIEW_COUNT!) || 30,
-      maxFieldCount: parseInt(process.env.SERVER_MAX_FIELD_COUNT!) || 200,
-      maxRecordCount: parseInt(process.env.SERVER_MAX_RECORD_COUNT!) || 50000,
-      recordRemindRange: parseInt(process.env.SERVER_RECORD_REMIND_RANGE!) || 90,
+      transformLimit: readNumber(process.env.SERVER_TRANSFORM_LIMIT, unlimitedServerLimit || 100000),
+      maxViewCount: readNumber(process.env.SERVER_MAX_VIEW_COUNT, unlimitedServerLimit || 30),
+      maxFieldCount: readNumber(process.env.SERVER_MAX_FIELD_COUNT, unlimitedServerLimit || 200),
+      maxRecordCount: readNumber(process.env.SERVER_MAX_RECORD_COUNT, unlimitedServerLimit || 50000),
+      recordRemindRange: readNumber(process.env.SERVER_RECORD_REMIND_RANGE, 90),
     };
     this.configStore.set(EnvConfigKey.CONST, server);
 

@@ -8,8 +8,7 @@ ARG LPM_VERSION=0.2.3
 ARG LB_SHA256=c04542865e5ece8b7b1ee9bd6beaefc5315e350620288d6ac1a2d32c3b1f7d8b
 
 RUN set -euxo pipefail; \
-  microdnf -y update; \
-  microdnf -y install findutils unzip; \
+  microdnf -y --disablerepo='rabbitmq_*' install findutils unzip; \
   microdnf clean all; \
   \
   CORRETTO_VERSION=17.0.9.8-1; \
@@ -23,7 +22,7 @@ RUN set -euxo pipefail; \
   curl -fL -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo; \
   grep -q '^gpgcheck=1' /etc/yum.repos.d/corretto.repo; \
   echo "priority=9" >> /etc/yum.repos.d/corretto.repo; \
-  microdnf -y install "java-17-amazon-corretto-devel-${CORRETTO_VERSION}"; \
+  microdnf -y --disablerepo='rabbitmq_*' install "java-17-amazon-corretto-devel-${CORRETTO_VERSION}"; \
   (find /usr/lib/jvm/java-17-amazon-corretto -name src.zip -delete || true); \
   \
   mkdir -p /liquibase/bin; \

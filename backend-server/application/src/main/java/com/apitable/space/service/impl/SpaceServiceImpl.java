@@ -49,7 +49,6 @@ import com.apitable.interfaces.ai.model.CreditInfo;
 import com.apitable.interfaces.ai.model.CreditTransactionChartData;
 import com.apitable.interfaces.billing.facade.EntitlementServiceFacade;
 import com.apitable.interfaces.billing.model.CycleDateRange;
-import com.apitable.interfaces.billing.model.DefaultSubscriptionInfo;
 import com.apitable.interfaces.billing.model.SubscriptionFeature;
 import com.apitable.interfaces.billing.model.SubscriptionFeatures;
 import com.apitable.interfaces.billing.model.SubscriptionInfo;
@@ -582,11 +581,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, SpaceEntity>
 
     @Override
     public CreditInfo getCredit(String spaceId) {
-        SubscriptionInfo subscriptionInfo = new DefaultSubscriptionInfo();
-        if (StrUtil.isNotBlank(spaceId)) {
-            subscriptionInfo =
-                entitlementServiceFacade.getSpaceSubscription(spaceId);
-        }
+        SubscriptionInfo subscriptionInfo = entitlementServiceFacade.getSpaceSubscription(spaceId);
         LocalDate now = ClockManager.me().getLocalDateNow();
         CycleDateRange dateRange = SubscriptionDateRange.calculateCycleDate(subscriptionInfo, now);
         return new CreditInfo(subscriptionInfo.getConfig().isAllowCreditOverLimit(),

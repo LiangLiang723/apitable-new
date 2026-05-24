@@ -42,7 +42,7 @@ export const PROJECT_DIR = __dirname;
 export const defaultLanguage = process.env.DEFAULT_LANGUAGE || 'en-US';
 
 export const supportedLanguages = process.env.SUPPORTED_LANGUAGES ? process.env.SUPPORTED_LANGUAGES.split(',') : ['zh-CN', 'en-US'];
-export const selfHostedEnterprise = Object.is(process.env.SELF_HOSTED_ENTERPRISE, 'true');
+export const selfHostedEnterprise = !Object.is(process.env.SELF_HOSTED_ENTERPRISE, 'false');
 export const skipUsageVerification = selfHostedEnterprise || Object.is(process.env.SKIP_USAGE_VERIFICATION, 'true');
 export const skipApiUsageVerification = selfHostedEnterprise || Object.is(process.env.SKIP_API_USAGE_VERIFICATION, 'true');
 /**
@@ -53,7 +53,7 @@ export const enableAmqp: boolean = Object.is(process.env.ENABLE_AMQP || 'true', 
 
 export const enableAutomationWorker = Object.is(process.env.ENABLE_QUEUE_WORKER, 'true');
 
-export const maxRobotActionCount = parseInt(process.env.MAX_ROBOT_ACTION_COUNT || '9', 10);
+export const maxRobotActionCount = parseInt(process.env.MAX_ROBOT_ACTION_COUNT || `${Number.MAX_SAFE_INTEGER}`, 10);
 
 // whether or not enable queue worker. auto register customers (individual instances in worker queue mode to handle messages)
 export const enableQueueWorker = Object.is(process.env.ENABLE_QUEUE_CONSUMER_WORKER, 'true');
