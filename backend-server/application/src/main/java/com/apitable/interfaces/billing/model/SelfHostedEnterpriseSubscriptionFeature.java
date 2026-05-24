@@ -211,6 +211,21 @@ public class SelfHostedEnterpriseSubscriptionFeature extends DefaultSubscription
     }
 
     @Override
+    public SubscriptionFeatures.SubscribeFeatures.ShowMobileNumber getShowMobileNumber() {
+        return new SubscriptionFeatures.SubscribeFeatures.ShowMobileNumber(true);
+    }
+
+    @Override
+    public SubscriptionFeatures.SubscribeFeatures.ContactIsolation getContactIsolation() {
+        return new SubscriptionFeatures.SubscribeFeatures.ContactIsolation(true);
+    }
+
+    @Override
+    public SubscriptionFeatures.SubscribeFeatures.ForbidCreateOnCatalog getForbidCreateOnCatalog() {
+        return new SubscriptionFeatures.SubscribeFeatures.ForbidCreateOnCatalog(true);
+    }
+
+    @Override
     public SubscriptionFeatures.SubscribeFeatures.AllowEmbed getAllowEmbed() {
         return new SubscriptionFeatures.SubscribeFeatures.AllowEmbed(true);
     }
