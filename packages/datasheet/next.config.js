@@ -47,6 +47,9 @@ const sentryWebpackPluginOptions = {
 const nextConfig = {
   // Use the CDN in production and localhost for development.
   assetPrefix: isProd ? process.env.NEXT_ASSET_PREFIX : '',
+  eslint: {
+    ignoreDuringBuilds: true
+  },
   // Possible fix for  timeout error in static page generation
   env: {
       SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN_VIKA

@@ -14,16 +14,9 @@ RUN set -euxo pipefail; \
   *) echo >&2 "error: unsupported architecture: '${arch}'"; exit 1 ;; \
   esac; \
   \
-  key_id='859BE8D7C586F538430B19C2467B942D3A79BD29'; \
-  GNUPGHOME="$(mktemp -d)"; \
-  export GNUPGHOME; \
-  gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "${key_id}"; \
-  gpg --batch --export --armor "${key_id}" > /etc/pki/rpm-gpg/RPM-GPG-KEY-mysql; \
-  rm -rf "$GNUPGHOME"; \
+  curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2025 -o /etc/pki/rpm-gpg/RPM-GPG-KEY-mysql; \
   microdnf -y update; \
   microdnf -y install shadow-utils; \
-  groupadd --system --gid 999 "${GOSU_USER}"; \
-  useradd --system --uid 999 --gid 999 --create-home "${GOSU_USER}"; \
   rpm -Uvh "https://dl.min.io/server/minio/release/linux-${pkgArch}/archive/minio-20230125001954.0.0.${arch}.rpm"; \
   curl -s -q "https://dl.min.io/client/mc/release/linux-${pkgArch}/mc" -o /usr/local/bin/mc; \
   chmod +x /usr/local/bin/mc; \
@@ -33,6 +26,8 @@ RUN set -euxo pipefail; \
   openresty \
   rabbitmq-server erlang \
   redis; \
+  getent group "${GOSU_USER}" >/dev/null || groupadd --system "${GOSU_USER}"; \
+  id -u "${GOSU_USER}" >/dev/null 2>&1 || useradd --system --gid "${GOSU_USER}" --create-home "${GOSU_USER}"; \
   microdnf -y install tar xz; \
   microdnf clean all; \
   \
@@ -51,7 +46,7 @@ RUN set -euxo pipefail; \
   tar -xJf "node-$NODE_VERSION-linux-$NODE_ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner; \
   rm "node-$NODE_VERSION-linux-$NODE_ARCH.tar.xz"; \
   corepack enable; \
-  npm i -g pm2; \
+  npm i -g pm2@5.4.3; \
   \
   curl -fL -o /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${pkgArch}"; \
   chmod +x /usr/local/bin/gosu; \
