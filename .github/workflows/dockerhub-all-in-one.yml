@@ -3,11 +3,8 @@ name: 构建并推送自定义 APITable all-in-one 镜像
 
 on:
   push:
-    branches:
-      - self-hosted-enterprise
-      - 'v*'
     tags:
-      - 'v*'
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       image:
