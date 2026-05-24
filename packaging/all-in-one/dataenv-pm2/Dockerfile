@@ -15,6 +15,12 @@ RUN set -euxo pipefail; \
   esac; \
   \
   curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2025 -o /etc/pki/rpm-gpg/RPM-GPG-KEY-mysql; \
+  curl -fL --retry 5 --retry-delay 3 -o /etc/pki/rpm-gpg/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key; \
+  curl -fL --retry 5 --retry-delay 3 -o /etc/pki/rpm-gpg/cloudsmith.rabbitmq-server.9F4587F226208342.key https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key; \
+  curl -fL --retry 5 --retry-delay 3 -o /etc/pki/rpm-gpg/rabbitmq-release-signing-key.asc https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc; \
+  rpm --import /etc/pki/rpm-gpg/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key; \
+  rpm --import /etc/pki/rpm-gpg/cloudsmith.rabbitmq-server.9F4587F226208342.key; \
+  rpm --import /etc/pki/rpm-gpg/rabbitmq-release-signing-key.asc; \
   microdnf -y update; \
   microdnf -y install shadow-utils; \
   rpm -Uvh "https://dl.min.io/server/minio/release/linux-${pkgArch}/archive/minio-20230125001954.0.0.${arch}.rpm"; \

@@ -37,100 +37,104 @@ public class LimitProperties {
 
     public static final String PREFIX_LIMIT = "limit";
 
+    private static final Integer UNLIMITED_INT = Integer.MAX_VALUE;
+
+    private static final Long UNLIMITED_LONG = Long.MAX_VALUE;
+
     /**
      * Maximum user space.
      */
-    private Integer spaceMaxCount = 10;
+    private Integer spaceMaxCount = UNLIMITED_INT;
 
     /**
      * Maximum file size of imported data table.
      */
-    private Integer maxFileSize = 20 * 1024 * 1024;
+    private Integer maxFileSize = UNLIMITED_INT;
 
     /**
      * Maximum number of columns in the number table.
      */
-    private Integer maxColumnCount = 200;
+    private Integer maxColumnCount = UNLIMITED_INT;
 
     /**
      * Maximum Views.
      */
     @Deprecated
-    private Integer viewMaxCount = 100;
+    private Integer viewMaxCount = UNLIMITED_INT;
 
     /**
      * Maximum number of templates.
      */
-    private Integer templateMaxCount = 20;
+    private Integer templateMaxCount = UNLIMITED_INT;
 
     /**
      * Maximum loading numbers of member field in datasheet.
      */
-    private Integer memberFieldMaxLoadCount = 10;
+    private Integer memberFieldMaxLoadCount = UNLIMITED_INT;
 
     /**
      * Maximum rows.
      */
-    private Integer maxRowCount = 50000;
+    private Integer maxRowCount = UNLIMITED_INT;
 
     /**
      * limitation of attachment(byte).
      */
     @Deprecated
-    private Long spaceMemoryMaxSize = 1024 * 1024 * 1024L;
+    private Long spaceMemoryMaxSize = UNLIMITED_LONG;
 
     /**
      * Maximum node number.
      */
     @Deprecated
-    private Integer nodeMaxCount = 1000;
+    private Integer nodeMaxCount = UNLIMITED_INT;
 
     /**
      * Maximum days of recycle bin.
      */
     @Deprecated
-    private Integer rubbishRetainDay = 7;
+    private Integer rubbishRetainDay = UNLIMITED_INT;
 
     /**
      * Maximum member count of space.
      */
     @Deprecated
-    private Integer memberMaxCount = 100;
+    private Integer memberMaxCount = UNLIMITED_INT;
 
     /**
      * Maximum admin number of space.
      */
     @Deprecated
-    private Integer adminMaxCount = 20;
+    private Integer adminMaxCount = UNLIMITED_INT;
 
     /**
      * Maximum api usage of space.
      */
     @Deprecated
-    private Integer apiUsageMaxCount = 10000;
+    private Integer apiUsageMaxCount = UNLIMITED_INT;
 
     /**
      * Maximum dashboard numbers of space.
      */
-    private Integer dsbWidgetMaxCount = 15;
+    private Integer dsbWidgetMaxCount = UNLIMITED_INT;
 
     /**
      * Maximum robot number of space.
      */
-    private Integer dstRobotMaxCount = 30;
+    private Integer dstRobotMaxCount = UNLIMITED_INT;
 
     /**
      * max limit of trigger count.
      */
-    private Integer automationTriggerCount = 3;
+    private Integer automationTriggerCount = UNLIMITED_INT;
 
     /**
      * max limit of action count.
      */
-    private Integer automationActionCount = 9;
+    private Integer automationActionCount = UNLIMITED_INT;
 
     /**
      * max invited record for a single day.
      */
-    private Integer maxInviteCountForFree = 10;
+    private Integer maxInviteCountForFree = UNLIMITED_INT;
 }
