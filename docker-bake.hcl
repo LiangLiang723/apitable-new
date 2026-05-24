@@ -14,28 +14,36 @@ variable "IMAGE_TAG" {
   default = "latest"
 }
 
+variable "FINAL_IMAGE" {
+  default = "benxianyu/apitable-new"
+}
+
 variable "DATAENV_IMAGE_TAG" {
   default = "latest"
 }
 
+variable "DATAENV_IMAGE" {
+  default = "benxianyu/apitable-dataenv-pm2"
+}
+
 variable "BACKEND_IMAGE" {
-  default = "apitable/backend-server"
+  default = "benxianyu/apitable-backend-server"
 }
 
 variable "ROOM_IMAGE" {
-  default = "apitable/room-server"
+  default = "benxianyu/apitable-room-server"
 }
 
 variable "WEB_IMAGE" {
-  default = "apitable/web-server"
+  default = "benxianyu/apitable-web-server"
 }
 
 variable "INIT_DB_IMAGE" {
-  default = "apitable/init-db"
+  default = "benxianyu/apitable-init-db"
 }
 
 variable "DATABUS_IMAGE" {
-  default = "apitable/databus-server"
+  default = "benxianyu/apitable-databus-server"
 }
 
 variable "DATABUS_IMAGE_TAG" {
@@ -43,7 +51,7 @@ variable "DATABUS_IMAGE_TAG" {
 }
 
 variable "INIT_APPDATA_IMAGE" {
-  default = "apitable/init-appdata"
+  default = "benxianyu/apitable-init-appdata"
 }
 
 variable "INIT_APPDATA_IMAGE_TAG" {
@@ -51,7 +59,7 @@ variable "INIT_APPDATA_IMAGE_TAG" {
 }
 
 variable "IMAGEPROXY_IMAGE" {
-  default = "apitable/imageproxy-server"
+  default = "benxianyu/apitable-imageproxy-server"
 }
 
 variable "IMAGEPROXY_IMAGE_TAG" {
@@ -59,7 +67,7 @@ variable "IMAGEPROXY_IMAGE_TAG" {
 }
 
 variable "DATAENV_LIQUIBASE_IMAGE" {
-  default = "apitable/dataenv-liquibase-pm2"
+  default = "benxianyu/apitable-dataenv-liquibase-pm2"
 }
 
 target "backend-server" {
@@ -69,7 +77,7 @@ target "backend-server" {
     SEMVER_FULL = SEMVER_FULL
   }
   platforms = ["linux/amd64", "linux/arm64"]
-  tags = ["${IMAGE_REGISTRY}/apitable/backend-server:latest", "${IMAGE_REGISTRY}/apitable/backend-server:${IMAGE_TAG}"]
+  tags = ["${BACKEND_IMAGE}:latest", "${BACKEND_IMAGE}:${IMAGE_TAG}"]
 }
 
 target "room-server" {
@@ -79,7 +87,7 @@ target "room-server" {
     SEMVER_FULL = SEMVER_FULL
   }
   platforms = ["linux/amd64", "linux/arm64"]
-  tags = ["${IMAGE_REGISTRY}/apitable/room-server:latest", "${IMAGE_REGISTRY}/apitable/room-server:${IMAGE_TAG}"]
+  tags = ["${ROOM_IMAGE}:latest", "${ROOM_IMAGE}:${IMAGE_TAG}"]
 }
 
 target "web-server" {
@@ -89,7 +97,7 @@ target "web-server" {
     SEMVER_FULL = SEMVER_FULL
   }
   platforms = ["linux/amd64"]
-  tags = ["${IMAGE_REGISTRY}/apitable/web-server:latest", "${IMAGE_REGISTRY}/apitable/web-server:${IMAGE_TAG}"]
+  tags = ["${WEB_IMAGE}:latest", "${WEB_IMAGE}:${IMAGE_TAG}"]
 }
 
 # https://github.com/apitable/apitable/issues/1379
@@ -100,7 +108,7 @@ target "web-server-experimental" {
     SEMVER_FULL = SEMVER_FULL
   }
   platforms = ["linux/amd64", "linux/arm64"]
-  tags = ["${IMAGE_REGISTRY}/apitable/web-server:latest", "${IMAGE_REGISTRY}/apitable/web-server:${IMAGE_TAG}"]
+  tags = ["${WEB_IMAGE}:latest", "${WEB_IMAGE}:${IMAGE_TAG}"]
 }
 
 target "init-db" {
@@ -110,7 +118,7 @@ target "init-db" {
     SEMVER_FULL = SEMVER_FULL
   }
   platforms = ["linux/amd64", "linux/arm64"]
-  tags = ["${IMAGE_REGISTRY}/apitable/init-db:latest", "${IMAGE_REGISTRY}/apitable/init-db:${IMAGE_TAG}"]
+  tags = ["${INIT_DB_IMAGE}:latest", "${INIT_DB_IMAGE}:${IMAGE_TAG}"]
 }
 
 target "openresty" {
@@ -143,5 +151,5 @@ target "all-in-one" {
     DATAENV_LIQUIBASE_IMAGE = DATAENV_LIQUIBASE_IMAGE
   }
   platforms = ["linux/amd64"]
-  tags = ["${IMAGE_REGISTRY}/apitable/all-in-one:latest", "${IMAGE_REGISTRY}/apitable/all-in-one:${IMAGE_TAG}"]
+  tags = ["${FINAL_IMAGE}:latest", "${FINAL_IMAGE}:${IMAGE_TAG}"]
 }

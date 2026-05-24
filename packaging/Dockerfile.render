@@ -1,3 +1,4 @@
 ARG IMAGE_TAG=latest
+ARG ALL_IN_ONE_IMAGE=benxianyu/apitable-new
 
-FROM apitable/all-in-one:${IMAGE_TAG}
+FROM ${ALL_IN_ONE_IMAGE}:${IMAGE_TAG}

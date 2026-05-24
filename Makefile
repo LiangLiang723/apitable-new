@@ -478,7 +478,7 @@ pull: ## pull all containers and ready to up
 
 ######################################## init-db
 
-INIT_DB_DOCKER_PATH=apitable/init-db
+INIT_DB_DOCKER_PATH?=benxianyu/apitable-init-db
 
 db-plan: ## init-db dry update
 	cd init-db ;\

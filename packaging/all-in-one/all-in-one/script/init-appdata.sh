@@ -33,5 +33,9 @@ liquibase \
 cd /app/init-appdata
 
 for action in init-user load; do
-    java -jar /app/init-appdata/init-appdata.jar "${action}"
+    java \
+        -Dlogging.level.com.amazonaws.services.s3.AmazonS3Client=ERROR \
+        -Dlogging.level.com.apitable.appdata.shared.starter.oss.AwsOssClientRequest=WARN \
+        '-Dlogging.level.org.springframework.context.support.PostProcessorRegistrationDelegate$BeanPostProcessorChecker=ERROR' \
+        -jar /app/init-appdata/init-appdata.jar "${action}"
 done

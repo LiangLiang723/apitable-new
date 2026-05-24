@@ -1,15 +1,15 @@
 ARG IMAGE_TAG=latest
-ARG BACKEND_IMAGE=apitable/backend-server
-ARG ROOM_IMAGE=apitable/room-server
-ARG WEB_IMAGE=apitable/web-server
-ARG INIT_DB_IMAGE=apitable/init-db
-ARG DATABUS_IMAGE=apitable/databus-server
+ARG BACKEND_IMAGE=benxianyu/apitable-backend-server
+ARG ROOM_IMAGE=benxianyu/apitable-room-server
+ARG WEB_IMAGE=benxianyu/apitable-web-server
+ARG INIT_DB_IMAGE=benxianyu/apitable-init-db
+ARG DATABUS_IMAGE=benxianyu/apitable-databus-server
 ARG DATABUS_IMAGE_TAG=latest
-ARG INIT_APPDATA_IMAGE=apitable/init-appdata
+ARG INIT_APPDATA_IMAGE=benxianyu/apitable-init-appdata
 ARG INIT_APPDATA_IMAGE_TAG=latest
-ARG IMAGEPROXY_IMAGE=apitable/imageproxy-server
+ARG IMAGEPROXY_IMAGE=benxianyu/apitable-imageproxy-server
 ARG IMAGEPROXY_IMAGE_TAG=latest
-ARG DATAENV_LIQUIBASE_IMAGE=apitable/dataenv-liquibase-pm2
+ARG DATAENV_LIQUIBASE_IMAGE=benxianyu/apitable-dataenv-liquibase-pm2
 ARG DATAENV_IMAGE_TAG=latest
 
 FROM ${BACKEND_IMAGE}:${IMAGE_TAG} as backend-server
@@ -50,6 +50,7 @@ RUN set -euxo pipefail; \
 
 COPY packaging/all-in-one/all-in-one/script/add-host.sh /usr/local/bin/
 COPY packaging/all-in-one/all-in-one/script/init-appdata.sh /usr/local/bin/
+COPY packaging/all-in-one/all-in-one/backend-logback.xml /app/backend-server/logback-all-in-one.xml
 
 COPY packaging/all-in-one/all-in-one/ecosystem.config.js /
 
@@ -133,6 +134,8 @@ ENV \
     AWS_ACCESS_SECRET=apitable@com \
     AWS_ENDPOINT=http://minio:9000 \
     AWS_REGION=us-east-1 \
+    SENTRY_DSN= \
+    LOGGING_LEVEL_COM_AMAZONAWS_SERVICES_S3_AMAZONS3CLIENT=ERROR \
     \
     ASSETS_BUCKET=assets \
     ASSETS_URL=assets \
