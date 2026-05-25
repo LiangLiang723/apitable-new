@@ -13,17 +13,33 @@ ensure_owned_dir() {
     local dir="$1"
     ensure_dir "${dir}"
     chown -R "${GOSU_USER}:${GOSU_USER}" "${dir}"
+    chmod -R u+rwX,go-rwx "${dir}"
 }
 
 for i in /apitable/minio/data /apitable/minio/config; do
     ensure_dir "${i}"
 done
 
-# Old all-in-one volumes may have been created by root or by a different
-# RabbitMQ/Erlang version. Always fix ownership before starting services;
-# do this before the MySQL initialized check so upgrades are handled too.
+# Old all-in-one volumes may have been created by root or by a different image.
+# MySQL, Redis and RabbitMQ are started through gosu ${GOSU_USER}; therefore all
+# persisted runtime directories must be writable by that user on every boot.
+# Run this before the MySQL initialized check so upgrades are handled too.
 for i in /apitable/mysql /apitable/redis /apitable/rabbitmq; do
     ensure_owned_dir "${i}"
+done
+
+# Some old host bind mounts reject recursive chmod/chown for a subset of files.
+# Keep the container boot explicit: fail early with a useful message instead of
+# letting MySQL/Redis loop with Permission denied.
+for i in /apitable/mysql /apitable/redis /apitable/rabbitmq; do
+    if [[ ! -w "${i}" ]]; then
+        echo "ERROR: ${i} is not writable by root inside container. Please fix the host bind mount permissions." >&2
+        exit 1
+    fi
+    if ! gosu "${GOSU_USER}" test -w "${i}"; then
+        echo "ERROR: ${i} is not writable by ${GOSU_USER}. Please chown the host bind mount to the container uid/gid." >&2
+        exit 1
+    fi
 done
 
 # RabbitMQ queue/coordination data is runtime state for the all-in-one bundle.
@@ -39,6 +55,7 @@ if [[ "${APITABLE_RESET_RABBITMQ_ON_START:-false}" == "true" ]]; then
         echo "RabbitMQ data moved to ${backup_dir}"
     fi
     install --directory --owner "${GOSU_USER}" --group "${GOSU_USER}" /apitable/rabbitmq
+    chmod -R u+rwX,go-rwx /apitable/rabbitmq
 fi
 
 if [[ -n "$(ls -A /apitable/mysql)" ]]; then
