@@ -67,7 +67,7 @@ export const getEnvVars = () => {
     INTEGRATIONS_WECOM_VISIBLE: process.env.INTEGRATIONS_WECOM_VISIBLE === 'true',
     INTEGRATIONS_YOZOSOFT_VISIBLE: process.env.INTEGRATIONS_YOZOSOFT_VISIBLE === 'true',
     RECORD_TASK_REMINDER_VISIBLE: enterpriseFeatureVisible(process.env.RECORD_TASK_REMINDER_VISIBLE),
-    RECORD_WATCHING_VISIBLE: enterpriseFeatureVisible(process.env.RECORD_WATCHING_VISIBLE),
+    RECORD_WATCHING_VISIBLE: process.env.RECORD_WATCHING_VISIBLE === 'true',
     FIELD_PERMISSION_VISIBLE: enterpriseFeatureVisible(process.env.FIELD_PERMISSION_VISIBLE),
     FILE_PERMISSION_VISIBLE: enterpriseFeatureVisible(process.env.FILE_PERMISSION_VISIBLE),
     SPACE_SUB_ADMIN_VISIBLE: enterpriseFeatureVisible(process.env.SPACE_SUB_ADMIN_VISIBLE),
@@ -237,7 +237,7 @@ export const getEnvVars = () => {
     AI_TRAINING_HELP_DOC_LINK: process.env.AI_TRAINING_HELP_DOC_LINK,
     AI_SETTING_HELP_DOC_LINK: process.env.AI_SETTING_HELP_DOC_LINK,
     EDITION: process.env.EDITION,
-    ENABLE_TIME_MACHINE_ROOLBACK: enterpriseFeatureVisible(process.env.ENABLE_TIME_MACHINE_ROOLBACK),
+    ENABLE_TIME_MACHINE_ROOLBACK: process.env.ENABLE_TIME_MACHINE_ROOLBACK === 'true',
     YACH_ENABLED: process.env.YACH_ENABLED === 'true',
 
     HIDDEN_SEE_MORE_MEMBER_LIST: process.env.HIDDEN_SEE_MORE_MEMBER_LIST === 'true',

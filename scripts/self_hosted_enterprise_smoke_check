@@ -7,6 +7,8 @@ set -euo pipefail
 # checklist for app-level validation.
 
 : "${SELF_HOSTED_ENTERPRISE:=true}"
+: "${SKIP_USAGE_VERIFICATION:=false}"
+: "${SKIP_API_USAGE_VERIFICATION:=false}"
 : "${API_MAX_MODIFY_RECORD_COUNTS:=9007199254740991}"
 : "${SERVER_MAX_RECORD_COUNT:=9007199254740991}"
 : "${TEMPLATE_MAX_COUNT:=2147483647}"
@@ -14,6 +16,16 @@ set -euo pipefail
 
 if [[ "${SELF_HOSTED_ENTERPRISE}" != "true" ]]; then
   echo "ERROR: SELF_HOSTED_ENTERPRISE must be true for this smoke check." >&2
+  exit 1
+fi
+
+if [[ "${SKIP_USAGE_VERIFICATION}" == "true" ]]; then
+  echo "ERROR: SKIP_USAGE_VERIFICATION=true prevents backend space usage statistics from being calculated." >&2
+  exit 1
+fi
+
+if [[ "${SKIP_API_USAGE_VERIFICATION}" == "true" ]]; then
+  echo "ERROR: SKIP_API_USAGE_VERIFICATION=true makes backend API usage statistics report zero." >&2
   exit 1
 fi
 
@@ -46,6 +58,8 @@ Manual smoke checklist:
 
 1. Start backend-server, room-server, and frontend/datasheet. This build defaults to:
   SELF_HOSTED_ENTERPRISE=true
+  SKIP_USAGE_VERIFICATION=false
+  SKIP_API_USAGE_VERIFICATION=false
   API_MAX_MODIFY_RECORD_COUNTS=9007199254740991
   SERVER_MAX_RECORD_COUNT=9007199254740991
   TEMPLATE_MAX_COUNT=2147483647
@@ -54,15 +68,16 @@ Manual smoke checklist:
 2. Register or log in.
 3. Create a new space.
 4. Open space subscription/management info and verify plan/product is Enterprise/enterprise.
-5. Create a datasheet.
-6. Add more records than the old free single-sheet limit.
-7. Add enough records to exceed the old free space total-row limit.
-8. Create multiple Gantt/Calendar/Gallery/Kanban/Form views if those UI entries are enabled.
-9. Upload an attachment using the configured storage backend.
-10. Call Fusion API batch write beyond the old free/default batch limits.
-11. Confirm there is no payment reminder, PRICE_MODAL, renew/upgrade modal, or usage warning modal.
-12. Confirm unavailable enterprise/hosted-only features stay hidden or return a clear unsupported response.
+5. Verify the space overview current usage cards show real member/file/record/capacity values, not all zero.
+6. Create a datasheet.
+7. Add more records than the old free single-sheet limit.
+8. Add enough records to exceed the old free space total-row limit.
+9. Create multiple Gantt/Calendar/Gallery/Kanban/Form views if those UI entries are enabled.
+10. Upload an attachment using the configured storage backend.
+11. Call Fusion API batch write beyond the old free/default batch limits.
+12. Confirm there is no payment reminder, PRICE_MODAL, renew/upgrade modal, or usage warning modal.
+13. Confirm enterprise/hosted-only entry points remain visible, and unavailable integrations return a clear unsupported or unconfigured response.
 
 If any feature depends on missing private enterprise code, hosted cloud services,
-missing DB tables, or missing third-party configuration, keep it hidden/unsupported.
+missing DB tables, or missing third-party configuration, keep the user-facing entry point intact and return a clear unsupported/unconfigured response.
 EOF

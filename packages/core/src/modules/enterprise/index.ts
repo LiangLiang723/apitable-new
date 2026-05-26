@@ -18,6 +18,8 @@
 
 export {};
 
+export const guide = (state = {}) => state;
+
 export type StringSaaSKeysMapType = {};
 
 export type StringSaaSKeysType = {};

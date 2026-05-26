@@ -1,0 +1,1 @@
+export const SocialPlatformMap: Record<string, { logo?: string; toolTipInSpaceListItem?: string }> = {};

@@ -17,22 +17,21 @@
  */
 
 import { DynamicModule, Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatasheetRecordSubscriptionBaseService } from 'database/subscription/datasheet.record.subscription.base.service';
+import { DatasheetRecordSubscriptionEntity } from 'database/subscription/entities/datasheet.record.subscription.entity';
 import path from 'path';
 import * as fs from 'fs';
 
 @Module({
+  imports: [
+    TypeOrmModule.forFeature([DatasheetRecordSubscriptionEntity]),
+  ],
   providers: [
-    {
-      provide: DatasheetRecordSubscriptionBaseService,
-      useClass: class SubscriptionService extends DatasheetRecordSubscriptionBaseService {}
-    },
+    DatasheetRecordSubscriptionBaseService,
   ],
   exports: [
-    {
-      provide: DatasheetRecordSubscriptionBaseService,
-      useClass: class SubscriptionService extends DatasheetRecordSubscriptionBaseService {}
-    },
+    DatasheetRecordSubscriptionBaseService,
   ]
 })
 export class SubscriptionDynamicModule { 

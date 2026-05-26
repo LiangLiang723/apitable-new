@@ -30,6 +30,7 @@ export const useContactUs = () => {
 
     if (HELP_MENU_CONTACT_US_URL) {
       navigationToUrl(HELP_MENU_CONTACT_US_URL);
+      return;
     }
 
     if (HELP_MENU_CONTACT_US_TYPE !== 'qrcode') {

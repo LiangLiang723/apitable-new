@@ -133,6 +133,9 @@ export class GrpcClientProxy extends ClientGrpcProxy implements OnApplicationBoo
   }
 
   getHealthServerEndpoint(): string {
+    if (this.shouldUseDefaultRoomGrpcEndpoint()) {
+      return BootstrapConstants.ROOM_GRPC_URL;
+    }
     if (!this.clientIps.size || isDevMode) {
       // If no healthy ip is available, return to the default configuration directly
       this.logger.warn(`empty nest server，fallback as default：${BootstrapConstants.ROOM_GRPC_URL}`);
@@ -142,6 +145,10 @@ export class GrpcClientProxy extends ClientGrpcProxy implements OnApplicationBoo
     const addressList = Array.from(this.clientIps);
     const index = randomNum(0, addressList.length - 1);
     return addressList[index]!;
+  }
+
+  private shouldUseDefaultRoomGrpcEndpoint() {
+    return process.env.SELF_HOSTED_ENTERPRISE === 'true' || process.env.IS_SELFHOST === 'true';
   }
 
   createAsyncUnaryServiceMethod(

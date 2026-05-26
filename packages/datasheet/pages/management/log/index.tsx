@@ -23,8 +23,7 @@ const DynamicComponentWithNoSSR = dynamic(() => import('pc/components/route_mana
 // @ts-ignore
 const LogWithNoSSR = dynamic(
   () =>
-    // @ts-ignore
-    import('enterprise/log').then((components) => {
+    import('pc/components/space_manage/log').then((components) => {
       return components.Log;
     }),
   { ssr: false },

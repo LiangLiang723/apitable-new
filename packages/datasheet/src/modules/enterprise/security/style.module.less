@@ -1,0 +1,51 @@
+.page {
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  overflow: auto;
+  background: var(--bgCommonDefault);
+}
+
+.description {
+  margin-top: 8px;
+  color: var(--textCommonTertiary);
+}
+
+.list {
+  margin-top: 24px;
+  max-width: 920px;
+  border: 1px solid var(--lineColor);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.row {
+  min-height: 88px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+  padding: 20px 24px;
+  background: var(--bgControlsDefault);
+
+  & + .row {
+    border-top: 1px solid var(--lineColor);
+  }
+}
+
+.text {
+  min-width: 0;
+
+  p {
+    margin-top: 4px;
+    color: var(--textCommonTertiary);
+  }
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 480px;
+}
