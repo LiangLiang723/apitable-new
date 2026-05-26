@@ -112,6 +112,7 @@ import com.apitable.space.mapper.SpaceMapper;
 import com.apitable.space.mapper.SpaceMemberRoleRelMapper;
 import com.apitable.space.model.CreditUsages;
 import com.apitable.space.model.Space;
+import com.apitable.space.ro.SpaceAiConfigRo;
 import com.apitable.space.ro.SpaceUpdateOpRo;
 import com.apitable.space.service.IInvitationService;
 import com.apitable.space.service.ISpaceInviteLinkService;
@@ -119,6 +120,7 @@ import com.apitable.space.service.ISpaceRoleService;
 import com.apitable.space.service.ISpaceService;
 import com.apitable.space.service.IStaticsService;
 import com.apitable.space.vo.SeatUsage;
+import com.apitable.space.vo.SpaceAiConfigVo;
 import com.apitable.space.vo.SpaceGlobalFeature;
 import com.apitable.space.vo.SpaceInfoVO;
 import com.apitable.space.vo.SpaceSocialConfig;
@@ -168,6 +170,28 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, SpaceEntity>
     implements ISpaceService {
 
     private static final int DELETE_SPACE_RETAIN_DAYS = 7;
+
+    private static final String AI_ENABLED = "aiEnabled";
+
+    private static final String AI_PROVIDER = "aiProvider";
+
+    private static final String AI_BASE_URL = "aiBaseUrl";
+
+    private static final String AI_API_KEY = "aiApiKey";
+
+    private static final String AI_MODEL = "aiModel";
+
+    private static final String AI_CHAT_COMPLETION_PATH = "aiChatCompletionPath";
+
+    private static final String AI_AUTHORIZATION_PREFIX = "aiAuthorizationPrefix";
+
+    private static final String AI_EXTRA_HEADERS = "aiExtraHeaders";
+
+    private static final String DEFAULT_AI_PROVIDER = "openai-compatible";
+
+    private static final String DEFAULT_AI_CHAT_COMPLETION_PATH = "/v1/chat/completions";
+
+    private static final String DEFAULT_AI_AUTHORIZATION_PREFIX = "Bearer";
 
     @Resource
     private IUserService iUserService;
@@ -1099,6 +1123,70 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, SpaceEntity>
         String props = baseMapper.selectPropsBySpaceId(spaceId);
         ExceptionUtil.isNotNull(props, SpaceException.SPACE_NOT_EXIST);
         return JSONUtil.toBean(props, SpaceGlobalFeature.class);
+    }
+
+    @Override
+    public SpaceAiConfigVo getSpaceAiConfig(final String spaceId) {
+        log.info("gets space AI provider config，spaceId:{}", spaceId);
+        JSONObject props = getSpaceProps(spaceId);
+        String apiKey = props.getStr(AI_API_KEY);
+        return SpaceAiConfigVo.builder()
+            .enabled(props.getBool(AI_ENABLED, false))
+            .provider(StrUtil.blankToDefault(props.getStr(AI_PROVIDER), DEFAULT_AI_PROVIDER))
+            .baseUrl(StrUtil.blankToDefault(props.getStr(AI_BASE_URL), ""))
+            .apiKeyConfigured(StrUtil.isNotBlank(apiKey))
+            .maskedApiKey(maskApiKey(apiKey))
+            .model(StrUtil.blankToDefault(props.getStr(AI_MODEL), ""))
+            .chatCompletionPath(StrUtil.blankToDefault(props.getStr(AI_CHAT_COMPLETION_PATH), DEFAULT_AI_CHAT_COMPLETION_PATH))
+            .authorizationPrefix(StrUtil.blankToDefault(props.getStr(AI_AUTHORIZATION_PREFIX), DEFAULT_AI_AUTHORIZATION_PREFIX))
+            .extraHeaders(StrUtil.blankToDefault(props.getStr(AI_EXTRA_HEADERS), "{}"))
+            .build();
+    }
+
+    @Override
+    public void updateSpaceAiConfig(final Long userId, final String spaceId,
+                                    final SpaceAiConfigRo config) {
+        log.info("updates space AI provider config，userId:{},spaceId:{}", userId, spaceId);
+        List<MapDTO> features = new ArrayList<>();
+        features.add(new MapDTO(AI_ENABLED, Boolean.TRUE.equals(config.getEnabled())));
+        features.add(new MapDTO(AI_PROVIDER,
+            StrUtil.blankToDefault(StrUtil.trim(config.getProvider()), DEFAULT_AI_PROVIDER)));
+        features.add(new MapDTO(AI_BASE_URL,
+            StrUtil.blankToDefault(StrUtil.trim(config.getBaseUrl()), "")));
+        features.add(new MapDTO(AI_MODEL,
+            StrUtil.blankToDefault(StrUtil.trim(config.getModel()), "")));
+        features.add(new MapDTO(AI_CHAT_COMPLETION_PATH,
+            StrUtil.blankToDefault(StrUtil.trim(config.getChatCompletionPath()), DEFAULT_AI_CHAT_COMPLETION_PATH)));
+        features.add(new MapDTO(AI_AUTHORIZATION_PREFIX,
+            StrUtil.blankToDefault(StrUtil.trim(config.getAuthorizationPrefix()), DEFAULT_AI_AUTHORIZATION_PREFIX)));
+        features.add(new MapDTO(AI_EXTRA_HEADERS,
+            StrUtil.blankToDefault(StrUtil.trim(config.getExtraHeaders()), "{}")));
+
+        if (Boolean.TRUE.equals(config.getClearApiKey())) {
+            features.add(new MapDTO(AI_API_KEY, ""));
+        } else if (StrUtil.isNotBlank(config.getApiKey())) {
+            features.add(new MapDTO(AI_API_KEY, StrUtil.trim(config.getApiKey())));
+        }
+
+        boolean flag = SqlHelper.retBool(baseMapper.updateProps(userId, spaceId, features));
+        ExceptionUtil.isTrue(flag, DatabaseException.EDIT_ERROR);
+    }
+
+    private JSONObject getSpaceProps(final String spaceId) {
+        String props = baseMapper.selectPropsBySpaceId(spaceId);
+        ExceptionUtil.isNotNull(props, SPACE_NOT_EXIST);
+        return JSONUtil.parseObj(props);
+    }
+
+    private String maskApiKey(final String apiKey) {
+        if (StrUtil.isBlank(apiKey)) {
+            return "";
+        }
+        String trimmed = StrUtil.trim(apiKey);
+        if (trimmed.length() <= 8) {
+            return "****";
+        }
+        return trimmed.substring(0, 4) + "..." + trimmed.substring(trimmed.length() - 4);
     }
 
     @Override
