@@ -90,7 +90,8 @@ export const MultiLineCard: FC<React.PropsWithChildren<IMultiLineCardProps>> = (
           <div className={styles.linesWrap} style={wrapStyle}>
             {lines!.map((item) => {
               const limitLess = item.total === -1;
-              const showFakePercent = limitLess && item.used;
+              const used = item.used == null || item.used < 0 ? 0 : item.used;
+              const showFakePercent = limitLess && used;
               const innerProgressConfig = { ...progressConfig };
               if (item.percent && item.percent >= 100) {
                 innerProgressConfig.strokeColor = colors.red[500];
@@ -106,7 +107,7 @@ export const MultiLineCard: FC<React.PropsWithChildren<IMultiLineCardProps>> = (
                       item.customIntro
                     ) : (
                       <span className={styles.lineNumInfo}>
-                        <span className={cx(styles.used, styles.customFont)}>{item.used ?? '-'}</span>
+                        <span className={cx(styles.used, styles.customFont)}>{item.used == null ? '-' : used}</span>
                         <span
                           className={limitLess ? styles.unit : cx(styles.total, styles.customFont)}
                           style={limitLess ? { color: limitLessColor } : {}}

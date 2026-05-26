@@ -22,13 +22,21 @@ import { getPercent } from '../utils';
 
 export const isUnlimited = (total: number | null | undefined) => total === -1;
 
+export const normalizeUsageValue = (value?: number | null) => {
+  if (value == null || !Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+  return value;
+};
+
 export const buildUsageResult = (used = 0, total = 0): IHooksResult => {
-  const usedText = used.toLocaleString();
+  const safeUsed = normalizeUsageValue(used);
+  const usedText = safeUsed.toLocaleString();
 
   if (isUnlimited(total)) {
-    const usedPercent = used ? 5 : 0;
+    const usedPercent = safeUsed ? 5 : 0;
     return {
-      used,
+      used: safeUsed,
       usedText,
       total,
       totalText: '-1',
@@ -40,11 +48,11 @@ export const buildUsageResult = (used = 0, total = 0): IHooksResult => {
   }
 
   const safeTotal = total || 0;
-  const remain = Math.max(0, safeTotal - used);
-  const usedPercent = safeTotal ? decimalCeil(getPercent(used / safeTotal) * 100) : 0;
+  const remain = Math.max(0, safeTotal - safeUsed);
+  const usedPercent = safeTotal ? decimalCeil(getPercent(safeUsed / safeTotal) * 100) : 0;
 
   return {
-    used,
+    used: safeUsed,
     usedText,
     total: safeTotal,
     totalText: safeTotal.toLocaleString(),
@@ -56,8 +64,9 @@ export const buildUsageResult = (used = 0, total = 0): IHooksResult => {
 };
 
 export const calcPercent = (used: number | undefined, total: number) => {
-  if (!used || !total || total === -1) {
+  const safeUsed = normalizeUsageValue(used);
+  if (!safeUsed || !total || total <= 0 || total === -1) {
     return 0;
   }
-  return Math.min(Math.ceil((used / total) * 100), 100);
+  return Math.min(Math.ceil((safeUsed / total) * 100), 100);
 };
