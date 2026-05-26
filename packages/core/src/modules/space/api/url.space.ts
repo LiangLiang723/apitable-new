@@ -56,8 +56,8 @@ export const DELETE_SUB_ADMIN = '/space/deleteRole/';
 export const FORBID_STATUS = '/space/getForbidStatus';
 // space station - get the properties of space
 export const GET_SPACE_FEATURES = '/space/features';
-// space station - get or update Copilot AI provider config
-export const SPACE_AI_CONFIG = '/space/aiConfig';
+// space station - get or update mail server config
+export const SPACE_MAIL_CONFIG = '/space/mailConfig';
 // space station - get the properties of space
 export const SWITCH_NODEROLE_ASSIGNALE = '/space/updateNodeRoleAssignable';
 

@@ -66,7 +66,6 @@ import { SuspensionPanel } from '../suspension_panel';
 import { TabBar } from '../tab_bar';
 import { ViewContainer } from '../view_container';
 import { WidgetPanel } from '../widget';
-import { Copilot } from 'pc/components/copilot';
 // @ts-ignore
 import { createBackupSnapshot } from 'enterprise/time_machine/backup/backup';
 // @ts-ignore
@@ -172,7 +171,6 @@ const DefaultPanelWidth = {
   Api: '50%',
   Robot: 360,
   SideRecord: 450,
-  Copilot: 480,
 } as const;
 
 const DISABLED_CLOSE_SIDEBAR_WIDTH = 1920;
@@ -229,7 +227,6 @@ const DataSheetPaneBase: FC<React.PropsWithChildren<{ panelLeft?: JSX.Element }>
   const [historyDialog, setHistoryDialog] = useAtom(automationHistoryAtom);
   const [isDevToolsOpen, { toggle: toggleDevToolsOpen, set: setDevToolsOpen }] = useToggle();
   const [isRobotPanelOpen, { toggle: toggleRobotPanelOpen, set: setRobotPanelOpen }] = useToggle();
-  const [isCopilotPanelOpen, { toggle: toggleCopilotPanelOpen, set: setCopilotPanelOpen }] = useToggle();
 
   const toggleTimeMachineOpen = useCallback(
     (state?: boolean) => {
@@ -288,10 +285,6 @@ const DataSheetPaneBase: FC<React.PropsWithChildren<{ panelLeft?: JSX.Element }>
   }, [toggleTimeMachineOpen]);
 
   useEffect(() => {
-    ShortcutActionManager.bind(ShortcutActionName.ToggleCopilotPanel, toggleCopilotPanelOpen);
-  }, [toggleCopilotPanelOpen]);
-
-  useEffect(() => {
     if (manageable && Boolean(createBackupSnapshot)) {
       ShortcutActionManager.bind(ShortcutActionName.CreateBackup, () => {
         _createBackupSnapshot();
@@ -305,13 +298,6 @@ const DataSheetPaneBase: FC<React.PropsWithChildren<{ panelLeft?: JSX.Element }>
     }
     dispatch(StoreActions.setRobotPanelStatus(isRobotPanelOpen, activeDatasheetId));
   }, [isRobotPanelOpen, dispatch, activeDatasheetId]);
-
-  useEffect(() => {
-    if (!activeDatasheetId) {
-      return;
-    }
-    dispatch(StoreActions.setCoPilotPanelStatus(isCopilotPanelOpen, activeDatasheetId));
-  }, [isCopilotPanelOpen, dispatch, activeDatasheetId]);
 
   useEffect(() => {
     setDevToolsOpen(false);
@@ -399,9 +385,6 @@ const DataSheetPaneBase: FC<React.PropsWithChildren<{ panelLeft?: JSX.Element }>
     if (isMobile || isNoPermission) {
       return DefaultPanelWidth.Empty;
     }
-    if (isCopilotPanelOpen) {
-      return DefaultPanelWidth.Copilot;
-    }
     if (isDevToolsOpen) {
       return DefaultPanelWidth.DevTool;
     }
@@ -484,7 +467,6 @@ const DataSheetPaneBase: FC<React.PropsWithChildren<{ panelLeft?: JSX.Element }>
             panelRight={
               <div style={{ width: '100%', height: '100%' }}>
                 {isSideRecordOpen && <ExpandRecordPanel />}
-                { isCopilotPanelOpen && <Copilot onClose={setCopilotPanelOpen} /> }
                 <WidgetPanel />
                 {!isShareMode && <ApiPanel />}
                 {isDevToolsOpen && <DevToolsPanel onClose={setDevToolsOpen} />}

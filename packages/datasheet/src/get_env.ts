@@ -227,7 +227,7 @@ export const getEnvVars = () => {
     IS_SELFHOST: selfHostedEnterprise || process.env.IS_SELFHOST === 'true',
     ROBOT_TRIGGER_ICON: process.env.ROBOT_TRIGGER_ICON,
     LOGIN_LOGO_LIGHT: process.env.LOGIN_LOGO_LIGHT,
-    AI_ENTRANCE_VISIBLE: enterpriseFeatureVisible(process.env.AI_ENTRANCE_VISIBLE),
+    AI_ENTRANCE_VISIBLE: false,
     AI_OPEN_FORM: process.env.AI_OPEN_FORM,
     AUTH0_ENABLED: process.env.AUTH0_ENABLED === 'true',
     OSS_SIGNATURE_ENABLED: process.env.OSS_SIGNATURE_ENABLED === 'true',

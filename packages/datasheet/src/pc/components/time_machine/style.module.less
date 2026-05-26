@@ -102,6 +102,59 @@
   }
 }
 
+.versionTitle {
+  display: flex;
+  gap: 8px;
+}
+
+.versionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--textCommonTertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.operationWrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-left: 32px;
+}
+
+.cmdText {
+  min-width: 0;
+  color: var(--textCommonTertiary);
+  font-size: 12px;
+  line-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operation {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.operationCode {
+  margin: 8px 0 0 32px;
+  padding: 8px;
+  max-height: 240px;
+  overflow: auto;
+  color: var(--textCommonSecondary);
+  background: var(--bgControlsDefault);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .timestamp {
   color: var(--textCommonTertiary);
   font-size: 12px;

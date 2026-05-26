@@ -205,27 +205,28 @@
   }
 }
 
-.aiConfigPanel {
-  max-width: 920px;
-  margin: 8px 0 40px;
-  padding: 24px;
-  border: 1px solid var(--lineColor);
-  border-radius: 8px;
-  background: var(--defaultBg);
-}
-
-.aiConfigHeader {
+.adminConfigSwitch {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
+  gap: 16px;
   align-items: center;
 }
 
-.aiConfigDesc {
+.adminConfigDesc {
   margin-top: 6px;
   font-size: 13px;
   line-height: 20px;
   color: var(--thirdLevelText);
+}
+
+.adminConfigForm {
+  padding-bottom: 8px;
+}
+
+.adminConfigModalActions {
+  width: 216px;
+  align-self: center;
+  padding-top: 16px;
 }
 
 .aiProviderTabs {
@@ -251,14 +252,14 @@
   background: var(--primaryLight);
 }
 
-.aiConfigGrid {
+.configGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-top: 20px;
 }
 
-.aiConfigGrid label,
+.configGrid label,
 .aiSecretRow label,
 .aiHeadersField {
   display: flex;
@@ -315,24 +316,53 @@
   margin-top: 16px;
 }
 
-.aiConfigFooter {
+.configFooter {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
 }
 
-@media screen and (max-width: @w-md) {
-  .aiConfigPanel {
-    padding: 16px;
+.mailSwitchGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+
+  label {
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    border: 1px solid var(--lineColor);
+    border-radius: 6px;
+    background: var(--lowestBg);
   }
 
-  .aiConfigGrid,
+  span {
+    font-size: 13px;
+    color: var(--secondLevelText);
+  }
+}
+
+@media screen and (max-width: @w-md) {
+  .adminConfigSwitch {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .configGrid,
   .aiSecretRow {
     grid-template-columns: 1fr;
   }
 
   .aiSecretMeta,
-  .aiConfigFooter {
+  .configFooter,
+  .adminConfigModalActions {
     justify-content: flex-start;
+  }
+
+  .adminConfigModalActions {
+    width: 100%;
   }
 }
