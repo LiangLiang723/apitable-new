@@ -62,6 +62,11 @@ export const UPDATE_PWD = '/user/updatePwd';
   * Getting back the password
   */
 export const RETRIEVE_PWD = '/user/retrievePwd';
+
+/**
+  * Trigger reset password email
+  */
+export const RESET_PASSWORD = '/user/resetPassword';
  
 /**
   * Create developer access token

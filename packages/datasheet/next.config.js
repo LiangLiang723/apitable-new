@@ -99,6 +99,8 @@ const nextConfig = {
   distDir: 'web_build',
   output: 'standalone',
   experimental: {
+    cpus: Number(process.env.NEXT_BUILD_WORKERS || 2),
+    workerThreads: false,
     // runtime: 'nodejs', // 'node.js' (default) | experimental-edge
     esmExternals: true,
     // this includes files from the monorepo base two directories up

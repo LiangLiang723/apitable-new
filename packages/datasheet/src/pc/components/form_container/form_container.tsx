@@ -86,7 +86,7 @@ import { query2formData, string2Query } from './util';
 // @ts-ignore
 import { triggerUsageAlert, SubscribeUsageTipType } from 'enterprise/billing/trigger_usage_alert';
 // @ts-ignore
-import { PreFillPanel } from 'enterprise/pre_fill_panel/pre_fill_panel';
+import { PreFillPanel } from './pre_fill_panel/pre_fill_panel';
 import styles from './style.module.less';
 
 enum IFormContentType {

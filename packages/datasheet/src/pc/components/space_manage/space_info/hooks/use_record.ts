@@ -17,9 +17,8 @@
  */
 
 import { useMemo } from 'react';
-import { decimalCeil } from '@apitable/core';
 import { IHooksParams, IHooksResult } from '../interface';
-import { getPercent } from '../utils';
+import { buildUsageResult } from './utils';
 
 export const useRecord = ({ subscription, spaceInfo }: IHooksParams): IHooksResult => {
   const { used, total } = useMemo(() => {
@@ -29,21 +28,6 @@ export const useRecord = ({ subscription, spaceInfo }: IHooksParams): IHooksResu
     };
   }, [subscription, spaceInfo]);
   return useMemo(() => {
-    const remain = Math.max(0, total - used);
-    const usedText = used.toLocaleString();
-    const totalText = total.toLocaleString();
-    const usedPercent = decimalCeil(getPercent(used / total) * 100);
-    const remainText = remain.toLocaleString();
-    const remainPercent = Math.max(0, 100 - usedPercent);
-    return {
-      used,
-      usedText,
-      total,
-      totalText,
-      remain,
-      usedPercent,
-      remainPercent,
-      remainText,
-    };
+    return buildUsageResult(used, total);
   }, [used, total]);
 };

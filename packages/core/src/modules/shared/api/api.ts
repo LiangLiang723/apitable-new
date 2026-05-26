@@ -542,6 +542,22 @@ export function subscribeInfo(spaceId: string) {
   return axios.get(Url.SUBSCRIBE_INFO + spaceId);
 }
 
+export function getSubscript(spaceId: string) {
+  return subscribeInfo(spaceId);
+}
+
+export function updateBillingSubscription(_spaceId: string, _subscriptionId: string) {
+  return Promise.resolve({
+    data: {
+      success: false,
+      data: {
+        url: '',
+      },
+      message: 'Billing subscription updates are not supported in self-hosted enterprise.',
+    },
+  });
+}
+
 /**
  * Query trash's node list
  * @param params

@@ -219,6 +219,10 @@ export function retrievePwd(areaCode: string, username: string, code: string, pa
   });
 }
 
+export function apitableChangePasswordEmail() {
+  return axios.post(Url.RESET_PASSWORD);
+}
+
 /**
  * create developer access token
  * @returns

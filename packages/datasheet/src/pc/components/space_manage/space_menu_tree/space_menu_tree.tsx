@@ -43,8 +43,7 @@ import { isExclusiveLimitedProduct } from 'pc/components/space_manage/space_info
 import { useResponsive } from 'pc/hooks';
 import { useAppSelector } from 'pc/store/react-redux';
 import { getEnvVariables, isMobileApp } from 'pc/utils/env';
-// @ts-ignore
-import { Log } from 'enterprise/log/log';
+import { Log } from 'pc/components/space_manage/log';
 // @ts-ignore
 import { Marketing } from 'enterprise/marketing/marketing';
 import styles from './style.module.less';

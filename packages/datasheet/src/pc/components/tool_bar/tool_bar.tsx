@@ -457,7 +457,7 @@ const ToolbarBase = () => {
       ),
       label: 'Copilot',
       key: 'copilot',
-      show: getEnvVariables().AI_ENTRANCE_VISIBLE && getEnvVariables().IS_APITABLE && !shareId,
+      show: getEnvVariables().AI_ENTRANCE_VISIBLE && (getEnvVariables().IS_APITABLE || getEnvVariables().SELF_HOSTED_ENTERPRISE) && !shareId,
     },
     {
       component: <ForeignForm key="foreignForm" className={styles.toolbarItem} showLabel={showIconBarLabel} />,

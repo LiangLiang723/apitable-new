@@ -16,6 +16,45 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import { decimalCeil, Strings, t } from '@apitable/core';
+import { IHooksResult } from '../interface';
+import { getPercent } from '../utils';
+
+export const isUnlimited = (total: number | null | undefined) => total === -1;
+
+export const buildUsageResult = (used = 0, total = 0): IHooksResult => {
+  const usedText = used.toLocaleString();
+
+  if (isUnlimited(total)) {
+    const usedPercent = used ? 5 : 0;
+    return {
+      used,
+      usedText,
+      total,
+      totalText: '-1',
+      remain: -1,
+      usedPercent,
+      remainPercent: 100 - usedPercent,
+      remainText: t(Strings.unlimited),
+    };
+  }
+
+  const safeTotal = total || 0;
+  const remain = Math.max(0, safeTotal - used);
+  const usedPercent = safeTotal ? decimalCeil(getPercent(used / safeTotal) * 100) : 0;
+
+  return {
+    used,
+    usedText,
+    total: safeTotal,
+    totalText: safeTotal.toLocaleString(),
+    remain,
+    usedPercent,
+    remainPercent: Math.max(0, 100 - usedPercent),
+    remainText: remain.toLocaleString(),
+  };
+};
+
 export const calcPercent = (used: number | undefined, total: number) => {
   if (!used || !total || total === -1) {
     return 0;

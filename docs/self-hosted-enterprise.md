@@ -10,8 +10,8 @@ This fork defaults to self-hosted enterprise mode. These environment variables a
 SELF_HOSTED_ENTERPRISE=true
 IS_ENTERPRISE=true
 IS_SELFHOST=true
-SKIP_USAGE_VERIFICATION=true
-SKIP_API_USAGE_VERIFICATION=true
+SKIP_USAGE_VERIFICATION=false
+SKIP_API_USAGE_VERIFICATION=false
 API_MAX_MODIFY_RECORD_COUNTS=9007199254740991
 MAX_ROBOT_ACTION_COUNT=9007199254740991
 SERVER_TRANSFORM_LIMIT=9007199254740991
@@ -36,13 +36,13 @@ By default:
 
 - backend entitlement returns `Enterprise / enterprise` subscription info;
 - default subscription features become enterprise-like/unlimited;
-- Fusion API usage guard is skipped;
-- backend and room-server usage verification are skipped;
+- Fusion API usage guard is skipped by room-server in self-hosted enterprise mode;
+- backend usage statistics remain enabled so the space overview can calculate current usage;
 - Fusion API write/page limits are effectively unlimited unless explicitly overridden;
 - frontend enterprise/security/permission feature switches default to visible;
-- room-server usage verification flags are enabled automatically;
+- room-server usage verification is skipped automatically from `SELF_HOSTED_ENTERPRISE=true`;
 - payment reminder / usage warning modal is disabled for enterprise/self-hosted mode;
-- the static import of enterprise-only `usageWarnModal` is removed to avoid build failures when enterprise private code is unavailable.
+- enterprise and self-hosted entry points remain visible; integrations that require unavailable private/cloud services should return a clear unsupported or unconfigured response.
 
 ## Limits opened
 
@@ -94,8 +94,9 @@ After building and starting the stack:
 1. Register or log in.
 2. Create a space.
 3. Open space settings and verify the plan displays as enterprise/business-class rather than free.
-4. Create a datasheet.
-5. Add records past the old free row limit.
-6. Upload an attachment larger than the old small quota if your storage backend is configured.
-7. Call Fusion API batch write beyond the old free/default batch limits.
-8. Confirm no payment reminder, upgrade, renew, or usage warning modal appears.
+4. Verify the space overview current usage cards show real member/file/record/capacity values, not all zero.
+5. Create a datasheet.
+6. Add records past the old free row limit.
+7. Upload an attachment larger than the old small quota if your storage backend is configured.
+8. Call Fusion API batch write beyond the old free/default batch limits.
+9. Confirm no payment reminder, upgrade, renew, or usage warning modal appears.

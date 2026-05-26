@@ -66,8 +66,7 @@ import { SuspensionPanel } from '../suspension_panel';
 import { TabBar } from '../tab_bar';
 import { ViewContainer } from '../view_container';
 import { WidgetPanel } from '../widget';
-// @ts-ignore
-import { Copilot } from 'enterprise/Copilot';
+import { Copilot } from 'pc/components/copilot';
 // @ts-ignore
 import { createBackupSnapshot } from 'enterprise/time_machine/backup/backup';
 // @ts-ignore

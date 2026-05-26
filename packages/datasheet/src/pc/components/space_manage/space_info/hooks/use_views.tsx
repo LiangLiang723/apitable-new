@@ -19,7 +19,7 @@
 import { useMemo } from 'react';
 import { useThemeColors } from '@apitable/components';
 import { Strings, t } from '@apitable/core';
-import { GanttOutlined, CalendarOutlined, FormOutlined, MirrorOutlined } from '@apitable/icons';
+import { GanttOutlined, CalendarOutlined, FormOutlined, GalleryOutlined, KanbanOutlined, MirrorOutlined } from '@apitable/icons';
 import { IHooksParams, IMultiLineItemProps } from '../interface';
 import { calcPercent } from './utils';
 
@@ -43,6 +43,24 @@ export const useView = ({ spaceInfo, subscription }: IHooksParams): IMultiLineIt
         name: t(Strings.calendar_view),
         icon: <CalendarOutlined color={colors.black[500]} />,
         percent: calcPercent(spaceInfo?.calendarViewNums, subscription?.maxCalendarViewsInSpace),
+        showProgress: true,
+      },
+      {
+        unit: t(Strings.unit_piece),
+        total: subscription?.maxGalleryViewsInSpace,
+        used: spaceInfo?.galleryViewNums,
+        name: t(Strings.gallery_view),
+        icon: <GalleryOutlined color={colors.black[500]} />,
+        percent: calcPercent(spaceInfo?.galleryViewNums, subscription?.maxGalleryViewsInSpace),
+        showProgress: true,
+      },
+      {
+        unit: t(Strings.unit_piece),
+        total: subscription?.maxKanbanViewsInSpace,
+        used: spaceInfo?.kanbanViewNums,
+        name: t(Strings.kanban_view),
+        icon: <KanbanOutlined color={colors.black[500]} />,
+        percent: calcPercent(spaceInfo?.kanbanViewNums, subscription?.maxKanbanViewsInSpace),
         showProgress: true,
       },
       {

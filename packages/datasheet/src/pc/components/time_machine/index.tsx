@@ -68,6 +68,7 @@ const MAX_COUNT = Number.MAX_SAFE_INTEGER;
 const DATEFORMAT = 'YYYY-MM-DD HH:mm:ss';
 
 export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: boolean) => void }>> = ({ onClose }) => {
+  const BackupComponent = Backup;
   const datasheetId = useAppSelector(Selectors.getActiveDatasheetId)!;
   const curDatasheet = useAppSelector((state) => Selectors.getDatasheet(state, datasheetId));
   const activeNodePrivate = useAppSelector((state) => Selectors.getActiveNodePrivate(state));
@@ -360,9 +361,9 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
             </div>
           )}
         </TabPane>
-        {Boolean(Backup) && !activeNodePrivate && (
+        {BackupComponent && !activeNodePrivate && (
           <TabPane tab={t(Strings.backup_title)} key={TabPaneKeys.BACKUP}>
-            <Backup datasheetId={datasheetId} setCurPreview={setCurPreview} curPreview={curPreview!} />
+            <BackupComponent datasheetId={datasheetId} setCurPreview={setCurPreview} curPreview={curPreview!} />
           </TabPane>
         )}
       </Tabs>

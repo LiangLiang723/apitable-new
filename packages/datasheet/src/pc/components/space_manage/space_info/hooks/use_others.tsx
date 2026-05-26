@@ -21,11 +21,13 @@ import { useThemeColors } from '@apitable/components';
 import { Strings, t } from '@apitable/core';
 import { DeleteFilled, FolderNormalFilled, LockFilled, UserAdminFilled } from '@apitable/icons';
 import { IHooksParams, IMultiLineItemProps } from '../interface';
-import { calcPercent } from './utils';
+import { calcPercent, isUnlimited } from './utils';
 
 export const useOthers = ({ spaceInfo, subscription }: IHooksParams): IMultiLineItemProps[] => {
   const colors = useThemeColors();
   return useMemo(() => {
+    const maxRemainTrashDays = subscription?.maxRemainTrashDays ?? 0;
+    const unlimitedTrashDays = isUnlimited(maxRemainTrashDays);
     return [
       {
         unit: t(Strings.unit_ge),
@@ -81,9 +83,9 @@ export const useOthers = ({ spaceInfo, subscription }: IHooksParams): IMultiLine
                 fontSize: 24,
               }}
             >
-              {subscription?.maxRemainTrashDays}
+              {unlimitedTrashDays ? t(Strings.unlimited) : maxRemainTrashDays}
             </span>{' '}
-            {t(Strings.end_day)}
+            {!unlimitedTrashDays && t(Strings.end_day)}
           </span>
         ),
       },
