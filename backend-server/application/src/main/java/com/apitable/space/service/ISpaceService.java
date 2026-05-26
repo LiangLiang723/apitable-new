@@ -29,10 +29,8 @@ import com.apitable.space.dto.SpaceCapacityUsedInfo;
 import com.apitable.space.entity.SpaceEntity;
 import com.apitable.space.model.CreditUsages;
 import com.apitable.space.model.Space;
-import com.apitable.space.ro.SpaceAiConfigRo;
 import com.apitable.space.ro.SpaceUpdateOpRo;
 import com.apitable.space.vo.SeatUsage;
-import com.apitable.space.vo.SpaceAiConfigVo;
 import com.apitable.space.vo.SpaceGlobalFeature;
 import com.apitable.space.vo.SpaceInfoVO;
 import com.apitable.space.vo.SpaceSubscribeVo;
@@ -355,23 +353,6 @@ public interface ISpaceService extends IService<SpaceEntity> {
      * @return SpaceGlobalFeature
      */
     SpaceGlobalFeature getSpaceGlobalFeature(String spaceId);
-
-    /**
-     * get space AI provider config.
-     *
-     * @param spaceId space id
-     * @return SpaceAiConfigVo
-     */
-    SpaceAiConfigVo getSpaceAiConfig(String spaceId);
-
-    /**
-     * update space AI provider config.
-     *
-     * @param userId  user id
-     * @param spaceId space id
-     * @param config  AI provider config
-     */
-    void updateSpaceAiConfig(Long userId, String spaceId, SpaceAiConfigRo config);
 
     /**
      * change the space feature.

@@ -42,6 +42,10 @@ public enum SystemConfigType {
      * 2:gm permission.
      */
     GM_PERMISSION_CONFIG(2),
+    /**
+     * 3:mail server.
+     */
+    MAIL_SERVER_CONFIG(3),
 
     ;
 

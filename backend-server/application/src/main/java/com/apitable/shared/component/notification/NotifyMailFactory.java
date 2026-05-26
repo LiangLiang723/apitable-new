@@ -80,8 +80,10 @@ import com.apitable.interfaces.notification.facade.MailFacade;
 import com.apitable.shared.clock.spring.ClockManager;
 import com.apitable.shared.config.properties.ConstProperties;
 import com.apitable.shared.config.properties.EmailSendProperties;
+import com.apitable.shared.component.notification.MailServerConfigService.MailServerRuntimeConfig;
 import com.apitable.starter.beetl.autoconfigure.BeetlTemplate;
 import com.apitable.starter.mail.autoconfigure.EmailMessage;
+import com.apitable.starter.mail.autoconfigure.MailSendService;
 import com.apitable.starter.mail.autoconfigure.MailTemplate;
 import com.apitable.starter.mail.core.CloudEmailMessage;
 import com.apitable.starter.mail.core.CloudMailSender;
@@ -102,6 +104,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.mail.MailProperties;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Component;
 
 /**
@@ -122,11 +126,18 @@ public class NotifyMailFactory {
     @Resource
     private MailFacade mailFacade;
 
+    @Resource
+    private MailServerConfigService mailServerConfigService;
+
     @Autowired(required = false)
     private CloudMailSender cloudMailSender;
 
     @Autowired(required = false)
     private MailTemplate mailTemplate;
+
+    private volatile String customMailTemplateKey;
+
+    private volatile MailTemplate customMailTemplate;
 
     public static NotifyMailFactory me() {
         return SpringContextHolder.getBean(NotifyMailFactory.class);
@@ -213,11 +224,13 @@ public class NotifyMailFactory {
         String contactUrl = StrUtil.format("{}/?home=1",
             SpringContextHolder.getBean(ConstProperties.class).getServerDomain());
         dict.set("CONTACT_URL", contactUrl);
-        if (cloudMailSender != null) {
+        MailServerRuntimeConfig serverConfig = mailServerConfigService.getRuntimeConfig();
+        if (serverConfig == null && cloudMailSender != null) {
             cloudMailSend(subject, lang, subjectType, dict, to);
             return;
         }
-        if (mailTemplate == null) {
+        MailTemplate activeMailTemplate = resolveMailTemplate(serverConfig);
+        if (activeMailTemplate == null) {
             throw new BusinessException(
                 "The SMTP server is not configured, so emails cannot be sent.");
         }
@@ -234,6 +247,8 @@ public class NotifyMailFactory {
         String textTemplatePath = mailFacade.loadTemplateResourcePath(lang,
             textTemplateName);
         primevalMailSend(
+            serverConfig,
+            activeMailTemplate,
             subject,
             beetlTemplate.render(htmlTemplatePath, dict),
             beetlTemplate.render(textTemplatePath, dict),
@@ -257,7 +272,7 @@ public class NotifyMailFactory {
      */
     public void notify(final String subject, final String textBtl) {
         this.notify(
-            emailSendProperties.getPersonal(),
+            null,
             subject,
             null,
             null,
@@ -283,10 +298,12 @@ public class NotifyMailFactory {
         final String textBtl,
         final List<String> to
     ) {
-        if (cloudMailSender != null) {
+        MailServerRuntimeConfig serverConfig = mailServerConfigService.getRuntimeConfig();
+        String activePersonal = StrUtil.blankToDefault(personal, resolveMailPersonal(serverConfig));
+        if (serverConfig == null && cloudMailSender != null) {
             CloudEmailMessage message = new CloudEmailMessage();
             message.setSubject(subject);
-            message.setPersonal(personal);
+            message.setPersonal(activePersonal);
             message.setTo(to);
             JSONObject obj = JSONUtil.createObj();
             if (subjectType != null) {
@@ -302,13 +319,14 @@ public class NotifyMailFactory {
             cloudMailSender.send(message);
             return;
         }
-        if (mailTemplate == null) {
+        MailTemplate activeMailTemplate = resolveMailTemplate(serverConfig);
+        if (activeMailTemplate == null) {
             throw new BusinessException(
                 "The SMTP server is not configured, so emails cannot be sent.");
         }
         EmailMessage emailMessage = new EmailMessage();
-        emailMessage.setPersonal(personal);
-        emailMessage.setFrom(emailSendProperties.getFrom());
+        emailMessage.setPersonal(activePersonal);
+        emailMessage.setFrom(resolveMailFrom(serverConfig));
         emailMessage.setSubject(subject);
         emailMessage.setTo(to);
         if (subjectType != null) {
@@ -318,7 +336,7 @@ public class NotifyMailFactory {
             emailMessage.setPlainText(textBtl);
         }
         try {
-            mailTemplate.send(emailMessage);
+            activeMailTemplate.send(emailMessage);
         } catch (Exception e) {
             throw new BusinessException(e.getMessage());
         }
@@ -343,6 +361,8 @@ public class NotifyMailFactory {
     }
 
     private void primevalMailSend(
+        final MailServerRuntimeConfig serverConfig,
+        final MailTemplate activeMailTemplate,
         final String subject,
         final String htmlBody,
         final String plainText,
@@ -351,8 +371,8 @@ public class NotifyMailFactory {
         EmailMessage[] messages = new EmailMessage[to.size()];
         for (int i = 0; i < to.size(); i++) {
             EmailMessage emailMessage = new EmailMessage();
-            emailMessage.setPersonal(emailSendProperties.getPersonal());
-            emailMessage.setFrom(emailSendProperties.getFrom());
+            emailMessage.setPersonal(resolveMailPersonal(serverConfig));
+            emailMessage.setFrom(resolveMailFrom(serverConfig));
             emailMessage.setSubject(subject);
             emailMessage.setTo(Collections.singletonList(to.get(i)));
             emailMessage.setPlainText(plainText);
@@ -360,10 +380,77 @@ public class NotifyMailFactory {
             messages[i] = emailMessage;
         }
         try {
-            mailTemplate.send(messages);
+            activeMailTemplate.send(messages);
         } catch (Exception e) {
             throw new BusinessException(e.getMessage());
         }
+    }
+
+    private MailTemplate resolveMailTemplate(final MailServerRuntimeConfig serverConfig) {
+        if (serverConfig == null) {
+            return mailTemplate;
+        }
+        String cacheKey = serverConfig.cacheKey();
+        MailTemplate cached = customMailTemplate;
+        if (cacheKey.equals(customMailTemplateKey) && cached != null) {
+            return cached;
+        }
+        synchronized (this) {
+            if (cacheKey.equals(customMailTemplateKey) && customMailTemplate != null) {
+                return customMailTemplate;
+            }
+            customMailTemplate = createMailTemplate(serverConfig);
+            customMailTemplateKey = cacheKey;
+            return customMailTemplate;
+        }
+    }
+
+    private MailTemplate createMailTemplate(final MailServerRuntimeConfig serverConfig) {
+        JavaMailSenderImpl sender = new JavaMailSenderImpl();
+        sender.setHost(serverConfig.getHost());
+        sender.setPort(serverConfig.getPort());
+        sender.setProtocol(StrUtil.blankToDefault(serverConfig.getProtocol(), "smtp"));
+        sender.setDefaultEncoding("UTF-8");
+        if (Boolean.TRUE.equals(serverConfig.getAuth())) {
+            sender.setUsername(serverConfig.getUsername());
+            sender.setPassword(serverConfig.getPassword());
+        }
+        Properties javaMailProperties = new Properties();
+        javaMailProperties.put("mail.smtp.auth", String.valueOf(Boolean.TRUE.equals(serverConfig.getAuth())));
+        javaMailProperties.put("mail.smtp.ssl.enable", String.valueOf(Boolean.TRUE.equals(serverConfig.getSslEnable())));
+        javaMailProperties.put("mail.smtp.starttls.enable", String.valueOf(Boolean.TRUE.equals(serverConfig.getStarttlsEnable())));
+        javaMailProperties.put("mail.smtp.starttls.required", String.valueOf(Boolean.TRUE.equals(serverConfig.getStarttlsRequired())));
+        javaMailProperties.put("mail.debug", String.valueOf(Boolean.TRUE.equals(serverConfig.getDebug())));
+        javaMailProperties.put("mail.smtp.connectiontimeout", "10000");
+        javaMailProperties.put("mail.smtp.timeout", "10000");
+        javaMailProperties.put("mail.smtp.writetimeout", "10000");
+        if (Boolean.TRUE.equals(serverConfig.getSslEnable())) {
+            javaMailProperties.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+            javaMailProperties.put("mail.smtp.socketFactory.port", String.valueOf(serverConfig.getPort()));
+        }
+        sender.setJavaMailProperties(javaMailProperties);
+
+        MailProperties mailProperties = new MailProperties();
+        mailProperties.setHost(serverConfig.getHost());
+        mailProperties.setPort(serverConfig.getPort());
+        mailProperties.setProtocol(StrUtil.blankToDefault(serverConfig.getProtocol(), "smtp"));
+        mailProperties.setUsername(serverConfig.getUsername());
+        mailProperties.setPassword(serverConfig.getPassword());
+        return new MailSendService(mailProperties, sender);
+    }
+
+    private String resolveMailPersonal(final MailServerRuntimeConfig serverConfig) {
+        if (serverConfig != null) {
+            return StrUtil.blankToDefault(serverConfig.getPersonal(), emailSendProperties.getPersonal());
+        }
+        return emailSendProperties.getPersonal();
+    }
+
+    private String resolveMailFrom(final MailServerRuntimeConfig serverConfig) {
+        if (serverConfig != null) {
+            return StrUtil.blankToDefault(serverConfig.getFrom(), emailSendProperties.getFrom());
+        }
+        return emailSendProperties.getFrom();
     }
 
     /**

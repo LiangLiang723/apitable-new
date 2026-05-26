@@ -86,7 +86,6 @@ import {
   SET_ORG_CHART_GRID_WIDTH as SET_ORG_CHART_GRID_PANEL_WIDTH,
   SET_ORG_CHART_SETTING_PANEL_WIDTH,
   SET_ROBOT_PANEL_STATUS,
-  SET_COPILOT_PANEL_STATUS,
   SET_SEARCH_KEYWORD,
   SET_SEARCH_RESULT_CURSOR_INDEX,
   SET_VIEW_DERIVATION,
@@ -785,14 +784,6 @@ export const toggleTimeMachinePanel = (datasheetId: string, visible?: boolean) =
   return {
     type: TOGGLE_TIME_MACHINE_PANEL,
     payload: visible,
-    datasheetId,
-  };
-};
-
-export const setCoPilotPanelStatus = (status: boolean, datasheetId: string) => {
-  return {
-    type: SET_COPILOT_PANEL_STATUS,
-    payload: status,
     datasheetId,
   };
 };

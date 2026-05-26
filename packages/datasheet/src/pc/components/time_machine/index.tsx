@@ -95,6 +95,7 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
 
   const currentDatasheetIds = useAppSelector(Selectors.getDatasheetIds);
   const [rollbackIng, setRollbackIng] = useState(false);
+  const [expandMap, setExpandMap] = useState<Record<number, boolean>>({});
   const dispatch = useAppDispatch();
 
   const theme = useAppSelector((state) => state.theme);
@@ -270,6 +271,13 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
     [execute],
   );
 
+  const onExpandClick = useCallback((index: number) => {
+    setExpandMap((prevExpandMap) => ({
+      ...prevExpandMap,
+      [index]: !prevExpandMap[index],
+    }));
+  }, []);
+
   const onRollbackClick = useCallback((index: number) => {
     Modal.confirm({
       title: t(Strings.rollback_title, { revision: changesetList![index].revision }),
@@ -317,7 +325,7 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
           setCurPreview(undefined);
         }}
       >
-        <TabPane tab={t(Strings.time_machine_action_title)} key={TabPaneKeys.ACTION}>
+        <TabPane tab="版本历史" key={TabPaneKeys.ACTION}>
           {!changesetList ? (
             <div className={'vk-px-2'}>
               <Skeleton width="38%" />
@@ -339,8 +347,9 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
                       name: memberInfo?.memberName,
                       isModified: memberInfo?.isMemberNameModified,
                       spaceInfo,
-                    }) || '';
+                    }) || memberInfo?.memberName || '';
                   const ops = item.operations.filter((op) => !op.cmd.startsWith('System'));
+                  const expanded = expandMap[index];
                   return (
                     <section
                       className={styles.listItem}
@@ -351,16 +360,45 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
                         console.log('ops', ops);
                       }}
                     >
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div className={styles.versionTitle}>
                         <Avatar id={item.userId || ''} title={typeof title === 'string' ? title : ''} size={24} src={memberInfo?.avatar} />
                         <div>
                           <div className={styles.title}>
                             <span style={{ paddingRight: '4px' }}>{title}</span>
                             <span>{getOperationInfo(ops)}</span>
                           </div>
-                          <div className={styles.timestamp}>
-                            {dayjs.tz(item.createdAt).format(DATEFORMAT)}
-                            {getEnvVariables().ENABLE_TIME_MACHINE_ROOLBACK && 
+                          <div className={styles.versionMeta}>
+                            <span>{t(Strings.rollback_version_field)}{item.revision}</span>
+                            <span>{t(Strings.rollback_time_field)}{dayjs.tz(item.createdAt).format(DATEFORMAT)}</span>
+                            <span>{t(Strings.rollback_operator_field)}{title}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className={styles.operationWrap}>
+                        <div className={styles.cmdText}>{ops.map((op) => op.cmd).join(', ')}</div>
+                        <div className={styles.operation}>
+                          <TextButton
+                            size="x-small"
+                            disabled={isEmpty}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onExpandClick(index);
+                            }}
+                          >
+                            {expanded ? t(Strings.collapse) : t(Strings.expand)}
+                          </TextButton>
+                          <TextButton
+                            size="x-small"
+                            color="primary"
+                            disabled={isEmpty}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onPreviewClick(index);
+                            }}
+                          >
+                            {t(Strings.preview_revision)}
+                          </TextButton>
+                          {getEnvVariables().ENABLE_TIME_MACHINE_ROOLBACK && (
                             <TextButton
                               size="x-small"
                               color="danger"
@@ -372,10 +410,10 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
                             >
                               {t(Strings.rollback_revision)}
                             </TextButton>
-                            }
-                          </div>
+                          )}
                         </div>
                       </div>
+                      {expanded && <pre className={styles.operationCode}>{JSON.stringify(ops, null, 2)}</pre>}
                     </section>
                   );
                 })

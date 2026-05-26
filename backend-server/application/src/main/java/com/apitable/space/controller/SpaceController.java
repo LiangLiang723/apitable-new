@@ -44,6 +44,7 @@ import com.apitable.shared.captcha.ValidateTarget;
 import com.apitable.shared.component.TaskManager;
 import com.apitable.shared.component.notification.NotificationRenderField;
 import com.apitable.shared.component.notification.NotificationTemplateId;
+import com.apitable.shared.component.notification.MailServerConfigService;
 import com.apitable.shared.component.notification.annotation.Notification;
 import com.apitable.shared.component.scanner.annotation.ApiResource;
 import com.apitable.shared.component.scanner.annotation.GetResource;
@@ -66,8 +67,8 @@ import com.apitable.space.enums.SpaceException;
 import com.apitable.space.enums.SpaceUpdateOperate;
 import com.apitable.space.model.CreditUsages;
 import com.apitable.space.model.Space;
-import com.apitable.space.ro.SpaceAiConfigRo;
 import com.apitable.space.ro.SpaceDeleteRo;
+import com.apitable.space.ro.SpaceMailConfigRo;
 import com.apitable.space.ro.SpaceOpRo;
 import com.apitable.space.ro.SpaceSecuritySettingRo;
 import com.apitable.space.ro.SpaceUpdateOpRo;
@@ -77,9 +78,9 @@ import com.apitable.space.service.IStaticsService;
 import com.apitable.space.vo.CreateSpaceResultVo;
 import com.apitable.space.vo.LabsFeatureVo;
 import com.apitable.space.vo.SpaceCapacityVO;
-import com.apitable.space.vo.SpaceAiConfigVo;
 import com.apitable.space.vo.SpaceGlobalFeature;
 import com.apitable.space.vo.SpaceInfoVO;
+import com.apitable.space.vo.SpaceMailConfigVo;
 import com.apitable.space.vo.SpaceSubscribeVo;
 import com.apitable.space.vo.SpaceVO;
 import com.apitable.space.vo.UserSpaceVo;
@@ -138,6 +139,9 @@ public class SpaceController {
     @Resource
     private IStaticsService iStaticsService;
 
+    @Resource
+    private MailServerConfigService mailServerConfigService;
+
     /**
      * Get space capacity info.
      */
@@ -181,28 +185,25 @@ public class SpaceController {
     }
 
     /**
-     * Get space AI provider config.
+     * Get mail server config.
      */
-    @GetResource(path = "/space/aiConfig", requiredPermission = false)
-    @Operation(summary = "Get space AI provider config")
+    @GetResource(path = "/space/mailConfig", tags = "MANAGE_ADVANCE_SETTING")
+    @Operation(summary = "Get mail server config")
     @Parameter(name = ParamsConstants.SPACE_ID, description = "space id", required = true,
         schema = @Schema(type = "string"), in = ParameterIn.HEADER, example = "spcyQkKp9XJEl")
-    public ResponseData<SpaceAiConfigVo> aiConfig() {
-        String spaceId = LoginContext.me().getSpaceId();
-        return ResponseData.success(iSpaceService.getSpaceAiConfig(spaceId));
+    public ResponseData<SpaceMailConfigVo> mailConfig() {
+        return ResponseData.success(mailServerConfigService.getConfig());
     }
 
     /**
-     * Update space AI provider config.
+     * Update mail server config.
      */
-    @PostResource(path = "/space/aiConfig", tags = "MANAGE_ADVANCE_SETTING")
-    @Operation(summary = "Update space AI provider config")
+    @PostResource(path = "/space/mailConfig", tags = "MANAGE_ADVANCE_SETTING")
+    @Operation(summary = "Update mail server config")
     @Parameter(name = ParamsConstants.SPACE_ID, description = "space id", required = true,
         schema = @Schema(type = "string"), in = ParameterIn.HEADER, example = "spcyQkKp9XJEl")
-    public ResponseData<Void> updateAiConfig(@RequestBody @Valid SpaceAiConfigRo data) {
-        Long userId = SessionContext.getUserId();
-        String spaceId = LoginContext.me().getSpaceId();
-        iSpaceService.updateSpaceAiConfig(userId, spaceId, data);
+    public ResponseData<Void> updateMailConfig(@RequestBody @Valid SpaceMailConfigRo data) {
+        mailServerConfigService.updateConfig(SessionContext.getUserId(), data);
         return ResponseData.success();
     }
 

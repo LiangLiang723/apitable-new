@@ -123,18 +123,24 @@ export interface IUpdateSecuritySetting {
   watermarkEnable?: boolean;
 }
 
-export interface IAiConfig {
+export interface IMailConfig {
   enabled?: boolean;
   provider?: string;
-  baseUrl?: string;
-  apiKey?: string;
-  clearApiKey?: boolean;
-  apiKeyConfigured?: boolean;
-  maskedApiKey?: string;
-  model?: string;
-  chatCompletionPath?: string;
-  authorizationPrefix?: string;
-  extraHeaders?: string;
+  host?: string;
+  port?: number;
+  protocol?: string;
+  username?: string;
+  password?: string;
+  clearPassword?: boolean;
+  passwordConfigured?: boolean;
+  maskedPassword?: string;
+  from?: string;
+  personal?: string;
+  auth?: boolean;
+  sslEnable?: boolean;
+  starttlsEnable?: boolean;
+  starttlsRequired?: boolean;
+  debug?: boolean;
 }
 
 export interface IAdData {
