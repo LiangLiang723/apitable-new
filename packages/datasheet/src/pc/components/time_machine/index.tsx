@@ -28,6 +28,7 @@ import {
   Api,
   CollaCommandName,
   DatasheetApi,
+  ExecuteResult,
   fastCloneDeep,
   getRollbackActions,
   IChangesetPack,
@@ -99,21 +100,23 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
   const theme = useAppSelector((state) => state.theme);
   const DataEmpty = theme === ThemeName.Light ? DataEmptyLight : DataEmptyDark;
 
-  const fetchChangesets = (lastRevision: number) => {
+  const fetchChangesets = useCallback((lastRevision: number, replace = false) => {
     setFetching(true);
     const startRevision = lastRevision - 99 > 0 ? lastRevision - 99 : 1;
-    DatasheetApi.fetchChangesets<IChangesetPack>(datasheetId, ResourceType.Datasheet, startRevision, lastRevision + 1)
+    return DatasheetApi.fetchChangesets<IChangesetPack>(datasheetId, ResourceType.Datasheet, startRevision, lastRevision + 1)
       .then((res) => {
         // The returned data is from low to high, when displaying, you need to display the high version first
         const csl = res.data.data.reverse();
         console.log('Load changesetList: ', csl);
-        const nextCsl = changesetList === null ? csl : changesetList.concat(csl);
-        setChangesetList(nextCsl.filter((item) => item.operations.filter((op) => !op.cmd.startsWith('System')).length > 0));
+        setChangesetList((prevChangesets) => {
+          const nextCsl = replace || prevChangesets === null ? csl : prevChangesets.concat(csl);
+          return nextCsl.filter((item) => item.operations.filter((op) => !op.cmd.startsWith('System')).length > 0);
+        });
       })
       .finally(() => {
         setFetching(false);
       });
-  };
+  }, [datasheetId]);
 
   const lastChangeset = changesetList && changesetList[changesetList.length - 1];
   const noMore = !lastChangeset || lastChangeset.revision === 1 || changesetList.length >= MAX_COUNT;
@@ -121,7 +124,7 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
   const scrollInfo = useScroll(contentRef);
 
   useEffect(() => {
-    // Load up to 500 most recent versions
+    // Load older versions lazily, like paging through a commit history.
     if (!contentRef.current || fetching || noMore) {
       return;
     }
@@ -134,7 +137,7 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
   }, [scrollInfo]);
 
   useEffect(() => {
-    fetchChangesets(currentRevision);
+    fetchChangesets(currentRevision, true);
     // eslint-disable-next-line
   }, []);
 
@@ -154,24 +157,36 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
 
   const executeRollback = useCallback(
     (operations: any) => {
+      setRollbackIng(true);
       try {
-        resourceService.instance!.commandManager.execute({
+        const result = resourceService.instance!.commandManager.execute({
           cmd: CollaCommandName.Rollback,
           datasheetId,
           data: {
             operations,
           },
         });
+        if (!result || result.result !== ExecuteResult.Success) {
+          throw new Error('Rollback command did not produce valid actions.');
+        }
         notify.open({ message: t(Strings.rollback_tip), key: NotifyKey.Rollback });
+        setCurPreview(undefined);
+        dispatch(StoreActions.refreshSnapshot(datasheetId));
+        dispatch(StoreActions.fetchDatasheet(datasheetId, undefined, true));
+        const nextRevision = Selectors.getResourceRevision(store.getState(), datasheetId, ResourceType.Datasheet) || currentRevision;
+        setChangesetList(null);
+        fetchChangesets(nextRevision, true);
       } catch (error) {
         Modal.confirm({
           title: t(Strings.rollback_fail_title),
           content: <div dangerouslySetInnerHTML={{ __html: t(Strings.rollback_fail_content, { url: '/help/manual-timemachine/' }) }} />,
         });
+      } finally {
+        setRollbackIng(false);
+        dispatch(StoreActions.resetDatasheet(PREVIEW_DATASHEET_ID));
       }
-      dispatch(StoreActions.resetDatasheet(PREVIEW_DATASHEET_ID));
     },
-    [datasheetId, dispatch],
+    [currentRevision, datasheetId, dispatch, fetchChangesets],
   );
 
   const executePreview = useCallback(
@@ -346,7 +361,15 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
                           <div className={styles.timestamp}>
                             {dayjs.tz(item.createdAt).format(DATEFORMAT)}
                             {getEnvVariables().ENABLE_TIME_MACHINE_ROOLBACK && 
-                            <TextButton size="x-small" color="danger" disabled={isEmpty} onClick={() => onRollbackClick(index)}>
+                            <TextButton
+                              size="x-small"
+                              color="danger"
+                              disabled={isEmpty || rollbackIng}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onRollbackClick(index);
+                              }}
+                            >
                               {t(Strings.rollback_revision)}
                             </TextButton>
                             }
