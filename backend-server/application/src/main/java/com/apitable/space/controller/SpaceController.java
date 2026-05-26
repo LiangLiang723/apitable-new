@@ -66,6 +66,7 @@ import com.apitable.space.enums.SpaceException;
 import com.apitable.space.enums.SpaceUpdateOperate;
 import com.apitable.space.model.CreditUsages;
 import com.apitable.space.model.Space;
+import com.apitable.space.ro.SpaceAiConfigRo;
 import com.apitable.space.ro.SpaceDeleteRo;
 import com.apitable.space.ro.SpaceOpRo;
 import com.apitable.space.ro.SpaceSecuritySettingRo;
@@ -76,6 +77,7 @@ import com.apitable.space.service.IStaticsService;
 import com.apitable.space.vo.CreateSpaceResultVo;
 import com.apitable.space.vo.LabsFeatureVo;
 import com.apitable.space.vo.SpaceCapacityVO;
+import com.apitable.space.vo.SpaceAiConfigVo;
 import com.apitable.space.vo.SpaceGlobalFeature;
 import com.apitable.space.vo.SpaceInfoVO;
 import com.apitable.space.vo.SpaceSubscribeVo;
@@ -176,6 +178,32 @@ public class SpaceController {
         String spaceId = LoginContext.me().getSpaceId();
         SpaceGlobalFeature spaceGlobalFeature = iSpaceService.getSpaceGlobalFeature(spaceId);
         return ResponseData.success(spaceGlobalFeature);
+    }
+
+    /**
+     * Get space AI provider config.
+     */
+    @GetResource(path = "/space/aiConfig", requiredPermission = false)
+    @Operation(summary = "Get space AI provider config")
+    @Parameter(name = ParamsConstants.SPACE_ID, description = "space id", required = true,
+        schema = @Schema(type = "string"), in = ParameterIn.HEADER, example = "spcyQkKp9XJEl")
+    public ResponseData<SpaceAiConfigVo> aiConfig() {
+        String spaceId = LoginContext.me().getSpaceId();
+        return ResponseData.success(iSpaceService.getSpaceAiConfig(spaceId));
+    }
+
+    /**
+     * Update space AI provider config.
+     */
+    @PostResource(path = "/space/aiConfig", tags = "MANAGE_ADVANCE_SETTING")
+    @Operation(summary = "Update space AI provider config")
+    @Parameter(name = ParamsConstants.SPACE_ID, description = "space id", required = true,
+        schema = @Schema(type = "string"), in = ParameterIn.HEADER, example = "spcyQkKp9XJEl")
+    public ResponseData<Void> updateAiConfig(@RequestBody @Valid SpaceAiConfigRo data) {
+        Long userId = SessionContext.getUserId();
+        String spaceId = LoginContext.me().getSpaceId();
+        iSpaceService.updateSpaceAiConfig(userId, spaceId, data);
+        return ResponseData.success();
     }
 
     /**

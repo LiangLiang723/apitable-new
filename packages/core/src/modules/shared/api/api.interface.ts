@@ -123,6 +123,20 @@ export interface IUpdateSecuritySetting {
   watermarkEnable?: boolean;
 }
 
+export interface IAiConfig {
+  enabled?: boolean;
+  provider?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  clearApiKey?: boolean;
+  apiKeyConfigured?: boolean;
+  maskedApiKey?: string;
+  model?: string;
+  chatCompletionPath?: string;
+  authorizationPrefix?: string;
+  extraHeaders?: string;
+}
+
 export interface IAdData {
   linkText: string;
   linkTextEn: string;

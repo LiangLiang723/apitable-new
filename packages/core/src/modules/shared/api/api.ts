@@ -33,6 +33,7 @@ import {
   IGetRoleMemberListResponse,
   IGetSpaceAuditReq,
   IGetUploadCertificateResponse,
+  IAiConfig,
   ILabsFeatureListResponse,
   ILoadOrSearchArg,
   INodeInfoWindowResponse,
@@ -853,6 +854,14 @@ export function updateLabsFeatureList(key: string, isEnabled: boolean, spaceId: 
 
 export function updateSecuritySetting(config: IUpdateSecuritySetting) {
   return axios.post<IApiWrapper>(Url.UPDATE_SECURITY_SETTING, config);
+}
+
+export function getAiConfig() {
+  return axios.get<IApiWrapper & { data: IAiConfig }>(Url.SPACE_AI_CONFIG);
+}
+
+export function updateAiConfig(config: IAiConfig) {
+  return axios.post<IApiWrapper>(Url.SPACE_AI_CONFIG, config);
 }
 
 export function applyResourceChangesets(changesets: ILocalChangeset[], roomId: string) {

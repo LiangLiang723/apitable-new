@@ -23,6 +23,7 @@ import { Typography } from '@apitable/components';
 import { Strings, t, Api } from '@apitable/core';
 import { useRequest } from 'pc/hooks';
 import { Card } from './card';
+import { CopilotAiConfig } from './copilot_ai_config';
 import { ApplicantType } from './interface';
 import styles from './style.module.less';
 
@@ -61,6 +62,7 @@ export const TestFunction = ({ isUser }: ITestFunctionProps) => {
           </div>
         </div>
       ))}
+      {!isUser && <CopilotAiConfig />}
     </div>
   );
 };
