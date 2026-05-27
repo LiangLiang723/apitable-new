@@ -23,6 +23,16 @@ import { integrateCdnHost } from '@apitable/core';
 import { getInitialProps } from '../utils/get_initial_props';
 import '../utils/init_private';
 
+const getDocumentIconUrl = (favicon?: string) => {
+  if (!favicon) {
+    return '/favicon.ico';
+  }
+  if (favicon.startsWith('http') || favicon.startsWith('/favicon') || favicon.startsWith('/file/')) {
+    return favicon;
+  }
+  return integrateCdnHost(favicon);
+};
+
 interface IClientInfo {
   env: string;
   version: string;
@@ -42,26 +52,29 @@ class MyDocument extends Document<IClientInfo> {
 
   override render() {
     const { env, version, envVars, locale } = this.props;
+    const envConfig = JSON.parse(envVars);
+    const faviconUrl = getDocumentIconUrl(envConfig.FAVICON);
     return (
       <Html>
         <Head>
-          <link rel="apple-touch-icon" href={integrateCdnHost(JSON.parse(envVars).LOGO)} />
-          <link rel="shortcut icon" href={integrateCdnHost(JSON.parse(envVars).FAVICON)} />
-          <meta property="og:image" content={integrateCdnHost(JSON.parse(envVars).FAVICON)} />
+          <link rel="apple-touch-icon" href={faviconUrl} />
+          <link rel="icon" type="image/x-icon" href={faviconUrl} />
+          <link rel="shortcut icon" href={faviconUrl} />
+          <meta property="og:image" content={faviconUrl} />
           {/* Do not send referrer in development mode to solve the problem of CDN Anti-Leech chain images not displaying. */}
           {process.env.NODE_ENV === 'development' && <meta name="referrer" content="no-referrer" />}
           <link rel="manifest" href={'/file/manifest.json'} />
-          {JSON.parse(envVars).EMBED_BAIDU_CATCH_SDK && (
+          {envConfig.EMBED_BAIDU_CATCH_SDK && (
             <script src="https://rte-fe-static.bj.bcebos.com/rte-online/rte-fe-static/MultiSheetMonitor/index.js" />
           )}
           <script src="/file/js/browser_check.2.js" async />
           {/* injection of custom configs of editions, e.g. APITable */}
           <script src={`/custom/custom_config.js?version=${version}`} defer />
-          {JSON.parse(envVars).COOKIEBOT_ID && (
+          {envConfig.COOKIEBOT_ID && (
             <script
               id="Cookiebot"
               src="https://consent.cookiebot.com/uc.js"
-              data-cbid={JSON.parse(envVars).COOKIEBOT_ID}
+              data-cbid={envConfig.COOKIEBOT_ID}
               data-blockingmode="auto"
               async
             />
@@ -70,7 +83,7 @@ class MyDocument extends Document<IClientInfo> {
         <body>
           <Main />
           <NextScript />
-          {!JSON.parse(envVars).IS_SELFHOST && <Script src="https://g.alicdn.com/AWSC/AWSC/awsc.js" strategy={'beforeInteractive'} />}
+          {!envConfig.IS_SELFHOST && <Script src="https://g.alicdn.com/AWSC/AWSC/awsc.js" strategy={'beforeInteractive'} />}
           {
             <Script id="__initialization_data__" strategy={'beforeInteractive'}>
               {`
