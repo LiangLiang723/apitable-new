@@ -16,26 +16,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { DynamicModule, Module } from '@nestjs/common';
+import { DynamicModule, forwardRef, Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DatasheetModule } from 'database/datasheet/datasheet.module';
+import { NodeModule } from 'node/node.module';
+import { UserModule } from 'user/user.module';
+import { TablebundleController } from './controllers/tablebundle.controller';
+import { TableBundleEntity } from './entities/tablebundle.entity';
+import { TimeMachineService } from './time.machine.service';
 import { TimeMachineBaseService } from 'database/time_machine/time.machine.service.base';
 import fs from 'fs';
 import path from 'path';
 
 @Module({
+  imports: [
+    forwardRef(() => DatasheetModule),
+    forwardRef(() => NodeModule),
+    UserModule,
+    TypeOrmModule.forFeature([TableBundleEntity]),
+  ],
+  controllers: [TablebundleController],
   providers: [
     {
       provide: TimeMachineBaseService,
-      useClass: class TimeMachineService extends TimeMachineBaseService {
-      }
+      useExisting: TimeMachineService,
     },
+    TimeMachineService,
   ],
-  exports: [
-    {
-      provide: TimeMachineBaseService,
-      useClass: class TimeMachineService extends TimeMachineBaseService {
-      }
-    },
-  ]
+  exports: [TimeMachineBaseService, TimeMachineService]
 })
 export class TimeMachineDynamicModule {
   static forRoot(): DynamicModule {
