@@ -22,6 +22,8 @@ COPY packages/api-client/package.json ./packages/api-client/
 # datasheet main
 COPY packages/datasheet/package.json ./packages/datasheet/
 
+RUN sed -i 's~registry.npmmirror.com~registry.npmjs.org~g' pnpm-lock.yaml
+
 RUN pnpm install
 
 # stage builder
