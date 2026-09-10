@@ -2,6 +2,7 @@ FROM amazoncorretto:17 AS builder
 
 WORKDIR /app
 COPY ./backend-server/. .
+RUN yum install -y findutils && yum clean all
 RUN --mount=type=cache,target=/root/.gradle ./gradlew -v
 RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon -Dorg.gradle.vfs.watch=false :application:bootJar
 
