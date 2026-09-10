@@ -66,7 +66,10 @@ export const getEnvVars = () => {
     INTEGRATIONS_DINGTALK_VISIBLE: process.env.INTEGRATIONS_DINGTALK_VISIBLE === 'true',
     INTEGRATIONS_WECOM_VISIBLE: process.env.INTEGRATIONS_WECOM_VISIBLE === 'true',
     INTEGRATIONS_YOZOSOFT_VISIBLE: process.env.INTEGRATIONS_YOZOSOFT_VISIBLE === 'true',
-    RECORD_TASK_REMINDER_VISIBLE: enterpriseFeatureVisible(process.env.RECORD_TASK_REMINDER_VISIBLE),
+    // The desktop date editor mounts the enterprise reminder controls behind this flag.
+    // Keep it opt-in for self-hosted builds because the private reminder implementation
+    // is not part of this repository.
+    RECORD_TASK_REMINDER_VISIBLE: process.env.RECORD_TASK_REMINDER_VISIBLE === 'true',
     RECORD_WATCHING_VISIBLE: process.env.RECORD_WATCHING_VISIBLE === 'true',
     FIELD_PERMISSION_VISIBLE: enterpriseFeatureVisible(process.env.FIELD_PERMISSION_VISIBLE),
     FILE_PERMISSION_VISIBLE: enterpriseFeatureVisible(process.env.FILE_PERMISSION_VISIBLE),
