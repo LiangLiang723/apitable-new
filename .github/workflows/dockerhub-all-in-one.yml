@@ -36,6 +36,11 @@ env:
   DATABUS_IMAGE: benxianyu/apitable-databus-server
   INIT_APPDATA_IMAGE: benxianyu/apitable-init-appdata
   IMAGEPROXY_IMAGE: benxianyu/apitable-imageproxy-server
+  OPENRESTY_IMAGE: benxianyu/apitable-openresty
+  NODE_BASE_IMAGE: benxianyu/apitable-node
+  NODE_BASE_TAG: v16.15.0
+  NODEPY_BASE_IMAGE: benxianyu/apitable-nodepy
+  NODEPY_BASE_TAG: 16.15.0-alpine
   ALL_IN_ONE_DOCKERFILE: packaging/all-in-one/all-in-one/Dockerfile
 
 jobs:
@@ -197,35 +202,71 @@ jobs:
         run: |
           set -euo pipefail
 
+          # mirror_image <source-ref> <target-repo> <target-tag>
+          #
+          # Pulls an upstream image and re-publishes it under our own registry so
+          # that no downstream build or deployment has to reach out to the upstream
+          # `apitable` namespace. The target tag keeps the upstream tag name so the
+          # mapping stays obvious.
           mirror_image() {
-            local source_image="$1"
+            local source_ref="$1"
             local target_image="$2"
+            local target_tag="$3"
+            local attempt
 
-            docker pull "${source_image}:latest"
-            docker tag "${source_image}:latest" "${target_image}:${VERSION_TAG}"
-            docker tag "${source_image}:latest" "${target_image}:${SHORT_SHA}"
+            for attempt in 1 2 3; do
+              if docker pull "${source_ref}"; then
+                break
+              fi
+              if [[ "${attempt}" == "3" ]]; then
+                echo "ERROR: failed to pull ${source_ref}" >&2
+                return 1
+              fi
+              echo "Pull failed, retrying..."
+              sleep 3
+            done
 
-            if [[ "${PUSH_LATEST}" == "true" ]]; then
-              docker tag "${source_image}:latest" "${target_image}:latest"
+            docker tag "${source_ref}" "${target_image}:${target_tag}"
+            if [[ "${target_tag}" != "latest" ]]; then
+              docker tag "${source_ref}" "${target_image}:latest"
+            fi
+            docker tag "${source_ref}" "${target_image}:${VERSION_TAG}"
+            docker tag "${source_ref}" "${target_image}:${SHORT_SHA}"
+
+            if [[ "${PUSH_LATEST}" == "true" && "${target_tag}" != "latest" ]]; then
+              docker tag "${source_ref}" "${target_image}:latest"
             fi
 
+            docker push "${target_image}:${target_tag}"
             docker push "${target_image}:${VERSION_TAG}"
             docker push "${target_image}:${SHORT_SHA}"
 
-            if [[ "${PUSH_LATEST}" == "true" ]]; then
+            if [[ "${PUSH_LATEST}" == "true" && "${target_tag}" != "latest" ]]; then
               docker push "${target_image}:latest"
             fi
           }
 
-          mirror_image apitable/databus-server "${DATABUS_IMAGE}" &
-          mirror_image apitable/init-appdata "${INIT_APPDATA_IMAGE}" &
-          mirror_image apitable/imageproxy-server "${IMAGEPROXY_IMAGE}" &
-          wait
+          pids=()
+          mirror_image apitable/databus-server:latest "${DATABUS_IMAGE}" "latest" & pids+=($!)
+          mirror_image apitable/init-appdata:latest "${INIT_APPDATA_IMAGE}" "latest" & pids+=($!)
+          mirror_image apitable/imageproxy-server:latest "${IMAGEPROXY_IMAGE}" "latest" & pids+=($!)
+          mirror_image apitable/node:v16.15.0 "${NODE_BASE_IMAGE}" "${NODE_BASE_TAG}" & pids+=($!)
+          mirror_image apitable/nodepy:16.15.0-alpine "${NODEPY_BASE_IMAGE}" "${NODEPY_BASE_TAG}" & pids+=($!)
+
+          status=0
+          for pid in "${pids[@]}"; do
+            wait "${pid}" || status=1
+          done
+          exit "${status}"
 
   build-component-images:
     name: 构建组件镜像 (${{ matrix.target }})
     runs-on: ubuntu-latest
-    needs: prepare
+    # The room-server / web-server images are built on top of the mirrored base
+    # images, so they have to wait until mirror-runtime-deps has published them.
+    needs:
+      - prepare
+      - mirror-runtime-deps
     strategy:
       fail-fast: false
       matrix:
@@ -234,18 +275,26 @@ jobs:
             image: benxianyu/apitable-backend-server
             context: .
             dockerfile: packaging/Dockerfile.backend-server
+            extra_args: ""
           - target: room-server
             image: benxianyu/apitable-room-server
             context: .
             dockerfile: packaging/Dockerfile.room-server
+            extra_args: |
+              NODE_BASE_IMAGE=${{ env.NODE_BASE_IMAGE }}
+              NODE_BASE_TAG=${{ env.NODE_BASE_TAG }}
           - target: web-server
             image: benxianyu/apitable-web-server
             context: .
             dockerfile: packaging/Dockerfile.web-server
+            extra_args: |
+              NODEPY_BASE_IMAGE=${{ env.NODEPY_BASE_IMAGE }}
+              NODEPY_BASE_TAG=${{ env.NODEPY_BASE_TAG }}
           - target: init-db
             image: benxianyu/apitable-init-db
             context: ./init-db
             dockerfile: ./init-db/Dockerfile
+            extra_args: ""
 
     steps:
       - name: 拉取源码
@@ -291,8 +340,61 @@ jobs:
           tags: ${{ steps.image-tags.outputs.tags }}
           build-args: |
             SEMVER_FULL=${{ needs.prepare.outputs.version_tag }}
+            ${{ matrix.extra_args }}
           cache-from: type=gha,scope=${{ matrix.target }}
           cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+
+  build-openresty:
+    name: 构建并推送 gateway (openresty) 镜像
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    steps:
+      - name: 拉取源码
+        uses: actions/checkout@v4
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 生成 gateway 镜像标签
+        id: gateway-tags
+        shell: bash
+        env:
+          IMAGE: ${{ env.OPENRESTY_IMAGE }}
+          VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'tags<<EOF'
+            echo "${IMAGE}:${VERSION_TAG}"
+            echo "${IMAGE}:${SHORT_SHA}"
+            if [[ "${PUSH_LATEST}" == "true" ]]; then
+              echo "${IMAGE}:latest"
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 构建并推送 gateway 镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ./gateway
+          file: packaging/Dockerfile.openresty
+          platforms: linux/amd64
+          provenance: false
+          push: true
+          tags: ${{ steps.gateway-tags.outputs.tags }}
+          build-args: |
+            SEMVER_FULL=${{ needs.prepare.outputs.version_tag }}
+          cache-from: type=gha,scope=openresty
+          cache-to: type=gha,mode=max,scope=openresty
 
   build-all-in-one:
     name: 构建并推送最终 all-in-one 镜像
@@ -407,5 +509,8 @@ jobs:
           ${DATABUS_IMAGE}:${VERSION_TAG}
           ${INIT_APPDATA_IMAGE}:${VERSION_TAG}
           ${IMAGEPROXY_IMAGE}:${VERSION_TAG}
+          ${OPENRESTY_IMAGE}:${VERSION_TAG}
+          ${NODE_BASE_IMAGE}:${NODE_BASE_TAG}
+          ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG}
           \`\`\`
           EOF

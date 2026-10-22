@@ -1,5 +1,10 @@
+# Base image is mirrored from upstream apitable/node into our own registry.
+# Override with --build-arg NODE_BASE_IMAGE / NODE_BASE_TAG when needed.
+ARG NODE_BASE_IMAGE=benxianyu/apitable-node
+ARG NODE_BASE_TAG=v16.15.0
+
 # Install dependencies only when needed
-FROM apitable/node:v16.15.0 AS deps
+FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS deps
 
 WORKDIR /app
 
@@ -19,7 +24,7 @@ COPY packages/room-server/package.json ./packages/room-server/
 RUN pnpm install --filter @apitable/room-server --filter root
 
 # stage builder
-FROM apitable/node:v16.15.0 AS builder
+FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS builder
 
 WORKDIR /app
 
@@ -47,7 +52,7 @@ ARG KEEP_DEV_DEP
 RUN if [ "$KEEP_DEV_DEP" = "" ] ; then pnpm install --filter @apitable/room-server; fi
 
 # stage runner
-FROM apitable/node:v16.15.0 AS runner
+FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS runner
 
 WORKDIR /app
 
