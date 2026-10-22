@@ -45,6 +45,10 @@ else
 endif
 BUILDER := docker buildx bake
 
+# Docker Hub account used to push the built images.
+DOCKERHUB_USERNAME ?= benxianyu
+DOCKERHUB_TOKEN ?= APITABLE_DOCKER_HUB_TOKEN
+
 ttt:
 	echo $(OS_NAME)
 	echo $(RUNNER)
@@ -242,7 +246,7 @@ test-init-db-docker:
 	@echo "${GREEN}finished testing, clean up images...${RESET}"
 
 buildpush-docker: ## build all and push all to hub.docker.io registry
-	echo $$APITABLE_DOCKER_HUB_TOKEN | docker login -u apitable --password-stdin || true;\
+	echo $$$$DOCKERHUB_TOKEN | docker login -u $(DOCKERHUB_USERNAME) --password-stdin || true;\
 	$(BUILDER) $(target) --push
 
 .PHONY: build
