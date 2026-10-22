@@ -1,5 +1,9 @@
+# Base image is mirrored from upstream apitable/nodepy into our own registry.
+ARG NODEPY_BASE_IMAGE=benxianyu/apitable-nodepy
+ARG NODEPY_BASE_TAG=16.15.0-alpine
+
 # Install dependencies only when needed
-FROM apitable/nodepy:16.15.0-alpine AS deps
+FROM ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG} AS deps
 
 RUN npm install -g pnpm@8.13.1
 
@@ -23,7 +27,7 @@ COPY packages/air-agent/package.json ./packages/air-agent/
 RUN pnpm install
 
 # stage builder
-FROM apitable/nodepy:16.15.0-alpine AS builder
+FROM ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG} AS builder
 
 ARG SEMVER_FULL="v0.0.0-alpha"
 ARG NEXT_ASSET_PREFIX=""
@@ -57,7 +61,7 @@ RUN pnpm run build:air-agent:pre
 RUN pnpm run build:air-agent
 
 # stage runner
-FROM apitable/nodepy:16.15.0-alpine AS runner
+FROM ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG} AS runner
 
 WORKDIR /app
 

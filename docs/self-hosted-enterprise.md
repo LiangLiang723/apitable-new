@@ -87,6 +87,90 @@ python3 scripts/audit_apitable_feature_changes.py \
 
 Review the generated CSV manually before restoring any feature. If a feature cannot be restored safely, keep its UI hidden or return an explicit unsupported response.
 
+## Image sources
+
+Every image this fork builds or ships is referenced through the `benxianyu`
+Docker Hub namespace. Nothing in the build or deployment path pulls from the
+upstream `apitable` namespace at build time.
+
+| Image | Source | Notes |
+|---|---|---|
+| `benxianyu/apitable-backend-server` | built from source | Gradle bootJar on `amazoncorretto:17` |
+| `benxianyu/apitable-room-server` | built from source | Needs `benxianyu/apitable-node` |
+| `benxianyu/apitable-web-server` | built from source | Needs `benxianyu/apitable-nodepy` |
+| `benxianyu/apitable-init-db` | built from source | Liquibase changelog only |
+| `benxianyu/apitable-openresty` | built from source | Official `openresty/openresty` base + our `gateway/conf.d` |
+| `benxianyu/apitable-dataenv-pm2` | built from source | AlmaLinux 8 + MySQL/MinIO/Redis/RabbitMQ/OpenResty/PM2 |
+| `benxianyu/apitable-dataenv-liquibase-pm2` | built from source | dataenv-pm2 + Corretto 17 + Liquibase |
+| `benxianyu/apitable-new` | built from source | The all-in-one delivery image |
+| `benxianyu/apitable-node` | **mirrored** | `apitable/node:v16.15.0` |
+| `benxianyu/apitable-nodepy` | **mirrored** | `apitable/nodepy:16.15.0-alpine` |
+| `benxianyu/apitable-databus-server` | **mirrored** | `apitable/databus-server:latest` |
+| `benxianyu/apitable-init-appdata` | **mirrored** | `apitable/init-appdata:latest` |
+| `benxianyu/apitable-imageproxy-server` | **mirrored** | `apitable/imageproxy-server:latest` |
+
+### Why the base images are mirrored instead of rebuilt
+
+`apitable/node` and `apitable/nodepy` carry the native toolchain required to
+compile the `canvas` dependency (`build-essential` / `build-base`, the
+`cairo-dev` / `pango-dev` / `jpeg-dev` / `giflib-dev` packages and `python3`).
+The plain official `node` images do not provide it, so these two cannot be
+replaced by a straight `FROM node:16.15.0`. Their sources are not part of this
+repository either, so they are mirrored (pulled and re-published) instead of
+rebuilt.
+
+The same applies to `databus-server`, `init-appdata` and `imageproxy-server`:
+they are prebuilt binaries whose sources live in separate upstream repositories.
+
+The gateway image is *not* mirrored — `packaging/Dockerfile.openresty` builds it
+from the official `openresty/openresty` base image plus our own nginx
+configuration, which is equivalent to the upstream `apitable/openresty` image.
+
+### Rebuilding the mirrored images
+
+```bash
+# Build everything locally (also mirrors the base images into the local cache)
+bash scripts/build-all-in-one-local.sh
+
+# Print the resolved image matrix without executing anything
+DRY_RUN=1 bash scripts/build-all-in-one-local.sh
+```
+
+The script publishes every intermediate image to a throwaway local registry
+(`localhost:5000`, container `apitable-local-registry`) before using it as a
+build base. This is required because BuildKit always resolves `FROM` through a
+registry and never falls back to the local image store — a purely local mirror
+would make the build fail with `manifest unknown`.
+
+```bash
+# Use a different local registry
+LOCAL_REGISTRY=localhost:5001 bash scripts/build-all-in-one-local.sh
+
+# Publish to the public registry instead (requires `docker login`)
+LOCAL_REGISTRY= bash scripts/build-all-in-one-local.sh
+```
+
+The base image references can be overridden through build args:
+
+```bash
+docker build -f packaging/Dockerfile.room-server \
+  --build-arg NODE_BASE_IMAGE=benxianyu/apitable-node \
+  --build-arg NODE_BASE_TAG=v16.15.0 .
+
+docker build -f packaging/Dockerfile.web-server \
+  --build-arg NODEPY_BASE_IMAGE=benxianyu/apitable-nodepy \
+  --build-arg NODEPY_BASE_TAG=16.15.0-alpine .
+```
+
+### Known limitations
+
+- The mirror step resolves a single platform, so the mirrored images are
+  `linux/amd64` only even though some upstream tags are multi-arch. The
+  all-in-one image is `linux/amd64` only as well.
+- Mirrored images are pinned by tag, not by digest. Upstream may re-publish a
+  tag with different content.
+- `apitable/init-appdata:latest` currently corresponds to the upstream `1.8.0`
+  release line, while this repository is at `1.13.0`.
 ## Smoke test checklist
 
 After building and starting the stack:

@@ -1,5 +1,9 @@
+# Base image is mirrored from upstream apitable/nodepy into our own registry.
+ARG NODEPY_BASE_IMAGE=benxianyu/apitable-nodepy
+ARG NODEPY_BASE_TAG=16.15.0-alpine
+
 # Install dependencies only when needed
-FROM apitable/nodepy:16.15.0-alpine AS deps
+FROM ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG} AS deps
 
 WORKDIR /workspace-install
 
@@ -12,7 +16,7 @@ COPY packages/components/package.json ./packages/components/
 RUN pnpm install
 
 # Build static files
-FROM apitable/nodepy:16.15.0-alpine AS builder
+FROM ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG} AS builder
 
 WORKDIR /app
 

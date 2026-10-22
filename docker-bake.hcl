@@ -6,6 +6,26 @@ variable "IMAGE_REGISTRY" {
   default = "docker.io"
 }
 
+variable "NODE_BASE_IMAGE" {
+  default = "benxianyu/apitable-node"
+}
+
+variable "NODE_BASE_TAG" {
+  default = "v16.15.0"
+}
+
+variable "NODEPY_BASE_IMAGE" {
+  default = "benxianyu/apitable-nodepy"
+}
+
+variable "NODEPY_BASE_TAG" {
+  default = "16.15.0-alpine"
+}
+
+variable "OPENRESTY_IMAGE" {
+  default = "benxianyu/apitable-openresty"
+}
+
 variable "SEMVER_FULL" {
   default = "v0.0.0-alpha"
 }
@@ -85,6 +105,8 @@ target "room-server" {
   dockerfile = "packaging/Dockerfile.room-server"
   args = {
     SEMVER_FULL = SEMVER_FULL
+    NODE_BASE_IMAGE = NODE_BASE_IMAGE
+    NODE_BASE_TAG = NODE_BASE_TAG
   }
   platforms = ["linux/amd64", "linux/arm64"]
   tags = ["${ROOM_IMAGE}:latest", "${ROOM_IMAGE}:${IMAGE_TAG}"]
@@ -95,6 +117,8 @@ target "web-server" {
   dockerfile = "packaging/Dockerfile.web-server"
   args = {
     SEMVER_FULL = SEMVER_FULL
+    NODEPY_BASE_IMAGE = NODEPY_BASE_IMAGE
+    NODEPY_BASE_TAG = NODEPY_BASE_TAG
   }
   platforms = ["linux/amd64"]
   tags = ["${WEB_IMAGE}:latest", "${WEB_IMAGE}:${IMAGE_TAG}"]
@@ -128,7 +152,7 @@ target "openresty" {
     SEMVER_FULL = SEMVER_FULL
   }
   platforms = ["linux/amd64", "linux/arm64"]
-  tags = ["${IMAGE_REGISTRY}/apitable/openresty:latest", "${IMAGE_REGISTRY}/apitable/openresty:${IMAGE_TAG}"]
+  tags = ["${OPENRESTY_IMAGE}:latest", "${OPENRESTY_IMAGE}:${IMAGE_TAG}"]
 }
 
 target "all-in-one" {
