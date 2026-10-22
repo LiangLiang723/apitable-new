@@ -23,9 +23,24 @@ RUN set -euxo pipefail; \
   rpm --import /etc/pki/rpm-gpg/rabbitmq-release-signing-key.asc; \
   microdnf -y update; \
   microdnf -y install shadow-utils; \
-  rpm -Uvh "https://dl.min.io/server/minio/release/linux-${pkgArch}/archive/minio-20230125001954.0.0.${arch}.rpm"; \
-  curl -s -q "https://dl.min.io/client/mc/release/linux-${pkgArch}/mc" -o /usr/local/bin/mc; \
-  chmod +x /usr/local/bin/mc; \
+  MINIO_RELEASE=RELEASE.2023-01-25T00-19-54Z; \
+  MINIO_RPM="minio-20230125001954.0.0.${arch}.rpm"; \
+  curl -fL --retry 5 --retry-delay 3 -o "/tmp/${MINIO_RPM}" \
+    "https://github.com/minio/minio/releases/download/${MINIO_RELEASE}/${MINIO_RPM}"; \
+  curl -fL --retry 5 --retry-delay 3 -o "/tmp/${MINIO_RPM}.sha256sum" \
+    "https://github.com/minio/minio/releases/download/${MINIO_RELEASE}/${MINIO_RPM}.sha256sum"; \
+  test "$(cut -d' ' -f1 "/tmp/${MINIO_RPM}.sha256sum")" = "$(sha256sum "/tmp/${MINIO_RPM}" | cut -d' ' -f1)"; \
+  rpm -Uvh "/tmp/${MINIO_RPM}"; \
+  rm -f "/tmp/${MINIO_RPM}" "/tmp/${MINIO_RPM}.sha256sum"; \
+  MC_RELEASE=RELEASE.2023-01-28T20-29-38Z; \
+  MC_BIN="mc.linux-${pkgArch}.${MC_RELEASE}"; \
+  curl -fL --retry 5 --retry-delay 3 -o "/tmp/${MC_BIN}" \
+    "https://github.com/minio/mc/releases/download/${MC_RELEASE}/${MC_BIN}"; \
+  curl -fL --retry 5 --retry-delay 3 -o "/tmp/${MC_BIN}.sha256sum" \
+    "https://github.com/minio/mc/releases/download/${MC_RELEASE}/${MC_BIN}.sha256sum"; \
+  test "$(cut -d' ' -f1 "/tmp/${MC_BIN}.sha256sum")" = "$(sha256sum "/tmp/${MC_BIN}" | cut -d' ' -f1)"; \
+  install -m 0755 "/tmp/${MC_BIN}" /usr/local/bin/mc; \
+  rm -f "/tmp/${MC_BIN}" "/tmp/${MC_BIN}.sha256sum"; \
   microdnf -y module enable redis:6; \
   microdnf -y install \
   mysql-community-server-minimal \
