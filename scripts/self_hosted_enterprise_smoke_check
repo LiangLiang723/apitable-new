@@ -78,6 +78,43 @@ Manual smoke checklist:
 12. Confirm there is no payment reminder, PRICE_MODAL, renew/upgrade modal, or usage warning modal.
 13. Confirm enterprise/hosted-only entry points remain visible, and unavailable integrations return a clear unsupported or unconfigured response.
 
+Automated checks that can be run against a running container:
+
+  # The database schema is applied by the init-db image, which is built from
+  # this repository, so the changelog has to be at the current version.
+  docker exec apitable mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e \
+    "select ID from apitable.apitable_db_changelog order by ORDEREXECUTED desc limit 1;" apitable
+
+  # The template space and the seeded data come from the init-appdata image,
+  # which is mirrored from upstream. Upstream apitable/init-appdata is still on
+  # the 1.8.0 release line while this repository is on 1.13.0, so the seeded
+  # content has to be verified explicitly.
+  #
+  # Note: since 1.13 the space concept lives in the node table, the legacy
+  # apitable_space table stays empty. Records are linked to a datasheet through
+  # dst_id, not through a datasheet_id column.
+  docker exec apitable mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e \
+    "select count(*) from apitable.apitable_node where space_id='spcNTxlv8Drra';" apitable
+  docker exec apitable mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e \
+    "select count(*) from apitable.apitable_datasheet where space_id='spcNTxlv8Drra';" apitable
+  docker exec apitable mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e \
+    "select count(*) from apitable.apitable_datasheet_record r \
+       join apitable.apitable_datasheet d on r.dst_id = d.dst_id \
+       where d.space_id='spcNTxlv8Drra';" apitable
+  docker exec apitable mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e \
+    "select count(*) from apitable.apitable_user;" apitable
+
+  # The backend has to be able to serve the seeded template space.
+  curl -sf http://localhost/api/v1/client/info | head -c 200
+
+Expected on a healthy deployment: the changelog is at the 1.13 changeset, the
+template space has 65 nodes and 33 datasheets with 298 records, one initial
+user exists, and client/info answers with 200.
+
+If the template space is missing or empty, the mirrored init-appdata image is
+incompatible with the current schema. Either mirror a newer init-appdata build
+or build one from the matching upstream source.
+
 If any feature depends on missing private enterprise code, hosted cloud services,
 missing DB tables, or missing third-party configuration, keep the user-facing entry point intact and return a clear unsupported/unconfigured response.
 EOF

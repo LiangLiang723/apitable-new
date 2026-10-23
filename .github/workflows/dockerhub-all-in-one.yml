@@ -50,6 +50,10 @@ env:
   NODE_BASE_TAG: v16.15.0
   NODEPY_BASE_IMAGE: benxianyu/apitable-nodepy
   NODEPY_BASE_TAG: 16.15.0-alpine
+  # The build base images are pinned to a digest so that an upstream republish
+  # of the same tag cannot silently change the mirrored content.
+  NODE_BASE_SOURCE: apitable/node@sha256:d4b8c29f66d395391bfb4473e7ae59a23383db96a2139084c759196d645fa147
+  NODEPY_BASE_SOURCE: apitable/nodepy@sha256:59863e71bc15b9a4aaf1b0631374ced958483298eceea49e61a27544969d9222
   ALL_IN_ONE_DOCKERFILE: packaging/all-in-one/all-in-one/Dockerfile
 
 jobs:
@@ -202,8 +206,8 @@ jobs:
           }
 
           pids=()
-          mirror_image apitable/node:v16.15.0 "${NODE_BASE_IMAGE}" "${NODE_BASE_TAG}" & pids+=($!)
-          mirror_image apitable/nodepy:16.15.0-alpine "${NODEPY_BASE_IMAGE}" "${NODEPY_BASE_TAG}" & pids+=($!)
+          mirror_image "${NODE_BASE_SOURCE}" "${NODE_BASE_IMAGE}" "${NODE_BASE_TAG}" & pids+=($!)
+          mirror_image "${NODEPY_BASE_SOURCE}" "${NODEPY_BASE_IMAGE}" "${NODEPY_BASE_TAG}" & pids+=($!)
           mirror_image apitable/databus-server:latest "${DATABUS_IMAGE}" "latest" & pids+=($!)
           mirror_image apitable/init-appdata:latest "${INIT_APPDATA_IMAGE}" "latest" & pids+=($!)
           mirror_image apitable/imageproxy-server:latest "${IMAGEPROXY_IMAGE}" "latest" & pids+=($!)

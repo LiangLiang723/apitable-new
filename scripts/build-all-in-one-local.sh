@@ -57,8 +57,12 @@ NODEPY_BASE_TAG="${NODEPY_BASE_TAG:-16.15.0-alpine}"
 DATABUS_SOURCE_IMAGE="${DATABUS_SOURCE_IMAGE:-apitable/databus-server:latest}"
 INIT_APPDATA_SOURCE_IMAGE="${INIT_APPDATA_SOURCE_IMAGE:-apitable/init-appdata:latest}"
 IMAGEPROXY_SOURCE_IMAGE="${IMAGEPROXY_SOURCE_IMAGE:-apitable/imageproxy-server:latest}"
-NODE_SOURCE_IMAGE="${NODE_SOURCE_IMAGE:-apitable/node:v16.15.0}"
-NODEPY_SOURCE_IMAGE="${NODEPY_SOURCE_IMAGE:-apitable/nodepy:16.15.0-alpine}"
+
+# The build base images are pinned to a digest so that an upstream republish of
+# the same tag cannot silently change the content that is mirrored. Override
+# these with the tag form (e.g. apitable/node:v16.15.0) to follow the tag.
+NODE_SOURCE_IMAGE="${NODE_SOURCE_IMAGE:-apitable/node@sha256:d4b8c29f66d395391bfb4473e7ae59a23383db96a2139084c759196d645fa147}"
+NODEPY_SOURCE_IMAGE="${NODEPY_SOURCE_IMAGE:-apitable/nodepy@sha256:59863e71bc15b9a4aaf1b0631374ced958483298eceea49e61a27544969d9222}"
 
 build() {
   echo
