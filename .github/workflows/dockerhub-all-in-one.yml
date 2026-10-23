@@ -67,6 +67,10 @@ jobs:
       push_latest: ${{ steps.vars.outputs.push_latest }}
       previous_tag: ${{ steps.changes.outputs.previous_tag }}
       changed: ${{ steps.changes.outputs.changed }}
+      node_base_image: ${{ steps.vars.outputs.node_base_image }}
+      node_base_tag: ${{ steps.vars.outputs.node_base_tag }}
+      nodepy_base_image: ${{ steps.vars.outputs.nodepy_base_image }}
+      nodepy_base_tag: ${{ steps.vars.outputs.nodepy_base_tag }}
 
     steps:
       - name: 拉取源码
@@ -97,7 +101,6 @@ jobs:
           fi
           version="${version//\//-}"
 
-          ref_name="${GITHUB_REF_NAME}"
           if [[ "${GITHUB_REF_TYPE}" == "branch" && \
             ! "${version}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-._A-Za-z0-9]+)?$ ]]; then
             version="${version}-${GITHUB_SHA::12}"
@@ -115,6 +118,12 @@ jobs:
             echo "version_tag=${version}"
             echo "short_sha=${short_sha}"
             echo "push_latest=${push_latest}"
+            # The env context is not available in a job strategy block, so the
+            # base image references are handed over through the job outputs.
+            echo "node_base_image=${NODE_BASE_IMAGE}"
+            echo "node_base_tag=${NODE_BASE_TAG}"
+            echo "nodepy_base_image=${NODEPY_BASE_IMAGE}"
+            echo "nodepy_base_tag=${NODEPY_BASE_TAG}"
           } >> "$GITHUB_OUTPUT"
 
           echo "最终镜像: ${image}"
@@ -242,7 +251,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 设置 Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '16.15.0'
 
@@ -285,15 +294,15 @@ jobs:
             context: .
             dockerfile: packaging/Dockerfile.room-server
             extra_args: |
-              NODE_BASE_IMAGE=${{ env.NODE_BASE_IMAGE }}
-              NODE_BASE_TAG=${{ env.NODE_BASE_TAG }}
+              NODE_BASE_IMAGE=${{ needs.prepare.outputs.node_base_image }}
+              NODE_BASE_TAG=${{ needs.prepare.outputs.node_base_tag }}
           - target: web-server
             image: benxianyu/apitable-web-server
             context: .
             dockerfile: packaging/Dockerfile.web-server
             extra_args: |
-              NODEPY_BASE_IMAGE=${{ env.NODEPY_BASE_IMAGE }}
-              NODEPY_BASE_TAG=${{ env.NODEPY_BASE_TAG }}
+              NODEPY_BASE_IMAGE=${{ needs.prepare.outputs.nodepy_base_image }}
+              NODEPY_BASE_TAG=${{ needs.prepare.outputs.nodepy_base_tag }}
           - target: init-db
             image: benxianyu/apitable-init-db
             context: ./init-db
@@ -804,6 +813,7 @@ jobs:
     name: 生成离线包并发布 GitHub Release
     runs-on: ubuntu-latest
     needs:
+      - prepare
       - build-all-in-one
       - build-component-images
       - build-dataenv
@@ -869,7 +879,8 @@ jobs:
 
           # `docker save` keeps the shared layers only once, so the bundle stays
           # far below the 2GB release asset limit.
-          docker save $(cat image-list.txt) | gzip -9 > "${bundle}"
+          mapfile -t images < image-list.txt
+          docker save "${images[@]}" | gzip -9 > "${bundle}"
 
           size=$(stat -c %s "${bundle}")
           limit=$((1900 * 1024 * 1024))
@@ -884,7 +895,7 @@ jobs:
             sha256sum "${bundle}" > "${bundle}.sha256"
           fi
 
-          ls -lh "${bundle}"* | tee -a "$GITHUB_STEP_SUMMARY"
+          find . -maxdepth 1 -name "${bundle}*" -exec ls -lh {} + | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: 生成离线包使用说明
         shell: bash
