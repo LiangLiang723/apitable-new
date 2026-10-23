@@ -26,6 +26,7 @@ packages/datasheet/.env.origin
 **/node_modules
 /.pnp
 .pnp.js
+.pnpm-store
 
 # testing
 /packages/**/coverage

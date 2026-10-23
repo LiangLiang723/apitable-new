@@ -24,7 +24,9 @@ BUILDER="${BUILDER:-}"
 # can be used as a build base. A throwaway local registry keeps this script
 # self-contained; set LOCAL_REGISTRY to an empty value to publish to the public
 # registry instead (that requires `docker login`).
-LOCAL_REGISTRY="${LOCAL_REGISTRY-localhost:5000}"
+#
+# The default port is 5001 because 5000 is taken by the macOS AirPlay receiver.
+LOCAL_REGISTRY="${LOCAL_REGISTRY-localhost:5001}"
 LOCAL_REGISTRY_CONTAINER="${LOCAL_REGISTRY_CONTAINER:-apitable-local-registry}"
 
 BACKEND_IMAGE="${BACKEND_IMAGE:-benxianyu/apitable-backend-server}"
