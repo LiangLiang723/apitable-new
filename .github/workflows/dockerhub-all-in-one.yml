@@ -318,6 +318,7 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
+          IMAGE: ${{ matrix.image }}
           CHANGED: ${{ needs.prepare.outputs.changed }}
           PREVIOUS_TAG: ${{ needs.prepare.outputs.previous_tag }}
         run: |
@@ -329,6 +330,11 @@ jobs:
           elif echo "${CHANGED}" | grep -q "\"${TARGET}\""; then
             echo "build=true" >> "$GITHUB_OUTPUT"
             echo "==> ${TARGET}: 输入有改动，需要重新构建"
+          elif ! docker buildx imagetools inspect "${IMAGE}:${PREVIOUS_TAG}" >/dev/null 2>&1; then
+            # The previous release was never published under this namespace,
+            # fall back to building instead of failing on the re-tag.
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "==> ${TARGET}: 上一版本镜像 ${IMAGE}:${PREVIOUS_TAG} 不存在，改为构建"
           else
             echo "build=false" >> "$GITHUB_OUTPUT"
             echo "==> ${TARGET}: 输入无改动，复用 ${PREVIOUS_TAG} 的镜像"
@@ -421,6 +427,7 @@ jobs:
         id: decide-pm2
         shell: bash
         env:
+          IMAGE: ${{ env.DATAENV_IMAGE }}
           CHANGED: ${{ needs.prepare.outputs.changed }}
           PREVIOUS_TAG: ${{ needs.prepare.outputs.previous_tag }}
         run: |
@@ -429,6 +436,8 @@ jobs:
           if [[ -z "${PREVIOUS_TAG}" ]]; then
             echo "build=true" >> "$GITHUB_OUTPUT"
           elif echo "${CHANGED}" | grep -q '"dataenv-pm2"'; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif ! docker buildx imagetools inspect "${IMAGE}:${PREVIOUS_TAG}" >/dev/null 2>&1; then
             echo "build=true" >> "$GITHUB_OUTPUT"
           else
             echo "build=false" >> "$GITHUB_OUTPUT"
@@ -498,6 +507,7 @@ jobs:
         id: decide-liquibase
         shell: bash
         env:
+          IMAGE: ${{ env.DATAENV_LIQUIBASE_IMAGE }}
           CHANGED: ${{ needs.prepare.outputs.changed }}
           PREVIOUS_TAG: ${{ needs.prepare.outputs.previous_tag }}
         run: |
@@ -506,6 +516,8 @@ jobs:
           if [[ -z "${PREVIOUS_TAG}" ]]; then
             echo "build=true" >> "$GITHUB_OUTPUT"
           elif echo "${CHANGED}" | grep -q '"dataenv-liquibase-pm2"'; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif ! docker buildx imagetools inspect "${IMAGE}:${PREVIOUS_TAG}" >/dev/null 2>&1; then
             echo "build=true" >> "$GITHUB_OUTPUT"
           else
             echo "build=false" >> "$GITHUB_OUTPUT"
@@ -595,6 +607,7 @@ jobs:
         id: decide
         shell: bash
         env:
+          IMAGE: ${{ env.OPENRESTY_IMAGE }}
           CHANGED: ${{ needs.prepare.outputs.changed }}
           PREVIOUS_TAG: ${{ needs.prepare.outputs.previous_tag }}
         run: |
@@ -603,6 +616,8 @@ jobs:
           if [[ -z "${PREVIOUS_TAG}" ]]; then
             echo "build=true" >> "$GITHUB_OUTPUT"
           elif echo "${CHANGED}" | grep -q '"openresty"'; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif ! docker buildx imagetools inspect "${IMAGE}:${PREVIOUS_TAG}" >/dev/null 2>&1; then
             echo "build=true" >> "$GITHUB_OUTPUT"
           else
             echo "build=false" >> "$GITHUB_OUTPUT"
