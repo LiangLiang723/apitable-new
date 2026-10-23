@@ -271,6 +271,11 @@ jobs:
         run: sudo apt-get update -y && sudo apt-get install -y build-essential
 
       - name: 运行单元测试 ${{ matrix.command }}
+        # The test suite asserts the free tier limit behaviour. In self hosted
+        # enterprise mode every space reports an enterprise subscription, so the
+        # tests have to run against the default entitlement path.
+        env:
+          SELF_HOSTED_ENTERPRISE: 'false'
         run: make ${{ matrix.command }}
 
   build-component-images:
