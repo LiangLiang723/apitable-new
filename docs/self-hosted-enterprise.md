@@ -137,14 +137,17 @@ DRY_RUN=1 bash scripts/build-all-in-one-local.sh
 ```
 
 The script publishes every intermediate image to a throwaway local registry
-(`localhost:5000`, container `apitable-local-registry`) before using it as a
+(`localhost:5001`, container `apitable-local-registry`) before using it as a
 build base. This is required because BuildKit always resolves `FROM` through a
 registry and never falls back to the local image store — a purely local mirror
 would make the build fail with `manifest unknown`.
 
+> The default port is 5001 on purpose: port 5000 is taken by the macOS AirPlay
+> receiver, so a registry on 5000 cannot be reached from the host.
+
 ```bash
 # Use a different local registry
-LOCAL_REGISTRY=localhost:5001 bash scripts/build-all-in-one-local.sh
+LOCAL_REGISTRY=localhost:5002 bash scripts/build-all-in-one-local.sh
 
 # Publish to the public registry instead (requires `docker login`)
 LOCAL_REGISTRY= bash scripts/build-all-in-one-local.sh
@@ -171,6 +174,63 @@ docker build -f packaging/Dockerfile.web-server \
   tag with different content.
 - `apitable/init-appdata:latest` currently corresponds to the upstream `1.8.0`
   release line, while this repository is at `1.13.0`.
+## Release process
+
+Pushing a `v*.*.*` tag triggers `.github/workflows/dockerhub-all-in-one.yml`,
+which publishes the images to Docker Hub (`benxianyu`) and attaches an offline
+bundle to the GitHub Release of that tag.
+
+### Incremental builds
+
+Only the components whose inputs changed are rebuilt. The change detection
+compares the release tag against the previous version tag:
+
+```bash
+scripts/detect-changed-components.sh [<previous-tag>] [<current-ref>]
+# -> {"previous_tag":"v1.13.0","changed":["room-server","web-server"]}
+```
+
+| Component | Rebuilt when |
+|---|---|
+| `backend-server` | `backend-server/**` changed |
+| `room-server` | `packages/{room-server,core,i18n-lang,databus-wasm-*}/**` changed |
+| `web-server` | `packages/{datasheet,core,components,widget-sdk,i18n-lang,icons,ai-components,api-client}/**` changed |
+| `init-db` | `init-db/**` changed |
+| `dataenv-pm2` | `packaging/all-in-one/dataenv-pm2/**` changed |
+| `dataenv-liquibase-pm2` | `packaging/all-in-one/dataenv-liquibase-pm2/**` changed |
+| `openresty` | `gateway/**` changed |
+
+A component that did not change is not rebuilt. The image published for the
+previous release is re-tagged to the new version instead, so every version tag
+always resolves to a complete set of images.
+
+The all-in-one image is always rebuilt, it only assembles the components.
+
+### Offline bundle
+
+The GitHub Release of a version tag contains `apitable-offline-<version>.tar.gz`
+with every image of that release, plus a `SHA256` file and a
+`OFFLINE-README.md` with the import and startup instructions. The bundle is
+built for `linux/amd64`, which matches the all-in-one image.
+
+```bash
+sha256sum -c apitable-offline-v1.14.0.tar.gz.sha256
+gunzip -c apitable-offline-v1.14.0.tar.gz | docker load
+docker run -d --name apitable -p 80:80 -v "$(pwd)/.data:/apitable" \
+  benxianyu/apitable-new:v1.14.0
+```
+
+### Manual run
+
+```bash
+gh workflow run dockerhub-all-in-one.yml \
+  -f version=v1.14.0 \
+  -f push_latest=false \
+  -f force_rebuild=true
+```
+
+`force_rebuild` ignores the change detection and rebuilds every component.
+
 ## Smoke test checklist
 
 After building and starting the stack:
