@@ -126,6 +126,20 @@ The gateway image is *not* mirrored — `packaging/Dockerfile.openresty` builds 
 from the official `openresty/openresty` base image plus our own nginx
 configuration, which is equivalent to the upstream `apitable/openresty` image.
 
+### Digest pinning
+
+The upstream build base images are pinned to a digest, so a republish of the
+same tag upstream cannot silently change what gets mirrored:
+
+```
+NODE_BASE_SOURCE=apitable/node@sha256:d4b8c29f66d395391bfb4473e7ae59a23383db96a2139084c759196d645fa147
+NODEPY_BASE_SOURCE=apitable/nodepy@sha256:59863e71bc15b9a4aaf1b0631374ced958483298eceea49e61a27544969d9222
+```
+
+They are defined in `.env` for the local build and in the workflow
+environment. To follow the upstream tag instead, replace the digest with the
+tag form, for example `apitable/node:v16.15.0`.
+
 ### Rebuilding the mirrored images
 
 ```bash
@@ -167,13 +181,14 @@ docker build -f packaging/Dockerfile.web-server \
 
 ### Known limitations
 
-- The mirror step resolves a single platform, so the mirrored images are
-  `linux/amd64` only even though some upstream tags are multi-arch. The
-  all-in-one image is `linux/amd64` only as well.
-- Mirrored images are pinned by tag, not by digest. Upstream may re-publish a
-  tag with different content.
+- The mirror step resolves a single platform, so the mirrored runtime component
+  images are `linux/amd64` only even though some upstream tags are multi-arch.
+  The build base images keep every platform of the upstream manifest list.
+- The all-in-one image is `linux/amd64` only, because the `node-canvas` binary
+  it patches in is only published for x64 glibc.
 - `apitable/init-appdata:latest` currently corresponds to the upstream `1.8.0`
-  release line, while this repository is at `1.13.0`.
+  release line, while this repository is at `1.13.0`. The seeded template space
+  has to be verified after every deployment, see the smoke check script.
 ## Release process
 
 Pushing a `v*.*.*` tag triggers `.github/workflows/dockerhub-all-in-one.yml`,
