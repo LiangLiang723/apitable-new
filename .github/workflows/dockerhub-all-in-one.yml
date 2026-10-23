@@ -810,6 +810,10 @@ jobs:
       - build-openresty
     # A release is only meaningful for a version tag.
     if: startsWith(github.ref, 'refs/tags/')
+    # Creating and updating the release needs write access to the repository
+    # contents, the workflow level permission is read only.
+    permissions:
+      contents: write
 
     steps:
       - name: 拉取源码
