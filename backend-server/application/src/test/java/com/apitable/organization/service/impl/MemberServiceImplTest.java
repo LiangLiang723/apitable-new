@@ -34,12 +34,19 @@ import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.TestPropertySource;
 
 /**
  * member service test
  *
  * @author Shawn Deng
  */
+// The daily invitation limit is configurable. The self hosted enterprise build
+// raises it to unlimited, so the limit is pinned here to keep the assertions
+// about the prevention logic independent of the deployment configuration.
+@TestPropertySource(value = {"classpath:test.properties", "classpath:spring.properties"},
+    inheritLocations = true,
+    properties = "limit.max-invite-count-for-free=10")
 public class MemberServiceImplTest extends AbstractIntegrationTest {
 
     @Autowired
