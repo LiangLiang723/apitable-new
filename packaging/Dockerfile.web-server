@@ -1,7 +1,6 @@
-# Base image is mirrored from upstream apitable/nodepy into our own registry.
-# It carries the native toolchain (build-base, cairo/pango/jpeg/giflib, python3)
-# required to compile the `canvas` dependency, so it cannot be replaced by the
-# plain official `node` alpine image.
+# Base image is built from packaging/Dockerfile.nodepy-base (Node 16.15.0 alpine
+# plus build-base, cairo/pango/jpeg/giflib and python3) and published as
+# benxianyu/apitable-nodepy.
 ARG NODEPY_BASE_IMAGE=benxianyu/apitable-nodepy
 ARG NODEPY_BASE_TAG=16.15.0-alpine
 

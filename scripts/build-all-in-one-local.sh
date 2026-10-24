@@ -42,11 +42,11 @@ OPENRESTY_IMAGE="${OPENRESTY_IMAGE:-benxianyu/apitable-openresty}"
 
 # Build base images.
 #
-# apitable/node and apitable/nodepy carry the native toolchain (build-essential /
-# build-base, cairo/pango/jpeg/giflib dev packages, python3) required to compile
-# the `canvas` dependency, so they cannot be replaced by the plain official `node`
-# images. Their sources are not part of this repository either, therefore they are
-# mirrored (pulled and re-published) instead of rebuilt.
+# The Node base images used to be mirrors of apitable/node and apitable/nodepy.
+# They are now built from packaging/Dockerfile.node-base and
+# packaging/Dockerfile.nodepy-base, which provide Node 16.15.0 plus the native
+# toolchain (build-essential / build-base, cairo/pango/jpeg/giflib dev packages,
+# python3) required to compile the `canvas` dependency.
 NODE_BASE_IMAGE="${NODE_BASE_IMAGE:-benxianyu/apitable-node}"
 NODE_BASE_TAG="${NODE_BASE_TAG:-v16.15.0}"
 NODEPY_BASE_IMAGE="${NODEPY_BASE_IMAGE:-benxianyu/apitable-nodepy}"
@@ -57,12 +57,6 @@ NODEPY_BASE_TAG="${NODEPY_BASE_TAG:-16.15.0-alpine}"
 DATABUS_SOURCE_IMAGE="${DATABUS_SOURCE_IMAGE:-apitable/databus-server:latest}"
 INIT_APPDATA_SOURCE_IMAGE="${INIT_APPDATA_SOURCE_IMAGE:-apitable/init-appdata:latest}"
 IMAGEPROXY_SOURCE_IMAGE="${IMAGEPROXY_SOURCE_IMAGE:-apitable/imageproxy-server:latest}"
-
-# The build base images are pinned to a digest so that an upstream republish of
-# the same tag cannot silently change the content that is mirrored. Override
-# these with the tag form (e.g. apitable/node:v16.15.0) to follow the tag.
-NODE_SOURCE_IMAGE="${NODE_SOURCE_IMAGE:-apitable/node@sha256:d4b8c29f66d395391bfb4473e7ae59a23383db96a2139084c759196d645fa147}"
-NODEPY_SOURCE_IMAGE="${NODEPY_SOURCE_IMAGE:-apitable/nodepy@sha256:59863e71bc15b9a4aaf1b0631374ced958483298eceea49e61a27544969d9222}"
 
 build() {
   echo
@@ -205,8 +199,26 @@ publish_base "${DATAENV_LIQUIBASE_IMAGE}:${IMAGE_TAG}" "${DATAENV_LIQUIBASE_IMAG
 mirror_image "${DATABUS_SOURCE_IMAGE}" "${DATABUS_IMAGE}" "latest"
 mirror_image "${INIT_APPDATA_SOURCE_IMAGE}" "${INIT_APPDATA_IMAGE}" "latest"
 mirror_image "${IMAGEPROXY_SOURCE_IMAGE}" "${IMAGEPROXY_IMAGE}" "latest"
-mirror_image "${NODE_SOURCE_IMAGE}" "${NODE_BASE_IMAGE}" "${NODE_BASE_TAG}"
-mirror_image "${NODEPY_SOURCE_IMAGE}" "${NODEPY_BASE_IMAGE}" "${NODEPY_BASE_TAG}"
+
+# The node / nodepy base images are built locally from their Dockerfiles, so the
+# build no longer pulls the native toolchain from the upstream namespace.
+build docker build \
+  --platform "${PLATFORM}" \
+  --load \
+  -f packaging/Dockerfile.node-base \
+  -t "${NODE_BASE_IMAGE}:${NODE_BASE_TAG}" \
+  .
+
+publish_base "${NODE_BASE_IMAGE}:${NODE_BASE_TAG}" "${NODE_BASE_IMAGE}" "${NODE_BASE_TAG}"
+
+build docker build \
+  --platform "${PLATFORM}" \
+  --load \
+  -f packaging/Dockerfile.nodepy-base \
+  -t "${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG}" \
+  .
+
+publish_base "${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG}" "${NODEPY_BASE_IMAGE}" "${NODEPY_BASE_TAG}"
 
 # The gateway image is built from the official openresty base image plus our own
 # nginx configuration, so it does not depend on the upstream `apitable` namespace.
