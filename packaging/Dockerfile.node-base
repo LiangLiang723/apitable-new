@@ -12,12 +12,26 @@
 # The tag is part of the component fingerprint in the release workflow: when the
 # content of this file changes, bump NODE_BASE_TAG (for example to v16.15.0-r1)
 # and the fingerprint will mark room-server as changed.
+#
+# Note: Node 16 and Debian bullseye are both end of life, which is why the apt
+# sources point at the Debian archive. Moving to a supported base requires either
+# a newer Node major or building Node 16 on a supported Debian release.
 FROM node:16.15.0-bullseye
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+# bullseye has been moved to the Debian archive: the regular mirrors no longer
+# serve the package versions this image references (security.debian.org returns
+# 404 for them). Point the sources at archive.debian.org and disable the
+# validity check, the archive keeps the original Release dates.
+RUN set -eux; \
+    sed -i \
+        -e 's|security.debian.org/debian-security|archive.debian.org/debian-security|g' \
+        -e 's|deb.debian.org|archive.debian.org|g' \
+        /etc/apt/sources.list; \
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
         build-essential \
         ca-certificates \
         git \
@@ -27,8 +41,8 @@ RUN apt-get update \
         libpango1.0-dev \
         librsvg2-dev \
         pkg-config \
-        python3 \
-    && rm -rf /var/lib/apt/lists/*
+        python3; \
+    rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g pnpm@8.13.1 \
     && node --version \
