@@ -48,8 +48,8 @@ import com.apitable.workspace.ro.DeleteNodeRoleRo;
 import com.apitable.workspace.ro.ModifyNodeRoleRo;
 import com.apitable.workspace.service.INodeRoleService;
 import com.apitable.workspace.service.INodeService;
-import com.apitable.workspace.vo.NodeCollaboratorsVo;
 import com.apitable.workspace.vo.NodeCollaboratorVO;
+import com.apitable.workspace.vo.NodeCollaboratorsVo;
 import com.apitable.workspace.vo.NodeRoleMemberVo;
 import com.apitable.workspace.vo.NodeRoleUnit;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -63,13 +63,15 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import java.util.Collections;
 import java.util.List;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Workbench - Node Role Api.
+ *
+ * @author benxianyu
  */
 @Tag(name = "Workbench - Node Role Api")
 @RestController
@@ -262,6 +264,9 @@ public class NodeCollaboratorController {
         return iNodeRoleService.getNodeRoleMembers(spaceId, extendNodeId);
     }
 
+    /**
+     * request body of opening the role control panel.
+     */
     public static class RoleControlOpenRoBody {
         private Boolean includeExtend;
 

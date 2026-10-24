@@ -77,8 +77,6 @@ public class SpaceAuditRecordServiceImpl
                                         List<String> actions, List<Long> memberIds,
                                         String keyword, LocalDateTime beginTime,
                                         LocalDateTime endTime) {
-        long safePageNo = Math.max(1, pageNo);
-        long safePageSize = Math.max(1, Math.min(pageSize, 100));
         LambdaQueryWrapper<SpaceAuditRecordEntity> query = Wrappers.lambdaQuery();
         query.eq(SpaceAuditRecordEntity::getSpaceId, spaceId);
         query.in(CollUtil.isNotEmpty(actions), SpaceAuditRecordEntity::getAction, actions);
@@ -91,6 +89,8 @@ public class SpaceAuditRecordServiceImpl
                 .or().like(SpaceAuditRecordEntity::getInfo, keyword));
         }
         query.orderByDesc(SpaceAuditRecordEntity::getCreatedAt);
+        long safePageNo = Math.max(1, pageNo);
+        long safePageSize = Math.max(1, Math.min(pageSize, 100));
         Page<SpaceAuditRecordEntity> page = super.page(new Page<>(safePageNo, safePageSize), query);
         List<SpaceAuditDTO> records = page.getRecords().stream()
             .map(this::toDto)

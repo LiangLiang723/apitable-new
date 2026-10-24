@@ -14,6 +14,11 @@ import lombok.Builder;
 import lombok.Data;
 import org.springframework.stereotype.Service;
 
+/**
+ * mail server config service.
+ *
+ * @author benxianyu
+ */
 @Service
 public class MailServerConfigService {
 
@@ -59,6 +64,11 @@ public class MailServerConfigService {
     @Resource
     private EmailSendProperties emailSendProperties;
 
+    /**
+     * get the stored mail server config.
+     *
+     * @return mail config
+     */
     public SpaceMailConfigVo getConfig() {
         JSONObject config = getStoredConfig();
         String password = config.getStr(MAIL_PASSWORD);
@@ -81,18 +91,21 @@ public class MailServerConfigService {
             .build();
     }
 
+    /**
+     * update the stored mail server config.
+     *
+     * @param userId operator
+     * @param request new config
+     */
     public void updateConfig(final Long userId, final SpaceMailConfigRo request) {
         JSONObject previous = getStoredConfig();
         JSONObject config = JSONUtil.createObj();
         boolean enabled = Boolean.TRUE.equals(request.getEnabled());
         boolean auth = request.getAuth() == null || Boolean.TRUE.equals(request.getAuth());
         int port = request.getPort() == null ? DEFAULT_PORT : request.getPort();
-        String provider = StrUtil.blankToDefault(StrUtil.trim(request.getProvider()), DEFAULT_PROVIDER);
         String host = StrUtil.blankToDefault(StrUtil.trim(request.getHost()), "");
-        String protocol = StrUtil.blankToDefault(StrUtil.trim(request.getProtocol()), DEFAULT_PROTOCOL);
         String username = StrUtil.blankToDefault(StrUtil.trim(request.getUsername()), "");
         String from = StrUtil.blankToDefault(StrUtil.trim(request.getFrom()), "");
-        String personal = StrUtil.blankToDefault(StrUtil.trim(request.getPersonal()), defaultPersonal());
         String password = previous.getStr(MAIL_PASSWORD);
         if (Boolean.TRUE.equals(request.getClearPassword())) {
             password = "";
@@ -111,13 +124,16 @@ public class MailServerConfigService {
         }
 
         config.set(MAIL_ENABLED, enabled);
+        String provider = StrUtil.blankToDefault(StrUtil.trim(request.getProvider()), DEFAULT_PROVIDER);
         config.set(MAIL_PROVIDER, provider);
         config.set(MAIL_HOST, host);
         config.set(MAIL_PORT, port);
+        String protocol = StrUtil.blankToDefault(StrUtil.trim(request.getProtocol()), DEFAULT_PROTOCOL);
         config.set(MAIL_PROTOCOL, protocol);
         config.set(MAIL_USERNAME, username);
         config.set(MAIL_PASSWORD, StrUtil.blankToDefault(password, ""));
         config.set(MAIL_FROM, from);
+        String personal = StrUtil.blankToDefault(StrUtil.trim(request.getPersonal()), defaultPersonal());
         config.set(MAIL_PERSONAL, personal);
         config.set(MAIL_AUTH, auth);
         config.set(MAIL_SSL_ENABLE, Boolean.TRUE.equals(request.getSslEnable()));
@@ -128,6 +144,11 @@ public class MailServerConfigService {
             CONFIG_LANG, config.toString());
     }
 
+    /**
+     * get the runtime mail server config.
+     *
+     * @return runtime config, null when the mail server is disabled
+     */
     public MailServerRuntimeConfig getRuntimeConfig() {
         JSONObject config = getStoredConfig();
         if (!config.getBool(MAIL_ENABLED, false)) {
@@ -189,6 +210,9 @@ public class MailServerConfigService {
         return trimmed.substring(0, 3) + "..." + trimmed.substring(trimmed.length() - 3);
     }
 
+    /**
+     * mail server runtime config.
+     */
     @Data
     @Builder
     public static class MailServerRuntimeConfig {
@@ -219,6 +243,11 @@ public class MailServerConfigService {
 
         private Boolean debug;
 
+        /**
+         * build the cache key of the runtime config.
+         *
+         * @return cache key
+         */
         public String cacheKey() {
             return String.join("|",
                 StrUtil.blankToDefault(provider, ""),
