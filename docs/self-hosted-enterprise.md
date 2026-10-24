@@ -208,11 +208,11 @@ scripts/detect-changed-components.sh [<previous-tag>] [<current-ref>]
 | Component | Rebuilt when |
 |---|---|
 | `backend-server` | `backend-server/**` changed |
-| `room-server` | `packages/{room-server,core,i18n-lang,databus-wasm-*}/**` changed |
-| `web-server` | `packages/{datasheet,core,components,widget-sdk,i18n-lang,icons,ai-components,api-client}/**` changed |
+| `room-server` | `packages/{room-server,core,i18n-lang,databus-wasm-*}/**` changed, or the node base image reference changed |
+| `web-server` | `packages/{datasheet,core,components,widget-sdk,i18n-lang,icons,ai-components,api-client}/**` changed, or the nodepy base image reference changed |
 | `init-db` | `init-db/**` changed |
 | `dataenv-pm2` | `packaging/all-in-one/dataenv-pm2/**` changed |
-| `dataenv-liquibase-pm2` | `packaging/all-in-one/dataenv-liquibase-pm2/**` changed |
+| `dataenv-liquibase-pm2` | `packaging/all-in-one/dataenv-liquibase-pm2/**` changed, or the dataenv base image changed |
 | `openresty` | `gateway/**` changed |
 
 A component that did not change is not rebuilt. The image published for the
@@ -220,6 +220,20 @@ previous release is re-tagged to the new version instead, so every version tag
 always resolves to a complete set of images.
 
 The all-in-one image is always rebuilt, it only assembles the components.
+
+#### Build configuration
+
+The build arguments live in the release workflow and not in the source tree, so
+a plain file diff would not notice a changed base image version. The build
+configuration of every component is therefore fingerprinted separately:
+
+```bash
+scripts/component-build-fingerprint.py <revision-a> <revision-b>
+# -> {"fingerprints": {...}, "changed": ["room-server"]}
+```
+
+A component is rebuilt when its build arguments or the referenced base image
+sources changed, even if not a single source file was touched.
 
 ### Offline bundle
 
