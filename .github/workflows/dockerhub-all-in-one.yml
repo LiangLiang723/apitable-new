@@ -179,7 +179,7 @@ jobs:
           echo "需要重建: ${changed}"
 
   mirror-runtime-deps:
-    name: 镜像外部运行依赖
+    name: 校验外部镜像
     runs-on: ubuntu-latest
     needs: prepare
 
@@ -209,60 +209,51 @@ jobs:
             echo "基础镜像就绪: ${ref}"
           done
 
-      - name: 镜像外部运行依赖到自有 DockerHub
+      - name: 校验外部镜像已同步并打上本次标签
         shell: bash
         env:
           VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
           SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
-          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
         run: |
           set -euo pipefail
 
-          # `imagetools create` copies the whole manifest list, so a multi-arch
-          # upstream tag keeps every platform it provides. Sources that only
-          # ship a single platform are copied the same way.
-          mirror_image() {
+          # The three images whose sources are not part of this repository are
+          # synced into our namespace by the `同步外部镜像` workflow. This job only
+          # re-tags the copies, so a release never reaches the upstream namespace
+          # and keeps working after upstream removes an image.
+          tag_release() {
             local source_ref="$1"
             local target_image="$2"
-            local target_tag="$3"
-            local attempt
+            local expected="${source_ref##*@}"
+            local actual
 
-            for attempt in 1 2 3; do
-              if docker buildx imagetools create \
-                  -t "${target_image}:${target_tag}" "${source_ref}"; then
-                break
-              fi
-              if [[ "${attempt}" == "3" ]]; then
-                echo "ERROR: failed to mirror ${source_ref}" >&2
-                return 1
-              fi
-              echo "Mirror failed, retrying..."
-              sleep 5
-            done
+            actual="$(docker buildx imagetools inspect "${target_image}:latest" \
+              --format '{{.Manifest.Digest}}' 2>/dev/null || true)"
 
-            docker buildx imagetools create \
-              -t "${target_image}:${VERSION_TAG}" "${source_ref}"
-            docker buildx imagetools create \
-              -t "${target_image}:${SHORT_SHA}" "${source_ref}"
-
-            if [[ "${PUSH_LATEST}" == "true" ]]; then
-              docker buildx imagetools create \
-                -t "${target_image}:latest" "${source_ref}"
+            if [[ -z "${actual}" ]]; then
+              echo "ERROR: ${target_image}:latest 不存在，请先运行「同步外部镜像」工作流" >&2
+              return 1
             fi
+
+            if [[ "${actual}" != "${expected}" ]]; then
+              echo "ERROR: ${target_image}:latest 与锁定的 digest 不一致" >&2
+              echo "  期望: ${expected}" >&2
+              echo "  实际: ${actual}" >&2
+              echo "  请先运行「同步外部镜像」工作流" >&2
+              return 1
+            fi
+
+            docker buildx imagetools create \
+              -t "${target_image}:${VERSION_TAG}" "${target_image}:latest"
+            docker buildx imagetools create \
+              -t "${target_image}:${SHORT_SHA}" "${target_image}:latest"
+
+            echo "${target_image} 已打上 ${VERSION_TAG} / ${SHORT_SHA}（digest=${actual}）"
           }
 
-          pids=()
-          # The node / nodepy base images are no longer mirrored from upstream,
-          # they are built by the `构建基础镜像` workflow.
-          mirror_image "${DATABUS_SOURCE}" "${DATABUS_IMAGE}" "latest" & pids+=($!)
-          mirror_image "${INIT_APPDATA_SOURCE}" "${INIT_APPDATA_IMAGE}" "latest" & pids+=($!)
-          mirror_image "${IMAGEPROXY_SOURCE}" "${IMAGEPROXY_IMAGE}" "latest" & pids+=($!)
-
-          status=0
-          for pid in "${pids[@]}"; do
-            wait "${pid}" || status=1
-          done
-          exit "${status}"
+          tag_release "${DATABUS_SOURCE}" "${DATABUS_IMAGE}"
+          tag_release "${INIT_APPDATA_SOURCE}" "${INIT_APPDATA_IMAGE}"
+          tag_release "${IMAGEPROXY_SOURCE}" "${IMAGEPROXY_IMAGE}"
 
   unit-test:
     name: 单元测试 (${{ matrix.command }})
