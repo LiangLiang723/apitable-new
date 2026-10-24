@@ -52,6 +52,18 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: 安装 skopeo
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v skopeo >/dev/null 2>&1; then
+            skopeo --version
+            exit 0
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq skopeo
+          skopeo --version
+
       - name: 复制到 benxianyu
         shell: bash
         env:
@@ -59,9 +71,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          # `imagetools create` copies the whole manifest list, so the platforms
-          # the upstream digest provides are preserved, and the digest of the
-          # copy is identical to the pinned one.
+          # `skopeo copy --all` copies every blob of the manifest list and keeps
+          # the digest, so the copy in our namespace is byte identical to the
+          # pinned upstream digest. `imagetools create` would build a new index
+          # with a new digest, which makes the pin impossible to verify.
           copy_image() {
             local source_ref="$1"
             local target_image="$2"
@@ -71,7 +84,8 @@ jobs:
             echo "==> ${source_ref} -> ${target_image}"
 
             for attempt in 1 2 3; do
-              if docker buildx imagetools create -t "${target_image}:latest" "${source_ref}"; then
+              if skopeo copy --all --retry-times 3 \
+                  "docker://${source_ref}" "docker://${target_image}:latest"; then
                 break
               fi
               if [[ "${attempt}" == "3" ]]; then
@@ -82,10 +96,12 @@ jobs:
               sleep 5
             done
 
-            docker buildx imagetools create -t "${target_image}:${digest#sha256:}" "${source_ref}"
+            skopeo copy --all "docker://${target_image}:latest" \
+              "docker://${target_image}:${digest#sha256:}"
 
             if [[ -n "${EXTRA_TAG}" ]]; then
-              docker buildx imagetools create -t "${target_image}:${EXTRA_TAG}" "${source_ref}"
+              skopeo copy --all "docker://${target_image}:latest" \
+                "docker://${target_image}:${EXTRA_TAG}"
             fi
           }
 
