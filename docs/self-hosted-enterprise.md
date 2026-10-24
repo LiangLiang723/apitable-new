@@ -210,9 +210,9 @@ docker build -f packaging/Dockerfile.web-server \
 
 ### Known limitations
 
-- The mirror step resolves a single platform, so the mirrored runtime component
-  images are `linux/amd64` only even though some upstream tags are multi-arch.
-  The build base images keep every platform of the upstream manifest list.
+- The mirrored runtime component images keep whatever platforms the pinned
+  upstream digest ships: `init-appdata` and `imageproxy-server` are
+  `linux/amd64` + `linux/arm64`, `databus-server` is single architecture.
 - The all-in-one image is `linux/amd64` only, because the `node-canvas` binary
   it patches in is only published for x64 glibc.
 - `apitable/init-appdata` is pinned to a digest that corresponds to the upstream
