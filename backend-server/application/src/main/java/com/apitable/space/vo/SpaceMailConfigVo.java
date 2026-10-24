@@ -6,6 +6,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * mail server configuration.
+ *
+ * @author benxianyu
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -3,6 +3,11 @@ package com.apitable.space.ro;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+/**
+ * mail server configuration request.
+ *
+ * @author benxianyu
+ */
 @Data
 @Schema(description = "Mail server configuration request")
 public class SpaceMailConfigRo {
