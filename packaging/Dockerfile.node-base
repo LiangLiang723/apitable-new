@@ -1,0 +1,35 @@
+# Base image for the room-server build.
+#
+# It provides Node 16.15.0 plus the native toolchain that the `canvas`
+# dependency needs (build-essential, cairo / pango / jpeg / giflib / rsvg dev
+# packages, python3 for node-gyp). The component Dockerfiles call `pnpm install`
+# directly, so pnpm is installed here as well.
+#
+# This image used to be a mirror of `apitable/node`, which made the build chain
+# depend on the upstream namespace. It is now built from the official Node image
+# instead.
+#
+# The tag is part of the component fingerprint in the release workflow: when the
+# content of this file changes, bump NODE_BASE_TAG (for example to v16.15.0-r1)
+# and the fingerprint will mark room-server as changed.
+FROM node:16.15.0-bullseye
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        git \
+        libcairo2-dev \
+        libgif-dev \
+        libjpeg-dev \
+        libpango1.0-dev \
+        librsvg2-dev \
+        pkg-config \
+        python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g pnpm@8.13.1 \
+    && node --version \
+    && pnpm --version

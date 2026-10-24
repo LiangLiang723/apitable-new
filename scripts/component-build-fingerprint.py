@@ -40,13 +40,13 @@ SKIP_COMPONENTS = {"all-in-one"}
 IGNORED_ARGS = {"SEMVER_FULL"}
 
 # The workflow environment variables that influence the content of a component
-# image. The build arguments of a component are derived from the workflow, but
-# the source of a mirrored base image is only referenced by the mirror job, so
-# the relevant variables are listed explicitly.
+# image. A base image that is built by the `构建基础镜像` workflow changes the
+# component content through its tag, so the tag is part of the fingerprint and
+# rebuilding a base image has to bump it.
 COMPONENT_ENV_VARS = {
     "backend-server": [],
-    "room-server": ["NODE_BASE_IMAGE", "NODE_BASE_TAG", "NODE_BASE_SOURCE"],
-    "web-server": ["NODEPY_BASE_IMAGE", "NODEPY_BASE_TAG", "NODEPY_BASE_SOURCE"],
+    "room-server": ["NODE_BASE_IMAGE", "NODE_BASE_TAG"],
+    "web-server": ["NODEPY_BASE_IMAGE", "NODEPY_BASE_TAG"],
     "init-db": [],
     "dataenv-pm2": [],
     "dataenv-liquibase-pm2": ["DATAENV_IMAGE", "DATAENV_LIQUIBASE_IMAGE"],

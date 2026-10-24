@@ -1,4 +1,4 @@
-# Base image is mirrored from upstream apitable/nodepy into our own registry.
+# Base image is built from packaging/Dockerfile.nodepy-base.
 ARG NODEPY_BASE_IMAGE=benxianyu/apitable-nodepy
 ARG NODEPY_BASE_TAG=16.15.0-alpine
 

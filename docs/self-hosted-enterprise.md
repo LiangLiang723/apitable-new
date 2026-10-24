@@ -89,9 +89,10 @@ Review the generated CSV manually before restoring any feature. If a feature can
 
 ## Image sources
 
-Every image this fork builds or ships is referenced through the `benxianyu`
-Docker Hub namespace. Nothing in the build or deployment path pulls from the
-upstream `apitable` namespace at build time.
+Every image this fork ships is referenced through the `benxianyu` Docker Hub
+namespace. Eight of the thirteen images are built here from source. The
+remaining three are mirrored, because their sources are not part of this
+repository:
 
 | Image | Source | Notes |
 |---|---|---|
@@ -103,42 +104,49 @@ upstream `apitable` namespace at build time.
 | `benxianyu/apitable-dataenv-pm2` | built from source | AlmaLinux 8 + MySQL/MinIO/Redis/RabbitMQ/OpenResty/PM2 |
 | `benxianyu/apitable-dataenv-liquibase-pm2` | built from source | dataenv-pm2 + Corretto 17 + Liquibase |
 | `benxianyu/apitable-new` | built from source | The all-in-one delivery image |
-| `benxianyu/apitable-node` | **mirrored** | `apitable/node:v16.15.0` |
-| `benxianyu/apitable-nodepy` | **mirrored** | `apitable/nodepy:16.15.0-alpine` |
-| `benxianyu/apitable-databus-server` | **mirrored** | `apitable/databus-server:latest` |
-| `benxianyu/apitable-init-appdata` | **mirrored** | `apitable/init-appdata:latest` |
-| `benxianyu/apitable-imageproxy-server` | **mirrored** | `apitable/imageproxy-server:latest` |
+| `benxianyu/apitable-node` | built from source | `packaging/Dockerfile.node-base`, Node 16.15.0 + canvas toolchain |
+| `benxianyu/apitable-nodepy` | built from source | `packaging/Dockerfile.nodepy-base`, alpine variant |
+| `benxianyu/apitable-databus-server` | **mirrored** | `apitable/databus-server:latest`, no source in this repository |
+| `benxianyu/apitable-init-appdata` | **mirrored** | `apitable/init-appdata:latest`, no source in this repository |
+| `benxianyu/apitable-imageproxy-server` | **mirrored** | `apitable/imageproxy-server:latest`, no source in this repository |
 
-### Why the base images are mirrored instead of rebuilt
+### The three remaining mirrors
 
-`apitable/node` and `apitable/nodepy` carry the native toolchain required to
-compile the `canvas` dependency (`build-essential` / `build-base`, the
-`cairo-dev` / `pango-dev` / `jpeg-dev` / `giflib-dev` packages and `python3`).
-The plain official `node` images do not provide it, so these two cannot be
-replaced by a straight `FROM node:16.15.0`. Their sources are not part of this
-repository either, so they are mirrored (pulled and re-published) instead of
-rebuilt.
+`databus-server` (the realtime data bus on port 8625), `init-appdata` (the initial
+data seeding container) and `imageproxy-server` (the MinIO image proxy) are
+prebuilt binaries. Their sources are not part of this repository — `packages/`
+only contains the `databus-client` / `databus-wasm` client libraries — so they
+cannot be rebuilt here. The release workflow mirrors them on every run, and the
+deployment only ever references the `benxianyu` tags.
 
-The same applies to `databus-server`, `init-appdata` and `imageproxy-server`:
-they are prebuilt binaries whose sources live in separate upstream repositories.
+Replacing them would mean reimplementing the services, which is out of scope for
+the build chain.
 
-The gateway image is *not* mirrored — `packaging/Dockerfile.openresty` builds it
-from the official `openresty/openresty` base image plus our own nginx
-configuration, which is equivalent to the upstream `apitable/openresty` image.
+### Rebuilding the base images
+
+`benxianyu/apitable-node` and `benxianyu/apitable-nodepy` are built by the
+`构建基础镜像` workflow (`.github/workflows/base-images.yml`), which runs on
+`workflow_dispatch` and on changes to the two Dockerfiles. It publishes
+`linux/amd64` and `linux/arm64`, because the local all-in-one build runs natively
+on arm64 machines while the release build runs on amd64 runners.
+
+The local build (`scripts/build-all-in-one-local.sh`) builds the same two images
+from the same Dockerfiles, so it does not need the upstream namespace at all.
+
+### Bumping a base image
+
+The base image tag is part of the component fingerprint used by the incremental
+build. After changing a base image Dockerfile, bump the tag
+(`NODE_BASE_TAG=v16.15.0-r1`, `NODEPY_BASE_TAG=16.15.0-alpine-r1`) in
+`.github/workflows/dockerhub-all-in-one.yml` and in `.env`. Without the bump the
+fingerprint stays identical and the dependent component images would be reused
+from the previous release.
 
 ### Digest pinning
 
-The upstream build base images are pinned to a digest, so a republish of the
-same tag upstream cannot silently change what gets mirrored:
-
-```
-NODE_BASE_SOURCE=apitable/node@sha256:d4b8c29f66d395391bfb4473e7ae59a23383db96a2139084c759196d645fa147
-NODEPY_BASE_SOURCE=apitable/nodepy@sha256:59863e71bc15b9a4aaf1b0631374ced958483298eceea49e61a27544969d9222
-```
-
-They are defined in `.env` for the local build and in the workflow
-environment. To follow the upstream tag instead, replace the digest with the
-tag form, for example `apitable/node:v16.15.0`.
+The three mirrored images are addressed by tag (`:latest`), because upstream only
+publishes a moving tag for them. `docker buildx imagetools create` copies the
+whole manifest list, so every platform the upstream tag provides is preserved.
 
 ### Rebuilding the mirrored images
 

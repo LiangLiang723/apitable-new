@@ -1,0 +1,29 @@
+# Base image for the web-server (datasheet) build.
+#
+# Alpine variant of Dockerfile.node-base: Node 16.15.0 plus the build-base and
+# cairo / pango / jpeg / giflib / rsvg development packages needed to compile
+# `canvas`, and python3 for node-gyp.
+#
+# This image used to be a mirror of `apitable/nodepy`. It is now built from the
+# official Node image, so the build chain no longer pulls from the upstream
+# namespace.
+#
+# The tag is part of the component fingerprint in the release workflow: when the
+# content of this file changes, bump NODEPY_BASE_TAG (for example to
+# 16.15.0-alpine-r1) and the fingerprint will mark web-server as changed.
+FROM node:16.15.0-alpine
+
+RUN apk add --no-cache \
+        build-base \
+        cairo-dev \
+        giflib-dev \
+        git \
+        jpeg-dev \
+        librsvg-dev \
+        pango-dev \
+        pkgconfig \
+        python3
+
+RUN npm install -g pnpm@8.13.1 \
+    && node --version \
+    && pnpm --version

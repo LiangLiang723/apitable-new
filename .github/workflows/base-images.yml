@@ -1,0 +1,95 @@
+name: 构建基础镜像
+
+# Builds the base images the component builds are based on:
+#   benxianyu/apitable-node    <- packaging/Dockerfile.node-base
+#   benxianyu/apitable-nodepy  <- packaging/Dockerfile.nodepy-base
+#
+# They used to be mirrors of apitable/node and apitable/nodepy. Building them
+# here removes the last upstream dependency from the build chain that can be
+# avoided, and keeps the toolchain under version control.
+#
+# Both platforms are published because the local all-in-one build runs natively
+# on arm64 machines while the release build runs on amd64 runners.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["self-hosted-enterprise"]
+    paths:
+      - "packaging/Dockerfile.node-base"
+      - "packaging/Dockerfile.nodepy-base"
+      - ".github/workflows/base-images.yml"
+
+concurrency:
+  group: base-images-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PLATFORMS: linux/amd64,linux/arm64
+
+jobs:
+  build:
+    name: 构建 ${{ matrix.component }} 基础镜像
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: node
+            image: benxianyu/apitable-node
+            tag: v16.15.0
+            dockerfile: packaging/Dockerfile.node-base
+          - component: nodepy
+            image: benxianyu/apitable-nodepy
+            tag: 16.15.0-alpine
+            dockerfile: packaging/Dockerfile.nodepy-base
+
+    steps:
+      - name: 拉取源码
+        uses: actions/checkout@v4
+
+      - name: 设置 QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 构建并推送
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ env.PLATFORMS }}
+          push: true
+          tags: |
+            ${{ matrix.image }}:${{ matrix.tag }}
+            ${{ matrix.image }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: 校验推送结果
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for platform in amd64 arm64; do
+            if ! docker buildx imagetools inspect \
+                "${{ matrix.image }}:${{ matrix.tag }}" \
+                | grep -q "linux/${platform}"; then
+              echo "ERROR: ${{ matrix.image }}:${{ matrix.tag }} 缺少 linux/${platform}" >&2
+              exit 1
+            fi
+          done
+
+          echo "${{ matrix.image }}:${{ matrix.tag }} 已包含 linux/amd64 与 linux/arm64"

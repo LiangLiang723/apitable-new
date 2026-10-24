@@ -46,14 +46,14 @@ env:
   INIT_APPDATA_IMAGE: benxianyu/apitable-init-appdata
   IMAGEPROXY_IMAGE: benxianyu/apitable-imageproxy-server
   OPENRESTY_IMAGE: benxianyu/apitable-openresty
+  # The base images are built by the `构建基础镜像` workflow from
+  # packaging/Dockerfile.node-base and packaging/Dockerfile.nodepy-base. The tag
+  # carries the revision, so bumping it is what tells the fingerprint that the
+  # component has to be rebuilt.
   NODE_BASE_IMAGE: benxianyu/apitable-node
   NODE_BASE_TAG: v16.15.0
   NODEPY_BASE_IMAGE: benxianyu/apitable-nodepy
   NODEPY_BASE_TAG: 16.15.0-alpine
-  # The build base images are pinned to a digest so that an upstream republish
-  # of the same tag cannot silently change the mirrored content.
-  NODE_BASE_SOURCE: apitable/node@sha256:d4b8c29f66d395391bfb4473e7ae59a23383db96a2139084c759196d645fa147
-  NODEPY_BASE_SOURCE: apitable/nodepy@sha256:59863e71bc15b9a4aaf1b0631374ced958483298eceea49e61a27544969d9222
   ALL_IN_ONE_DOCKERFILE: packaging/all-in-one/all-in-one/Dockerfile
 
 jobs:
@@ -186,6 +186,22 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: 校验基础镜像已发布
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # The base images are built by the `构建基础镜像` workflow, not by this
+          # one. Fail early with an actionable message instead of a confusing
+          # build error deep inside the room-server build.
+          for ref in "${NODE_BASE_IMAGE}:${NODE_BASE_TAG}" "${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG}"; do
+            if ! docker buildx imagetools inspect "${ref}" >/dev/null 2>&1; then
+              echo "ERROR: 基础镜像 ${ref} 不存在，请先运行「构建基础镜像」工作流" >&2
+              exit 1
+            fi
+            echo "基础镜像就绪: ${ref}"
+          done
+
       - name: 镜像外部运行依赖到自有 DockerHub
         shell: bash
         env:
@@ -229,8 +245,8 @@ jobs:
           }
 
           pids=()
-          mirror_image "${NODE_BASE_SOURCE}" "${NODE_BASE_IMAGE}" "${NODE_BASE_TAG}" & pids+=($!)
-          mirror_image "${NODEPY_BASE_SOURCE}" "${NODEPY_BASE_IMAGE}" "${NODEPY_BASE_TAG}" & pids+=($!)
+          # The node / nodepy base images are no longer mirrored from upstream,
+          # they are built by the `构建基础镜像` workflow.
           mirror_image apitable/databus-server:latest "${DATABUS_IMAGE}" "latest" & pids+=($!)
           mirror_image apitable/init-appdata:latest "${INIT_APPDATA_IMAGE}" "latest" & pids+=($!)
           mirror_image apitable/imageproxy-server:latest "${IMAGEPROXY_IMAGE}" "latest" & pids+=($!)
@@ -245,9 +261,9 @@ jobs:
     name: 单元测试 (${{ matrix.command }})
     runs-on: ubuntu-latest
     # The room-server test builds the image from packaging/Dockerfile.room-server,
-    # which is based on the mirrored node base image, so the mirror has to run
-    # first. Every image build is gated by this job so that code failing the
-    # test suite is never pushed to the registry.
+    # which is based on benxianyu/apitable-node, so the base image preflight has
+    # to run first. Every image build is gated by this job so that code failing
+    # the test suite is never pushed to the registry.
     needs:
       - prepare
       - mirror-runtime-deps

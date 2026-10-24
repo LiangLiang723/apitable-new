@@ -1,4 +1,5 @@
-# Base image is mirrored from upstream apitable/node into our own registry.
+# Base image is built from packaging/Dockerfile.node-base (Node 16.15.0 plus the
+# canvas toolchain) and published as benxianyu/apitable-node.
 # Override with --build-arg NODE_BASE_IMAGE / NODE_BASE_TAG when needed.
 ARG NODE_BASE_IMAGE=benxianyu/apitable-node
 ARG NODE_BASE_TAG=v16.15.0
