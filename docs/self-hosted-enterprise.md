@@ -109,17 +109,35 @@ three are mirrored, because their sources are not part of this repository:
 | `benxianyu/apitable-init-appdata` | **mirrored** | `apitable/init-appdata:latest`, no source in this repository |
 | `benxianyu/apitable-imageproxy-server` | **mirrored** | `apitable/imageproxy-server:latest`, no source in this repository |
 
-### The three remaining mirrors
+### Why the three cannot be rebuilt
 
-`databus-server` (the realtime data bus on port 8625), `init-appdata` (the initial
-data seeding container) and `imageproxy-server` (the MinIO image proxy) are
-prebuilt binaries. Their sources are not part of this repository — `packages/`
-only contains the `databus-client` / `databus-wasm` client libraries — so they
-cannot be rebuilt here. The release workflow mirrors them on every run, and the
-deployment only ever references the `benxianyu` tags.
+- `databus-server` — the realtime data bus on port 8625. `packages/` only contains
+  the `databus-client` / `databus-wasm` client libraries, the server itself has
+  never been part of this repository.
+- `init-appdata` — it runs `init-appdata.jar init-user` and `init-appdata.jar load`
+  (see `packaging/all-in-one/all-in-one/script/init-appdata.sh`). The jar carries
+  the initial user seeding and the template data, and neither the source nor the
+  data files exist here. The repository only has `init-db`, which is a Liquibase
+  changelog and does not contain that application.
+- `imageproxy-server` — an on-the-fly image resize proxy. The frontend requests
+  thumbnails with Aliyun OSS semantics (`?imageView2/1/w/<size>/q/100!`, see
+  `packages/core/src/utils/file.ts`), and the gateway forwards those requests to
+  it (`gateway/conf.d/server/imageproxy.conf`). A plain nginx `proxy_pass` cannot
+  resize, so replacing it means reimplementing the `imageView2` subset.
 
-Replacing them would mean reimplementing the services, which is out of scope for
-the build chain.
+Replacing them would be a reimplementation project rather than a build change.
+
+### Digest pinning
+
+Upstream only publishes a moving `:latest` tag for these three, so they are
+pinned to a digest in the workflow environment (`DATABUS_SOURCE`,
+`INIT_APPDATA_SOURCE`, `IMAGEPROXY_SOURCE`) and in the local build script. A
+republish upstream can therefore not change the content of a release, and
+`docker buildx imagetools create` still copies the whole manifest list, so every
+platform the upstream digest provides is preserved.
+
+The upstream tags have not moved since 2023-10 / 2024-01. To pick up a newer
+upstream build on purpose, resolve the new digest and update the three values.
 
 ### Rebuilding the base images
 
@@ -140,12 +158,6 @@ build. After changing a base image Dockerfile, bump the tag
 `.github/workflows/dockerhub-all-in-one.yml` and in `.env`. Without the bump the
 fingerprint stays identical and the dependent component images would be reused
 from the previous release.
-
-### Digest pinning
-
-The three mirrored images are addressed by tag (`:latest`), because upstream only
-publishes a moving tag for them. `docker buildx imagetools create` copies the
-whole manifest list, so every platform the upstream tag provides is preserved.
 
 ### Rebuilding the mirrored images
 
@@ -193,9 +205,9 @@ docker build -f packaging/Dockerfile.web-server \
   The build base images keep every platform of the upstream manifest list.
 - The all-in-one image is `linux/amd64` only, because the `node-canvas` binary
   it patches in is only published for x64 glibc.
-- `apitable/init-appdata:latest` currently corresponds to the upstream `1.8.0`
-  release line, while this repository is at `1.13.0`. The seeded template space
-  has to be verified after every deployment, see the smoke check script.
+- `apitable/init-appdata` is pinned to a digest that corresponds to the upstream
+  `1.8.0` release line, while this repository is at `1.14.0`. The seeded template
+  space has to be verified after every deployment, see the smoke check script.
 ## Release process
 
 Pushing a `v*.*.*` tag triggers `.github/workflows/dockerhub-all-in-one.yml`,
