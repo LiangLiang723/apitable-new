@@ -71,12 +71,37 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: ${{ env.PLATFORMS }}
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ matrix.image }}:${{ matrix.tag }}
             ${{ matrix.image }}:sha-${{ github.sha }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: 冒烟测试（canvas 能否从源码编译）
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # The whole point of these images is the native toolchain, so compile
+          # `canvas` from source inside the freshly built image. It runs on the
+          # runner platform (amd64), no emulation involved.
+          cat > /tmp/canvas-smoke.sh <<'SMOKE'
+          set -eux
+          node --version
+          pnpm --version
+          mkdir -p /tmp/smoke && cd /tmp/smoke
+          npm init -y >/dev/null
+          npm_config_build_from_source=true npm install canvas@2.9.1 --no-audit --no-fund
+          node -e 'const { createCanvas } = require("canvas"); createCanvas(10, 10).getContext("2d"); console.log("canvas ok")'
+          SMOKE
+
+          docker run --rm \
+            -v /tmp/canvas-smoke.sh:/canvas-smoke.sh:ro \
+            "${{ matrix.image }}:${{ matrix.tag }}" \
+            sh /canvas-smoke.sh
 
       - name: 校验推送结果
         shell: bash
