@@ -38,6 +38,13 @@ enum Types {
 
 const DESC_MAX_LEN = 200;
 
+/**
+ * Strips markup from a description snippet. `[^<>]*` keeps the match linear and
+ * the second pass drops the angle brackets a single strip could leave behind,
+ * so the result can never contain a tag fragment such as `<script`.
+ */
+const stripHtmlTags = (value: string) => value.replace(/<[^<>]*>/g, '').replace(/[<>]/g, '');
+
 export interface ITemplateItemProps {
   img: string;
   templateId: string;
@@ -134,7 +141,7 @@ export const TemplateItem: React.FC<React.PropsWithChildren<ITemplateItemProps>>
     } else if (typeof desc.text === 'string') {
       content = desc.text.slice(0, DESC_MAX_LEN);
     } else if (typeof desc.data === 'string') {
-      content = desc.data.replace(/<\/?.+?>/g, '').slice(0, DESC_MAX_LEN);
+      content = stripHtmlTags(desc.data).slice(0, DESC_MAX_LEN);
     }
     return content;
   };
@@ -155,7 +162,7 @@ export const TemplateItem: React.FC<React.PropsWithChildren<ITemplateItemProps>>
         }
       }
     } else if (typeof desc.render === 'string') {
-      content = desc.render.replace(/<\/?.+?>/g, '').slice(0, DESC_MAX_LEN);
+      content = stripHtmlTags(desc.render).slice(0, DESC_MAX_LEN);
     }
     return content;
   };

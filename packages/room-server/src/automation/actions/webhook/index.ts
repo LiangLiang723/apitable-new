@@ -90,9 +90,14 @@ export async function sendRequest(request: IWebhookRequest): Promise<IActionResp
     }
   }
 
-  const agentOpts = url.startsWith('https') ? { agent: new https.Agent({ rejectUnauthorized: false }) } : {};
+  // Certificate verification stays on by default. A self hosted deployment that
+  // talks to a receiver with a self signed certificate has to opt in explicitly,
+  // otherwise every webhook silently accepted any certificate.
+  const allowInsecureTls = process.env.WEBHOOK_ALLOW_INSECURE_TLS === 'true';
+  const agentOpts = allowInsecureTls && url.startsWith('https')
+    ? { agent: new https.Agent({ rejectUnauthorized: false }) }
+    : {};
   const newReqData = {
-    // disable https certificate verification
     ...agentOpts,
     method,
     headers: { 'content-type': contentType, ...parserHeader(headers) },

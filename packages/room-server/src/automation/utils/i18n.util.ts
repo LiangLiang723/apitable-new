@@ -35,7 +35,10 @@ export function replaceSchemaByLanguage(language: string, source: any): any {
 
 export function getTypeByItem(item: any, lang: string, type = 'action') {
   //TODO: default value replace to DEFAULT_LOCALE env variable after new configuration update
-  lang = item.i18n[lang] ? lang : (lang.includes('zh') ? 'zh' : 'en');
+  // The locale arrives with the request and is not guaranteed to be a string,
+  // an array would be coerced by `includes`/property access in unexpected ways.
+  const requestedLang: string = typeof lang === 'string' ? lang : '';
+  lang = item.i18n[requestedLang] ? requestedLang : (requestedLang.includes('zh') ? 'zh' : 'en');
   const language = item.i18n[lang];
   const inputSchema = item.inputJsonSchema;
   const outputSchema = item.outputJsonSchema;

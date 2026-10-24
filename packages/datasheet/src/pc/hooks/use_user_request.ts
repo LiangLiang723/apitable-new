@@ -30,7 +30,7 @@ import { secondStepVerify } from 'pc/hooks/utils';
 import { NotificationStore } from 'pc/notification_store';
 import { store } from 'pc/store';
 import { useAppSelector } from 'pc/store/react-redux';
-import { isLocalSite } from 'pc/utils/catalog';
+import { getLocalRedirectUrl } from 'pc/utils/catalog';
 import { getSearchParams } from 'pc/utils/dom';
 import { getEnvVariables } from 'pc/utils/env';
 import { deleteStorageByKey, StorageName } from '../utils/storage';
@@ -146,8 +146,9 @@ export const useUserRequest = () => {
 
         if (reference) {
           localStorage.removeItem('reference');
-          if (isLocalSite(window.location.href, reference)) {
-            window.location.href = reference;
+          const redirectUrl = getLocalRedirectUrl(reference);
+          if (redirectUrl) {
+            window.location.href = redirectUrl;
             return;
           }
         }
@@ -157,12 +158,14 @@ export const useUserRequest = () => {
           return res.data;
         }
         const shareReference = localStorage.getItem('share_login_reference');
-        if (shareReference) {
-          window.location.href = shareReference;
+        const shareRedirectUrl = getLocalRedirectUrl(shareReference);
+        if (shareRedirectUrl) {
+          window.location.href = shareRedirectUrl;
           return res.data;
         }
-        if (reference && isLocalSite(window.location.href, reference)) {
-          window.location.href = reference;
+        const fallbackRedirectUrl = getLocalRedirectUrl(reference);
+        if (fallbackRedirectUrl) {
+          window.location.href = fallbackRedirectUrl;
           return res.data;
         }
         Router.redirect(Navigation.WORKBENCH);
@@ -217,8 +220,9 @@ export const useUserRequest = () => {
         }
         if (reference) {
           localStorage.removeItem('reference');
-          if (isLocalSite(window.location.href, reference)) {
-            window.location.href = reference;
+          const inviteRedirectUrl = getLocalRedirectUrl(reference);
+          if (inviteRedirectUrl) {
+            window.location.href = inviteRedirectUrl;
             return;
           }
         }
@@ -269,12 +273,14 @@ export const useUserRequest = () => {
           return res.data;
         }
         const shareReference = localStorage.getItem('share_login_reference');
-        if (shareReference) {
-          window.location.href = shareReference;
+        const shareRedirectUrl = getLocalRedirectUrl(shareReference);
+        if (shareRedirectUrl) {
+          window.location.href = shareRedirectUrl;
           return res.data;
         }
-        if (reference && isLocalSite(window.location.href, reference)) {
-          window.location.href = reference;
+        const redirectUrl = getLocalRedirectUrl(reference);
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
           return res.data;
         }
         Router.push(Navigation.HOME);

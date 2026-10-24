@@ -22,6 +22,20 @@ import {
 } from '../entities/datasheet.record.archive.entity';
 import { chunk } from 'lodash';
 
+/** Upper bound for the number of record ids a single archive lookup may batch. */
+const MAX_ARCHIVED_RECORD_IDS = 100000;
+
+/**
+ * The ids are taken from the request, a non array value or an unbounded list
+ * would otherwise be chunked and iterated as-is.
+ */
+const normalizeRecordIds = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.slice(0, MAX_ARCHIVED_RECORD_IDS) as string[];
+};
+
 @EntityRepository(DatasheetRecordArchiveEntity)
 export class DatasheetRecordArchiveRepository extends Repository<DatasheetRecordArchiveEntity> {
 
@@ -52,7 +66,7 @@ export class DatasheetRecordArchiveRepository extends Repository<DatasheetRecord
       return entities.map(entity => entity.recordId);
     };
 
-    let batchRecordIds = chunk(recordIds, 1000);
+    let batchRecordIds = chunk(normalizeRecordIds(recordIds), 1000);
 
     let promise = [];
     for (let batchRecordId of batchRecordIds) {

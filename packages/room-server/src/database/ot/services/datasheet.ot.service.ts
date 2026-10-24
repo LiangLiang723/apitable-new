@@ -72,6 +72,7 @@ import {
 import produce from 'immer';
 import { chunk, intersection, isEmpty, pick, update } from 'lodash';
 import { InjectLogger } from 'shared/common';
+import { isSafeObjectKey } from 'shared/helpers/object.helper';
 import { SourceTypeEnum } from 'shared/enums/changeset.source.type.enum';
 import {
   CommonException,
@@ -994,6 +995,11 @@ export class DatasheetOtService {
           case 'lock':
             // ====== View lock operation ======
             const viewIndex = action.p[2]!;
+            // The path of an OT action is user controlled, a `__proto__` index
+            // would write through the prototype chain of the cached result set.
+            if (!isSafeObjectKey(viewIndex)) {
+              return;
+            }
             if ('oi' in action) {
               resultSet.temporaryViews[viewIndex] = {
                 ...resultSet.temporaryViews[viewIndex],

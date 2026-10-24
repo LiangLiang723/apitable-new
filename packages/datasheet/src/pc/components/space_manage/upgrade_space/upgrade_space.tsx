@@ -63,6 +63,11 @@ const UpgradeSpace: React.FC<IUpgradeSpaceProps> = ({ hideDetail }) => {
       if (!event) {
         return;
       }
+      // The pricing page is embedded from the same origin, anything else must
+      // not be able to drive the checkout flow.
+      if (event.origin !== window.location.origin) {
+        return;
+      }
       const {
         data: { msg, pageType, grade, priceId, productInterval, isTrail = true },
       } = event;
@@ -75,7 +80,7 @@ const UpgradeSpace: React.FC<IUpgradeSpaceProps> = ({ hideDetail }) => {
             recurringInterval,
             trial: onTrial,
           },
-          '*',
+          window.location.origin,
         );
         setLoading(false);
       }

@@ -23,17 +23,22 @@ export class MagicVariableParser<T> extends MagicVariableParserABC<T> {
   // built-in functions
   sysFunctions: Function[];
   passFunctions: Function[];
-  sysFunctionMap: { [key: string]: Function };
+  /**
+   * A Map is used instead of a plain object: the operator name comes from the
+   * parsed expression, and an object lookup would resolve `__proto__` or
+   * `constructor` through the prototype chain and call into it.
+   */
+  sysFunctionMap: Map<string, Function>;
   constructor(sysFunctions: Function[], passFunctions: Function[] = []) {
     super();
     this.sysFunctions = sysFunctions;
     this.passFunctions = passFunctions;
-    this.sysFunctionMap = sysFunctions.reduce((map, func) => {
-      map[func.name] = func;
+    this.sysFunctionMap = new Map<string, Function>();
+    sysFunctions.forEach((func) => {
+      this.sysFunctionMap.set(func.name, func);
       // compatible with user dirty data
-      map[func.name.toLowerCase()] = func;
-      return map;
-    }, {});
+      this.sysFunctionMap.set(func.name.toLowerCase(), func);
+    });
   }
 
   // clone and freeze globalContext to avoid mutation
@@ -44,12 +49,12 @@ export class MagicVariableParser<T> extends MagicVariableParserABC<T> {
 
   // parse expression and return value
   _exec(expression: IExpression, globalContext: T): any {
-    const operatorFunc = this.sysFunctionMap[expression.operator]!;
-    if (this.passFunctions.length && this.passFunctions.includes(operatorFunc)) {
-      return null;
-    }
+    const operatorFunc = typeof expression.operator === 'string' ? this.sysFunctionMap.get(expression.operator) : undefined;
     if (!operatorFunc) {
       throw Error(`${expression.operator} not implemented.`);
+    }
+    if (this.passFunctions.length && this.passFunctions.includes(operatorFunc)) {
+      return null;
     }
     const { operands } = expression;
     const args = operands.map(operand => {

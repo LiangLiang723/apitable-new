@@ -101,6 +101,32 @@ export const isLocalSite = (url: string, originUrl: string) => {
 };
 
 /**
+ * Resolves a `reference` style parameter into an absolute URL of this site.
+ *
+ * Returns null when the value points at another host, so callers can assign the
+ * result to `location.href` without turning the parameter into an open redirect.
+ * The value is resolved against the current origin because relative paths are
+ * accepted as well.
+ */
+export const getLocalRedirectUrl = (reference?: string | null): string | null => {
+  if (!reference) {
+    return null;
+  }
+  try {
+    const target = new URL(decodeURIComponent(reference), window.location.origin);
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+      return null;
+    }
+    if (target.host !== window.location.host) {
+      return null;
+    }
+    return target.href;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * Generate standard membership information
  * {
  *  avatar: string;

@@ -104,7 +104,7 @@ import { IWrapTextDataProps } from './interface';
 const FileOutlinedPath = FileOutlined.toString();
 
 // Simple recognition rules are used to process single line text enhancement fields.
-const isEmail = (text: string) => text && /.+@.+/.test(text);
+const isEmail = (text: string) => text && /^[^\s@]+@[^\s@]+$/.test(text);
 const isPhoneNumber = (text: string) => text && /^[0-9\-()（）#+]+$/.test(text);
 
 const calcFileWidth = (file: IAttachmentValue, ratioHeight: number) => {

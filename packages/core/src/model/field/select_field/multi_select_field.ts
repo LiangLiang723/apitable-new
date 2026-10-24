@@ -32,6 +32,9 @@ import { DatasheetActions } from '../../../commands_actions/datasheet';
 import { isOptionId, SelectField } from './common_select_field';
 import { IOpenFilterValueMultiSelect } from 'types/open/open_filter_types';
 
+/** A single cell can not hold more options than this, used to bound iterations. */
+const MAX_MULTI_SELECT_VALUES = 1000;
+
 export class MultiSelectField extends SelectField {
   constructor(public override field: IMultiSelectField, public override state: IReduxState) {
     super(field, state);
@@ -252,12 +255,15 @@ export class MultiSelectField extends SelectField {
   }
 
   cellValueToArray(cellValue: string[]): string[] | null {
-    if (!cellValue) {
+    // A cell value is restored from storage and is not guaranteed to be an
+    // array, a string would be iterated character by character.
+    if (!cellValue || !Array.isArray(cellValue)) {
       return null;
     }
     const result: string[] = [];
-    for (let i = 0, l = cellValue.length; i < l; i++) {
-      const option = this.findOptionById(cellValue[i]!);
+    const values = cellValue.slice(0, MAX_MULTI_SELECT_VALUES);
+    for (let i = 0, l = values.length; i < l; i++) {
+      const option = this.findOptionById(values[i]!);
       if (option) {
         result.push(option.name);
       }

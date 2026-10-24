@@ -17,7 +17,7 @@
  */
 
 import { Strings, t } from 'exports/i18n';
-import { generateRandomString } from './string';
+import { generateRandomString, getRandomBytes } from './string';
 
 const EFFECTIVE_ID_LENGTH = 10;
 
@@ -116,9 +116,9 @@ export function getUniqName(newName: string, names: string[]) {
 const numbers = '0123456789';
 export function generateRandomNumber(length: number): string {
   let result = '';
+  const bytes = getRandomBytes(length);
   for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * numbers.length);
-    result += numbers.charAt(randomIndex);
+    result += numbers.charAt(bytes[i]! % numbers.length);
   }
 
   return result;
