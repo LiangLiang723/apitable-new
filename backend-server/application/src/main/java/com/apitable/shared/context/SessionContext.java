@@ -34,6 +34,9 @@ import java.util.Collections;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * <p>
@@ -265,6 +268,34 @@ public class SessionContext {
         //set `Max-Age` = 0
         cookie.setMaxAge(0);
         cookie.setPath(cookiePath);
+        // The session cookie has to be flagged as secure and http only, otherwise
+        // it is readable from script and can be sent over a plain text connection.
+        cookie.setSecure(isSecureRequest());
+        cookie.setHttpOnly(true);
         response.addCookie(cookie);
+    }
+
+    /**
+     * Whether the current request was served over TLS.
+     *
+     * <p>Behind the bundled reverse proxy the scheme is only visible in the
+     * {@code X-Forwarded-Proto} header, so both have to be inspected. Forcing the
+     * flag unconditionally would make the deletion ineffective for deployments
+     * that are served over plain http, because browsers ignore a {@code Secure}
+     * cookie that arrives on an insecure connection.
+     *
+     * @return true when the request was served over https
+     */
+    private static boolean isSecureRequest() {
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        if (!(attributes instanceof ServletRequestAttributes)) {
+            return false;
+        }
+        HttpServletRequest request = ((ServletRequestAttributes) attributes).getRequest();
+        if (request.isSecure()) {
+            return true;
+        }
+        String forwardedProto = request.getHeader(HttpContextUtil.X_FORWARDED_PROTO);
+        return null != forwardedProto && "https".equalsIgnoreCase(forwardedProto.trim());
     }
 }
