@@ -29,15 +29,20 @@ export class MagicVariableParser<T> extends MagicVariableParserABC<T> {
    * `constructor` through the prototype chain and call into it.
    */
   sysFunctionMap: Map<string, Function>;
+  /** The registered operator names, used to validate an operator before it is invoked. */
+  sysFunctionNames: Set<string>;
   constructor(sysFunctions: Function[], passFunctions: Function[] = []) {
     super();
     this.sysFunctions = sysFunctions;
     this.passFunctions = passFunctions;
     this.sysFunctionMap = new Map<string, Function>();
+    this.sysFunctionNames = new Set<string>();
     sysFunctions.forEach((func) => {
       this.sysFunctionMap.set(func.name, func);
       // compatible with user dirty data
       this.sysFunctionMap.set(func.name.toLowerCase(), func);
+      this.sysFunctionNames.add(func.name);
+      this.sysFunctionNames.add(func.name.toLowerCase());
     });
   }
 
@@ -49,7 +54,13 @@ export class MagicVariableParser<T> extends MagicVariableParserABC<T> {
 
   // parse expression and return value
   _exec(expression: IExpression, globalContext: T): any {
-    const operatorFunc = typeof expression.operator === 'string' ? this.sysFunctionMap.get(expression.operator) : undefined;
+    const operatorName = typeof expression.operator === 'string' ? expression.operator : '';
+    // Only an operator that was registered by the caller may be invoked, a
+    // random string from the parsed expression must never reach a call site.
+    if (!this.sysFunctionNames.has(operatorName)) {
+      throw Error(`${expression.operator} not implemented.`);
+    }
+    const operatorFunc = this.sysFunctionMap.get(operatorName);
     if (!operatorFunc) {
       throw Error(`${expression.operator} not implemented.`);
     }
