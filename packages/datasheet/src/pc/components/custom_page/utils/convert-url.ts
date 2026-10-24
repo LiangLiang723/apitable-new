@@ -22,6 +22,14 @@ const getBvid = (url: string) => {
 };
 
 export const convertBilibiliUrl = (url: string) => {
-  if (url.includes('player.bilibili.com')) return url;
+  // Compare the parsed host instead of searching for a substring: a URL such as
+  // https://evil.example/?player.bilibili.com would otherwise be embedded as-is.
+  try {
+    if (new URL(url).hostname === 'player.bilibili.com') {
+      return url;
+    }
+  } catch {
+    // Not an absolute URL, fall through and rebuild it.
+  }
   return `https://player.bilibili.com/player.html?bvid=${getBvid(url)}`;
 };

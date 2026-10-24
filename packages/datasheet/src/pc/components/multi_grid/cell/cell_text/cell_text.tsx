@@ -41,7 +41,7 @@ import { UrlDiscern } from './url_discern';
 import style from './style.module.less';
 
 // Simple recognition rules are used to process single line text enhancement fields.
-const isEmail = (text: string | null) => text && /.+@.+/.test(text);
+const isEmail = (text: string | null) => text && /^[^\s@]+@[^\s@]+$/.test(text);
 const isPhoneNumber = (text: string) => text && /^[0-9\-()（）#+]+$/.test(text);
 
 type ICellText = ICellComponentProps & {

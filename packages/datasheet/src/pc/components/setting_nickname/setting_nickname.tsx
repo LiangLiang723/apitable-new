@@ -28,7 +28,7 @@ import { Avatar, AvatarSize, ButtonBase, ImageCropUpload, ISelectInfo, IUploadTy
 import { Router } from 'pc/components/route_manager/router';
 import { useRequest, useUserRequest } from 'pc/hooks';
 import { useAppSelector } from 'pc/store/react-redux';
-import { isLocalSite } from 'pc/utils';
+import { getLocalRedirectUrl } from 'pc/utils';
 import { useQuery } from '../../hooks/use_home';
 import { getNodeIcon } from '../catalog/tree/node_icon';
 import { defaultAvatars } from '../navigation/account_center_modal/basic_setting/default_avatar';
@@ -110,8 +110,9 @@ const SettingNickname: FC<React.PropsWithChildren<unknown>> = () => {
     const reference = query.get('reference') || localStorage.getItem('reference');
     if (reference) {
       localStorage.removeItem('reference');
-      if (isLocalSite(window.location.href, reference)) {
-        window.location.href = reference;
+      const redirectUrl = getLocalRedirectUrl(reference);
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
         return;
       }
     }

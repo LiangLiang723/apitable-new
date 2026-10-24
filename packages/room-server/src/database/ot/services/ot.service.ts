@@ -125,6 +125,22 @@ class CellActionMap {
   }
 }
 
+/** Upper bound for the ids carried by a single link cell operation. */
+const MAX_LINK_CELL_IDS = 10000;
+
+/**
+ * Link cell actions come straight from the client. They are declared as arrays
+ * but the payload is not validated, so a string or an oversized array would be
+ * iterated as-is. The elements are intentionally kept untouched, an object
+ * replace of a link cell may carry more than plain record ids.
+ */
+const toBoundedIdArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.slice(0, MAX_LINK_CELL_IDS) as string[];
+};
+
 /**
  * OT management service
  */
@@ -725,9 +741,9 @@ export class OtService {
   }
 
   static transformLinkCellAction(clientAction: IJOTAction, serverAction: IJOTAction): IJOTAction | null {
-    const od = (clientAction['od'] as string[]) ?? [];
-    const oiClient = (clientAction['oi'] as string[]) ?? [];
-    const oiServer = (serverAction['oi'] as string[]) ?? [];
+    const od = toBoundedIdArray(clientAction['od']);
+    const oiClient = toBoundedIdArray(clientAction['oi']);
+    const oiServer = toBoundedIdArray(serverAction['oi']);
     const unchanged = intersection(od, oiServer, oiClient);
     const added = union(difference(oiServer, od), difference(oiClient, od));
     const oi = union(unchanged, added);

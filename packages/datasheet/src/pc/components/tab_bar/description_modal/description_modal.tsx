@@ -252,7 +252,10 @@ export const elementHasChild = (str: string) => {
   return Boolean(imgs.length || div.innerText.length);
 };
 
-const htmlReg = /<[^>]+>/g;
+// `[^<>]*` keeps the match linear and a second pass removes the angle brackets
+// that a single tag strip could leave behind (e.g. "<<script>x</script>").
+const htmlReg = /<[^<>]*>/g;
+const angleBracketReg = /[<>]/g;
 
 export const htmlElmentHasText = (str: string) => {
   if (!str) return false;
@@ -260,7 +263,7 @@ export const htmlElmentHasText = (str: string) => {
    * html => plain text => filtered spaces,
    * Description of whether to display, if it is only spaces, will lose height, treat only spaces as no content
    */
-  return str.replace(htmlReg, '').replace(/\s/g, '');
+  return str.replace(htmlReg, '').replace(angleBracketReg, '').replace(/\s/g, '');
 };
 
 interface IDescriptionModal {

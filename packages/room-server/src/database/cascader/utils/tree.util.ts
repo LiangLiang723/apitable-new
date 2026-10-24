@@ -18,6 +18,7 @@
 
 import { ILinkRecordData } from '../models/link.record.data';
 import { CascaderChildren } from '../models/cascader.children';
+import { isSafeObjectKey as isSafeKey } from 'shared/helpers/object.helper';
 import sha1 from 'sha1';
 
 export
@@ -40,16 +41,31 @@ export function getValueByGroupAndKey(
   group: string,
   key: string,
 ): Set<CascaderChildren> {
+  if (!isSafeKey(group) || !isSafeKey(key)) {
+    return new Set();
+  }
   groupToMap[group] = groupToMap[group] || {};
   groupToMap[group]![key] = groupToMap[group]![key] || new Set();
   return groupToMap[group]![key]!;
 }
 
+/** A cascader is built from the linked fields of a view, this is a hard upper bound. */
+const MAX_CASCADER_LINKED_FIELDS = 100;
+
 export function getNode(nodesMap: ITreeNodeMap, group: string, key: string): CascaderChildren {
+  if (!isSafeKey(group) || !isSafeKey(key)) {
+    return undefined as unknown as CascaderChildren;
+  }
   return nodesMap[group]![key]!;
 }
 
 export function setNode(nodesMap: ITreeNodeMap, group: string, key: string, value: CascaderChildren) {
+  // Groups and keys are built from user supplied field values, a value such as
+  // `__proto__` would otherwise be able to reach `Object.prototype`.
+  if (!isSafeKey(group) || !isSafeKey(key)) {
+    throw new Error('Illegal cascader key');
+  }
+  nodesMap[group] = nodesMap[group] || {};
   nodesMap[group]![key] = value;
 }
 
@@ -60,12 +76,20 @@ export function initStorageContainers(linkedFieldIds: string[]) {
   const treeNodesMap: ITreeNodeMap = {};
   // fieldIdToRecordIdToSet
   const groupToTextToSet: { [index: string]: { [index: string]: Set<CascaderChildren> } } = {};
-  for (let i = 0; i < linkedFieldIds.length; i++) {
-    const linkedFieldId: string = linkedFieldIds[i]!;
+  // The field ids come from the request, iterating an unbounded value would
+  // let a caller block the event loop with a huge array.
+  const safeLinkedFieldIds: string[] = Array.isArray(linkedFieldIds)
+    ? linkedFieldIds.slice(0, MAX_CASCADER_LINKED_FIELDS)
+    : [];
+  for (let i = 0; i < safeLinkedFieldIds.length; i++) {
+    const linkedFieldId: string = safeLinkedFieldIds[i]!;
+    if (!isSafeKey(linkedFieldId)) {
+      continue;
+    }
     if (i == 0) {
       fieldIdToParentFieldId[linkedFieldId] = '';
     } else {
-      fieldIdToParentFieldId[linkedFieldId] = linkedFieldIds[i - 1]!;
+      fieldIdToParentFieldId[linkedFieldId] = safeLinkedFieldIds[i - 1]!;
     }
     treeNodesMap[linkedFieldId] = {};
   }

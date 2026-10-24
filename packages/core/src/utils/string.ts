@@ -23,17 +23,42 @@ shim();
 
 const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
+/**
+ * Fills a buffer with random bytes. `crypto.getRandomValues` is available in
+ * every supported browser and in Node from 18 on; the fallback only keeps old
+ * runtimes working and is not used to derive secrets.
+ */
+export function getRandomBytes(length: number): Uint8Array {
+  const bytes = new Uint8Array(length);
+  const cryptoApi = typeof globalThis !== 'undefined' ? (globalThis as { crypto?: Crypto }).crypto : undefined;
+  if (cryptoApi && typeof cryptoApi.getRandomValues === 'function') {
+    cryptoApi.getRandomValues(bytes);
+    return bytes;
+  }
+  for (let i = 0; i < length; i++) {
+    bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return bytes;
+}
+
 export function generateRandomString(length = 20): string {
   let randomString = '';
   const size = chars.length;
+  const bytes = getRandomBytes(length);
   for (let i = 0; i < length; i++) {
-    const randomNumber = Math.floor(Math.random() * size);
-    randomString += chars[randomNumber];
+    randomString += chars[bytes[i]! % size];
   }
   return randomString;
 }
 
 export const MAX_NAME_STRING_LENGTH = 100;
+
+/**
+ * Linkification runs several backtracking heavy expressions over a cell value.
+ * Values above this length are rendered as plain text instead of being scanned,
+ * so a pathological cell can not block the event loop or the UI thread.
+ */
+export const MAX_LINKIFY_INPUT_LENGTH = 5000;
 
 export function isValidName(name: string) {
   if (!name || (typeof name !== 'string')) {
@@ -89,7 +114,10 @@ const IP_ADDRESS_REG = /(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}(
 const IP_REG = new RegExp(`((https?|http|ftp)://)?((${LOCALHOST_REG.source})|(${IP_ADDRESS_REG.source}))(/[-a-zA-Z0-9@:%_+.~#?&//=]*)?`, 'gi');
 export const LINK_REG = new RegExp(`(${IP_REG.source})|(${URL_REG.source})|(${LENGTH_LIMITED_EMAIL_REG.source})`, 'gi');
 const EMAIL = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-const EMAIL_REG = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/gi;
+// The quoted local part and the quoted IP literal use a disjoint alternation
+// (`[^"\\]` vs `\\.`): the previous `[...]|\\[...]` form could be matched in
+// more than one way and backtracked exponentially on long input.
+const EMAIL_REG = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[^\x00-\x20"\\]|\\.)*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[^\]\\]|\\.)+)\])/gi;
 
 const VCODE_REG = /[\da-z]{8}/i;
 export function isVCode(code: string): boolean{
@@ -121,6 +149,12 @@ export function hiddenMobile(mobileNumber: string): string {
 }
 
 export function parseAllUrl(value: string): ISegment[] {
+  if (typeof value !== 'string' || value.length > MAX_LINKIFY_INPUT_LENGTH) {
+    return [{
+      type: SegmentType.Text,
+      text: typeof value === 'string' ? value : '',
+    }];
+  }
   const valueArray: ISegment[] = [];
   let lastEndIndex = 0;
 
@@ -182,6 +216,12 @@ export const stringHash2Number = (str: string, range: number): number => {
  * @returns {ISegment[]}
  */
 export function string2Segment(str: string): ISegment[] {
+  if (typeof str !== 'string' || str.length > MAX_LINKIFY_INPUT_LENGTH) {
+    return [{
+      type: SegmentType.Text,
+      text: typeof str === 'string' ? str : '',
+    }];
+  }
   const segmentList: ISegment[] = [];
   const urlTmp: {
     [index: number]: {

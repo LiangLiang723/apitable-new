@@ -18,6 +18,9 @@
 
 import { In, ObjectLiteral, Repository } from 'typeorm';
 
+/** Upper bound for the number of ids a single batched query is allowed to expand to. */
+const MAX_BATCH_RECORD_IDS = 100000;
+
 export async function batchQueryByRecordIdIn<T extends ObjectLiteral>(
   repository: Repository<T>,
   select: string[],
@@ -25,6 +28,14 @@ export async function batchQueryByRecordIdIn<T extends ObjectLiteral>(
   whereConditions: ObjectLiteral,
   batchSize = 1000,
 ) {
+  // The parameter arrives from a request body and is not guaranteed to be an
+  // array at runtime: a string would silently be sliced and iterated instead.
+  if (!Array.isArray(recordIds)) {
+    throw new TypeError('recordIds must be an array of strings');
+  }
+  if (recordIds.length > MAX_BATCH_RECORD_IDS) {
+    throw new RangeError(`recordIds must not exceed ${MAX_BATCH_RECORD_IDS} entries`);
+  }
   const totalRecords = recordIds.length;
   let offset = 0;
   let records: any[] = [];
