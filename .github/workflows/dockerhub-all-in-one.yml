@@ -54,6 +54,13 @@ env:
   NODE_BASE_TAG: v16.15.0
   NODEPY_BASE_IMAGE: benxianyu/apitable-nodepy
   NODEPY_BASE_TAG: 16.15.0-alpine
+  # These three are the only images that still come from upstream: their sources
+  # are not part of this repository (see docs/self-hosted-enterprise.md). They
+  # are pinned to a digest so a republish of `:latest` upstream can not silently
+  # change what ends up in a release.
+  DATABUS_SOURCE: apitable/databus-server@sha256:462fa8bea11df94642b80a58d683aaf9995d79061588843a9d6b7ee66a421600
+  INIT_APPDATA_SOURCE: apitable/init-appdata@sha256:4fa2ed5d1a5a3e2f7bd449352ec3054747127aabe4f91c62fc13f4660b25558b
+  IMAGEPROXY_SOURCE: apitable/imageproxy-server@sha256:09ce6fc6817c99247e40cfb52489f217481a867b45d308d9525e13d38aa1e340
   ALL_IN_ONE_DOCKERFILE: packaging/all-in-one/all-in-one/Dockerfile
 
 jobs:
@@ -247,9 +254,9 @@ jobs:
           pids=()
           # The node / nodepy base images are no longer mirrored from upstream,
           # they are built by the `构建基础镜像` workflow.
-          mirror_image apitable/databus-server:latest "${DATABUS_IMAGE}" "latest" & pids+=($!)
-          mirror_image apitable/init-appdata:latest "${INIT_APPDATA_IMAGE}" "latest" & pids+=($!)
-          mirror_image apitable/imageproxy-server:latest "${IMAGEPROXY_IMAGE}" "latest" & pids+=($!)
+          mirror_image "${DATABUS_SOURCE}" "${DATABUS_IMAGE}" "latest" & pids+=($!)
+          mirror_image "${INIT_APPDATA_SOURCE}" "${INIT_APPDATA_IMAGE}" "latest" & pids+=($!)
+          mirror_image "${IMAGEPROXY_SOURCE}" "${IMAGEPROXY_IMAGE}" "latest" & pids+=($!)
 
           status=0
           for pid in "${pids[@]}"; do

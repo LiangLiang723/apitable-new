@@ -53,10 +53,12 @@ NODEPY_BASE_IMAGE="${NODEPY_BASE_IMAGE:-benxianyu/apitable-nodepy}"
 NODEPY_BASE_TAG="${NODEPY_BASE_TAG:-16.15.0-alpine}"
 
 # Runtime component images. Their sources live in separate upstream repositories,
-# so they are mirrored as well.
-DATABUS_SOURCE_IMAGE="${DATABUS_SOURCE_IMAGE:-apitable/databus-server:latest}"
-INIT_APPDATA_SOURCE_IMAGE="${INIT_APPDATA_SOURCE_IMAGE:-apitable/init-appdata:latest}"
-IMAGEPROXY_SOURCE_IMAGE="${IMAGEPROXY_SOURCE_IMAGE:-apitable/imageproxy-server:latest}"
+# so they are mirrored as well. They are pinned to a digest: upstream only
+# publishes a moving `:latest` tag for them, and a republish would otherwise
+# change the content of a local build without any change in this repository.
+DATABUS_SOURCE_IMAGE="${DATABUS_SOURCE_IMAGE:-apitable/databus-server@sha256:462fa8bea11df94642b80a58d683aaf9995d79061588843a9d6b7ee66a421600}"
+INIT_APPDATA_SOURCE_IMAGE="${INIT_APPDATA_SOURCE_IMAGE:-apitable/init-appdata@sha256:4fa2ed5d1a5a3e2f7bd449352ec3054747127aabe4f91c62fc13f4660b25558b}"
+IMAGEPROXY_SOURCE_IMAGE="${IMAGEPROXY_SOURCE_IMAGE:-apitable/imageproxy-server@sha256:09ce6fc6817c99247e40cfb52489f217481a867b45d308d9525e13d38aa1e340}"
 
 build() {
   echo
