@@ -1,0 +1,124 @@
+name: 同步外部镜像
+
+# Copies the three images whose sources are not part of this repository from
+# upstream into the benxianyu namespace:
+#   apitable/databus-server    -> benxianyu/apitable-databus-server
+#   apitable/init-appdata      -> benxianyu/apitable-init-appdata
+#   apitable/imageproxy-server -> benxianyu/apitable-imageproxy-server
+#
+# This is the only workflow that talks to the upstream namespace. The release
+# workflow re-tags the copies, so a release keeps working even when upstream
+# removes the images. The digests are pinned, so a republish upstream can not
+# change what gets copied.
+#
+# Run it manually after bumping one of the digests below.
+
+on:
+  workflow_dispatch:
+    inputs:
+      extra_tag:
+        description: '额外打一个可追溯的 tag（留空则不追加）'
+        required: false
+        default: ''
+  push:
+    branches: ["self-hosted-enterprise"]
+    paths:
+      - ".github/workflows/mirror-external-images.yml"
+
+concurrency:
+  group: mirror-external-images-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DATABUS_SOURCE: apitable/databus-server@sha256:462fa8bea11df94642b80a58d683aaf9995d79061588843a9d6b7ee66a421600
+  INIT_APPDATA_SOURCE: apitable/init-appdata@sha256:4fa2ed5d1a5a3e2f7bd449352ec3054747127aabe4f91c62fc13f4660b25558b
+  IMAGEPROXY_SOURCE: apitable/imageproxy-server@sha256:09ce6fc6817c99247e40cfb52489f217481a867b45d308d9525e13d38aa1e340
+
+jobs:
+  mirror:
+    name: 同步外部镜像
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 复制到 benxianyu
+        shell: bash
+        env:
+          EXTRA_TAG: ${{ github.event.inputs.extra_tag }}
+        run: |
+          set -euo pipefail
+
+          # `imagetools create` copies the whole manifest list, so the platforms
+          # the upstream digest provides are preserved, and the digest of the
+          # copy is identical to the pinned one.
+          copy_image() {
+            local source_ref="$1"
+            local target_image="$2"
+            local digest="${source_ref##*@}"
+            local attempt
+
+            echo "==> ${source_ref} -> ${target_image}"
+
+            for attempt in 1 2 3; do
+              if docker buildx imagetools create -t "${target_image}:latest" "${source_ref}"; then
+                break
+              fi
+              if [[ "${attempt}" == "3" ]]; then
+                echo "ERROR: 同步 ${source_ref} 失败" >&2
+                return 1
+              fi
+              echo "同步失败，重试..."
+              sleep 5
+            done
+
+            docker buildx imagetools create -t "${target_image}:${digest#sha256:}" "${source_ref}"
+
+            if [[ -n "${EXTRA_TAG}" ]]; then
+              docker buildx imagetools create -t "${target_image}:${EXTRA_TAG}" "${source_ref}"
+            fi
+          }
+
+          copy_image "${DATABUS_SOURCE}" "benxianyu/apitable-databus-server"
+          copy_image "${INIT_APPDATA_SOURCE}" "benxianyu/apitable-init-appdata"
+          copy_image "${IMAGEPROXY_SOURCE}" "benxianyu/apitable-imageproxy-server"
+
+      - name: 校验副本
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          check_image() {
+            local source_ref="$1"
+            local target_image="$2"
+            local expected="${source_ref##*@}"
+            local actual
+            local platforms
+
+            actual="$(docker buildx imagetools inspect "${target_image}:latest" \
+              --format '{{.Manifest.Digest}}')"
+            if [[ "${actual}" != "${expected}" ]]; then
+              echo "ERROR: ${target_image}:latest 的 digest 与锁定值不一致" >&2
+              echo "  期望: ${expected}" >&2
+              echo "  实际: ${actual}" >&2
+              return 1
+            fi
+
+            platforms="$(docker buildx imagetools inspect "${target_image}:latest" \
+              --format '{{range .Manifest.Manifests}}{{.Platform.OS}}/{{.Platform.Architecture}} {{end}}' || true)"
+            echo "${target_image}:latest  digest=${actual}  平台=${platforms:-单架构}"
+          }
+
+          check_image "${DATABUS_SOURCE}" "benxianyu/apitable-databus-server"
+          check_image "${INIT_APPDATA_SOURCE}" "benxianyu/apitable-init-appdata"
+          check_image "${IMAGEPROXY_SOURCE}" "benxianyu/apitable-imageproxy-server"

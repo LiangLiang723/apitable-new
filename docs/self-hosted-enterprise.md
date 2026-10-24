@@ -127,17 +127,25 @@ three are mirrored, because their sources are not part of this repository:
 
 Replacing them would be a reimplementation project rather than a build change.
 
-### Digest pinning
+### Digest pinning and syncing
 
 Upstream only publishes a moving `:latest` tag for these three, so they are
 pinned to a digest in the workflow environment (`DATABUS_SOURCE`,
-`INIT_APPDATA_SOURCE`, `IMAGEPROXY_SOURCE`) and in the local build script. A
-republish upstream can therefore not change the content of a release, and
-`docker buildx imagetools create` still copies the whole manifest list, so every
-platform the upstream digest provides is preserved.
+`INIT_APPDATA_SOURCE`, `IMAGEPROXY_SOURCE`).
+
+The `同步外部镜像` workflow (`.github/workflows/mirror-external-images.yml`) is the
+only place that talks to the upstream namespace. It copies the pinned digests
+into `benxianyu` as `latest`, as `sha256-<digest>`, and optionally as an extra
+traceable tag. Run it after bumping a digest.
+
+The release workflow does not pull from upstream at all: it verifies that
+`benxianyu/<image>:latest` still has the pinned digest and re-tags the copy with
+the release version and commit SHA. If the digest does not match, the release
+stops with a message pointing at the sync workflow.
 
 The upstream tags have not moved since 2023-10 / 2024-01. To pick up a newer
-upstream build on purpose, resolve the new digest and update the three values.
+upstream build on purpose, resolve the new digest, update the three values, and
+run the sync workflow.
 
 ### Rebuilding the base images
 
