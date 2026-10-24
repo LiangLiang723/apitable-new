@@ -1,13 +1,16 @@
-FROM amazoncorretto:17 AS builder
+FROM amazoncorretto:17-al2023 AS builder
+
+RUN dnf install -y findutils \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf
 
 WORKDIR /app
 COPY ./backend-server/. .
-RUN yum install -y findutils && yum clean all
 RUN --mount=type=cache,target=/root/.gradle ./gradlew -v
 RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon -Dorg.gradle.vfs.watch=false :application:bootJar
 
 
-FROM amazoncorretto:17
+FROM amazoncorretto:17-al2023
 
 ARG SEMVER_FULL
 ENV SEMVER_FULL=${SEMVER_FULL}
