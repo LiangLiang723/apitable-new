@@ -131,6 +131,20 @@ jobs:
           echo "短 SHA: ${short_sha}"
           echo "推送 latest: ${push_latest}"
 
+      - name: 安装变更检测脚本依赖
+        shell: bash
+        run: |
+          # The fingerprint script parses the workflow with PyYAML. Do not rely
+          # on the runner image shipping it: without it the comparison fails and
+          # every component has to be rebuilt from scratch.
+          if python3 -c 'import yaml' >/dev/null 2>&1; then
+            echo "PyYAML 已就绪"
+            exit 0
+          fi
+          python3 -m pip install --quiet --disable-pip-version-check pyyaml \
+            || python3 -m pip install --quiet --break-system-packages --disable-pip-version-check pyyaml
+          python3 -c 'import yaml'
+
       - name: 检测组件变更
         id: changes
         shell: bash
