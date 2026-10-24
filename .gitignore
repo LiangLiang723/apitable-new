@@ -27,6 +27,7 @@ packages/datasheet/.env.origin
 /.pnp
 .pnp.js
 .pnpm-store
+.workbuddy
 
 # testing
 /packages/**/coverage
