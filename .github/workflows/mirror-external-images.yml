@@ -131,7 +131,7 @@ jobs:
             fi
 
             platforms="$(docker buildx imagetools inspect "${target_image}:latest" \
-              --format '{{range .Manifest.Manifests}}{{.Platform.OS}}/{{.Platform.Architecture}} {{end}}' || true)"
+              --format '{{range .Manifest.Manifests}}{{.Platform.OS}}/{{.Platform.Architecture}} {{end}}' 2>/dev/null || true)"
             echo "${target_image}:latest  digest=${actual}  平台=${platforms:-单架构}"
           }
 
