@@ -90,9 +90,8 @@ Review the generated CSV manually before restoring any feature. If a feature can
 ## Image sources
 
 Every image this fork ships is referenced through the `benxianyu` Docker Hub
-namespace. Eight of the thirteen images are built here from source. The
-remaining three are mirrored, because their sources are not part of this
-repository:
+namespace. Ten of the thirteen images are built here from source. The remaining
+three are mirrored, because their sources are not part of this repository:
 
 | Image | Source | Notes |
 |---|---|---|
