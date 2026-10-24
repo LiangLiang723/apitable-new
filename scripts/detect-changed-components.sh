@@ -149,20 +149,36 @@ done
 # of the produced image without touching a single source file, so the build
 # configuration of every component is compared as well.
 build_config_changed=""
-if [[ -x "scripts/component-build-fingerprint.py" ]] || [[ -f "scripts/component-build-fingerprint.py" ]]; then
-  build_config_changed="$(scripts/component-build-fingerprint.py "${PREV_TAG}" "${CURRENT_REF}" 2>/dev/null \
+build_config_failed=""
+
+if [[ -f "scripts/component-build-fingerprint.py" ]]; then
+  # A failure is recognised by the exit status and not by a sentinel inside the
+  # output. A sentinel would be word split like any other word, and a "*" would
+  # then be expanded to the content of the working directory, so the safety net
+  # would be defeated exactly when it is needed.
+  if ! fingerprint_output="$(scripts/component-build-fingerprint.py "${PREV_TAG}" "${CURRENT_REF}" 2>/dev/null)"; then
+    build_config_failed=1
+  elif ! build_config_changed="$(printf '%s' "${fingerprint_output}" \
     | python3 -c 'import json,sys
-try:
-    print(" ".join(json.load(sys.stdin).get("changed", [])))
-except Exception:
-    print("*")' 2>/dev/null || echo "*")"
+data = json.load(sys.stdin)
+print(" ".join(str(name) for name in data.get("changed", [])))' 2>/dev/null)"; then
+    build_config_failed=1
+  fi
 fi
 
-if [[ "${build_config_changed}" == "*" ]]; then
+if [[ -n "${build_config_failed}" ]]; then
   echo "Build configuration could not be compared, rebuilding everything." >&2
   changed=("${ALL_COMPONENTS[@]}")
 else
-  for component in ${build_config_changed}; do
+  # read -a splits the output on whitespace without expanding globbing
+  # characters, and every name is validated against ALL_COMPONENTS, so an
+  # unexpected value can never be reported as a buildable component.
+  read -r -a build_config_components <<< "${build_config_changed}"
+  for component in ${build_config_components[@]+"${build_config_components[@]}"}; do
+    if [[ " ${ALL_COMPONENTS[*]} " != *" ${component} "* ]]; then
+      echo "Ignoring unknown component '${component}' from the build configuration comparison." >&2
+      continue
+    fi
     already_changed=0
     for existing in ${changed[@]+"${changed[@]}"}; do
       [[ "${existing}" == "${component}" ]] && already_changed=1
