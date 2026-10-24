@@ -136,7 +136,9 @@ pinned to a digest in the workflow environment (`DATABUS_SOURCE`,
 The `同步外部镜像` workflow (`.github/workflows/mirror-external-images.yml`) is the
 only place that talks to the upstream namespace. It copies the pinned digests
 into `benxianyu` as `latest`, as `sha256-<digest>`, and optionally as an extra
-traceable tag. Run it after bumping a digest.
+traceable tag. The copy uses `skopeo copy --all`, which keeps the manifest
+digest, so the pinned value can be verified afterwards. Run it after bumping a
+digest.
 
 The release workflow does not pull from upstream at all: it verifies that
 `benxianyu/<image>:latest` still has the pinned digest and re-tags the copy with
