@@ -1,0 +1,86 @@
+---
+# Static analysis with CodeQL. The results are published to the repository
+# security tab so that they can be reviewed, but they do not block a release.
+name: CodeQL
+
+on:
+  push:
+    branches: ["self-hosted-enterprise"]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: ["self-hosted-enterprise", "develop"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze-java:
+    name: Analyze (Java)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+          cache: 'gradle'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+
+      - name: Build
+        run: make _build-java
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java"
+
+  analyze-js-core:
+    name: Analyze (javascript-core)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16.15.0'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.7.5
+
+      - name: Install build-essential
+        run: sudo apt-get update -y && sudo apt-get install -y build-essential
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: Build
+        run: make _build-core
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript"
