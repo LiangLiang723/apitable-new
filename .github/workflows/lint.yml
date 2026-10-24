@@ -1,0 +1,88 @@
+---
+# ESLint and super-linter. The findings are reported but do not block a
+# release, the release workflow already gates on the unit tests.
+name: Lint
+
+on:
+  push:
+    branches: ["self-hosted-enterprise"]
+  pull_request:
+    branches: ["self-hosted-enterprise", "develop"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eslint:
+    name: Run eslint scanning
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16.15.0'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.7.5
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run ESLint
+        run: pnpm run lint
+
+      - name: Upload analysis results to GitHub
+        # eslint exits with a non zero code when it reports issues, the report
+        # is still written, so the upload has to run in that case as well.
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: eslint-results.sarif
+          wait-for-processing: true
+
+  super-linter:
+    name: Super Linter
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # The full history is needed to get a proper list of changed files.
+          fetch-depth: 0
+
+      - name: Lint code
+        uses: github/super-linter@v6
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: develop
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_MARKDOWN: false
+          VALIDATE_NATURAL_LANGUAGE: false
+          VALIDATE_TYPESCRIPT_STANDARD: false
+          VALIDATE_TYPESCRIPT_ES: false
+          VALIDATE_JAVASCRIPT_STANDARD: false
+          VALIDATE_JAVASCRIPT_ES: false
+          VALIDATE_XML: false
+          VALIDATE_GROOVY: false
+          VALIDATE_SQLFLUFF: false
+          VALIDATE_RUST_2015: false
+          VALIDATE_RUST_2018: false
+          VALIDATE_RUST_CLIPPY: false
+          FILTER_REGEX_EXCLUDE: .*ui-autotest/.*|.*datasheet/.*|.*src/test.*|.*databusclient/.*|.*packaging/.*|.*\.proto|.*api-client/.*|.husky/.*
+          VALIDATE_GOOGLE_JAVA_FORMAT: false
+          JAVA_FILE_NAME: checkstyle.xml
+          VALIDATE_SHELL_SHFMT: false
+          VALIDATE_DOCKERFILE_HADOLINT: false
+          VALIDATE_JSCPD: false

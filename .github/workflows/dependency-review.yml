@@ -1,0 +1,26 @@
+---
+# Scans the dependency manifests of a pull request and reports known
+# vulnerable versions. It only runs on pull requests, a release is not blocked.
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: ["self-hosted-enterprise", "develop"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
