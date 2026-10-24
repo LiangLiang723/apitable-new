@@ -34,6 +34,7 @@ import { Deserializer, IEditorData, Serializer, SlateEditor } from 'pc/component
 import { useImageUpload } from 'pc/hooks';
 import { store } from 'pc/store';
 import { useAppSelector } from 'pc/store/react-redux';
+import { htmlToPlainText } from 'pc/utils/html';
 import { getStorage, setStorage, StorageMethod, StorageName } from 'pc/utils/storage/storage';
 import { stopPropagation } from '../../../utils/dom';
 import { automationStateAtom } from '../../automation/controller';
@@ -252,18 +253,13 @@ export const elementHasChild = (str: string) => {
   return Boolean(imgs.length || div.innerText.length);
 };
 
-// `[^<>]*` keeps the match linear and a second pass removes the angle brackets
-// that a single tag strip could leave behind (e.g. "<<script>x</script>").
-const htmlReg = /<[^<>]*>/g;
-const angleBracketReg = /[<>]/g;
-
 export const htmlElmentHasText = (str: string) => {
   if (!str) return false;
   /**
    * html => plain text => filtered spaces,
    * Description of whether to display, if it is only spaces, will lose height, treat only spaces as no content
    */
-  return str.replace(htmlReg, '').replace(angleBracketReg, '').replace(/\s/g, '');
+  return htmlToPlainText(str).replace(/\s/g, '');
 };
 
 interface IDescriptionModal {

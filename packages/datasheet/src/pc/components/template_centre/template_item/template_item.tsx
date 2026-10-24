@@ -28,6 +28,7 @@ import { ComponentDisplay, ScreenSize } from 'pc/components/common/component_dis
 import { Tag } from 'pc/components/common/tag/tag';
 import { MyTrigger } from 'pc/components/multi_grid/format/trigger';
 import { useAppSelector } from 'pc/store/react-redux';
+import { htmlToPlainText } from 'pc/utils/html';
 import AvatarBgIcon from 'static/icon/template/template_img_cardbg.svg';
 import styles from './style.module.less';
 
@@ -39,11 +40,10 @@ enum Types {
 const DESC_MAX_LEN = 200;
 
 /**
- * Strips markup from a description snippet. `[^<>]*` keeps the match linear and
- * the second pass drops the angle brackets a single strip could leave behind,
- * so the result can never contain a tag fragment such as `<script`.
+ * Strips markup from a description snippet. The conversion goes through
+ * DOMPurify and `textContent`, so no tag fragment can survive.
  */
-const stripHtmlTags = (value: string) => value.replace(/<[^<>]*>/g, '').replace(/[<>]/g, '');
+const stripHtmlTags = (value: string) => htmlToPlainText(value);
 
 export interface ITemplateItemProps {
   img: string;
