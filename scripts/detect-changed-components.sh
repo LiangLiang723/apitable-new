@@ -144,13 +144,43 @@ for component in "${ALL_COMPONENTS[@]}"; do
   fi
 done
 
+# The build arguments live in the release workflow and not in the source tree.
+# A changed base image version or an added build argument changes the content
+# of the produced image without touching a single source file, so the build
+# configuration of every component is compared as well.
+build_config_changed=""
+if [[ -x "scripts/component-build-fingerprint.py" ]] || [[ -f "scripts/component-build-fingerprint.py" ]]; then
+  build_config_changed="$(scripts/component-build-fingerprint.py "${PREV_TAG}" "${CURRENT_REF}" 2>/dev/null \
+    | python3 -c 'import json,sys
+try:
+    print(" ".join(json.load(sys.stdin).get("changed", [])))
+except Exception:
+    print("*")' 2>/dev/null || echo "*")"
+fi
+
+if [[ "${build_config_changed}" == "*" ]]; then
+  echo "Build configuration could not be compared, rebuilding everything." >&2
+  changed=("${ALL_COMPONENTS[@]}")
+else
+  for component in ${build_config_changed}; do
+    already_changed=0
+    for existing in ${changed[@]+"${changed[@]}"}; do
+      [[ "${existing}" == "${component}" ]] && already_changed=1
+    done
+    if [[ "${already_changed}" == "0" ]]; then
+      echo "Build configuration of ${component} changed." >&2
+      changed+=("${component}")
+    fi
+  done
+fi
+
 if [[ ${#changed[@]} -eq 0 ]]; then
   echo "No component input changed since ${PREV_TAG}." >&2
   emit_result "${PREV_TAG}"
   exit 0
 fi
 
-emit_result "${PREV_TAG}" "${changed[@]}"
+emit_result "${PREV_TAG}" ${changed[@]+"${changed[@]}"}
 
 if [[ -n "${DEBUG:-}" ]]; then
   echo "--- changed files since ${PREV_TAG} ---" >&2
