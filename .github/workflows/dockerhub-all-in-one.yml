@@ -51,9 +51,9 @@ env:
   # carries the revision, so bumping it is what tells the fingerprint that the
   # component has to be rebuilt.
   NODE_BASE_IMAGE: benxianyu/apitable-node
-  NODE_BASE_TAG: v16.15.0
+  NODE_BASE_TAG: v22.22.2
   NODEPY_BASE_IMAGE: benxianyu/apitable-nodepy
-  NODEPY_BASE_TAG: 16.15.0-alpine
+  NODEPY_BASE_TAG: 22.22.2-alpine
   # These three are the only images that still come from upstream: their sources
   # are not part of this repository (see docs/self-hosted-enterprise.md). They
   # are pinned to a digest so a republish of `:latest` upstream can not silently
@@ -281,7 +281,7 @@ jobs:
       - name: 设置 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '16.15.0'
+          node-version: '22.22.2'
 
       - name: 设置 pnpm
         uses: pnpm/action-setup@v2

@@ -1,8 +1,8 @@
-# Base image is built from packaging/Dockerfile.node-base (Node 16.15.0 plus the
-# canvas toolchain) and published as benxianyu/apitable-node.
+# Base image is built from packaging/Dockerfile.node-base (Node 22.22.2 plus the
+# native build toolchain) and published as benxianyu/apitable-node.
 # Override with --build-arg NODE_BASE_IMAGE / NODE_BASE_TAG when needed.
 ARG NODE_BASE_IMAGE=benxianyu/apitable-node
-ARG NODE_BASE_TAG=v16.15.0
+ARG NODE_BASE_TAG=v22.22.2
 
 # Install dependencies only when needed
 FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS deps
@@ -12,6 +12,9 @@ WORKDIR /app
 # install packages can use cache
 COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./common-tsconfig.json ./
 COPY ./patches/ ./patches
+
+# server-side canvas stub, referenced by the root workspace package
+COPY packages/canvas-shim/package.json ./packages/canvas-shim/
 
 COPY packages/i18n-lang/package.json ./packages/i18n-lang/
 

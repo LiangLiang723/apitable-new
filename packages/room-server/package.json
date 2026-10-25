@@ -33,7 +33,7 @@
     "copy:assets": "cp -r 'src/grpc/' 'dist/grpc/' && cp 'src/shared/helpers/list.lock.lua' 'dist/shared/helpers/list.lock.lua'"
   },
   "engines": {
-    "node": "16.15.0"
+    "node": ">=22.19.0"
   },
   "dependencies": {
     "@apitable/core": "workspace:*",

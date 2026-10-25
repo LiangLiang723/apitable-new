@@ -44,13 +44,13 @@ OPENRESTY_IMAGE="${OPENRESTY_IMAGE:-benxianyu/apitable-openresty}"
 #
 # The Node base images used to be mirrors of apitable/node and apitable/nodepy.
 # They are now built from packaging/Dockerfile.node-base and
-# packaging/Dockerfile.nodepy-base, which provide Node 16.15.0 plus the native
-# toolchain (build-essential / build-base, cairo/pango/jpeg/giflib dev packages,
-# python3) required to compile the `canvas` dependency.
+# packaging/Dockerfile.nodepy-base, which provide Node 22.22.2 plus the native
+# toolchain (build-essential / build-base, pkg-config, python3) needed to compile
+# any dependency without a prebuilt binary.
 NODE_BASE_IMAGE="${NODE_BASE_IMAGE:-benxianyu/apitable-node}"
-NODE_BASE_TAG="${NODE_BASE_TAG:-v16.15.0}"
+NODE_BASE_TAG="${NODE_BASE_TAG:-v22.22.2}"
 NODEPY_BASE_IMAGE="${NODEPY_BASE_IMAGE:-benxianyu/apitable-nodepy}"
-NODEPY_BASE_TAG="${NODEPY_BASE_TAG:-16.15.0-alpine}"
+NODEPY_BASE_TAG="${NODEPY_BASE_TAG:-22.22.2-alpine}"
 
 # Runtime component images. Their sources live in separate upstream repositories,
 # so they are mirrored as well. They are pinned to a digest: upstream only
@@ -89,7 +89,7 @@ reg_ref() {
 
 # Publishes an image into the build registry so it can be used as a `FROM` base.
 publish_base() {
-  local image="$1"   # local image ref, e.g. benxianyu/apitable-node:v16.15.0
+  local image="$1"   # local image ref, e.g. benxianyu/apitable-node:v22.22.2
   local repo="$2"    # repository under the build registry
   local tag="$3"
 

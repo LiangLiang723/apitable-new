@@ -61,7 +61,7 @@
     "extends": "react-app"
   },
   "engines": {
-    "node": "16.15.0",
+    "node": ">=22.19.0",
     "pnpm": "^8"
   },
   "devDependencies": {
@@ -139,6 +139,7 @@
     "allowNonAppliedPatches": true
   },
   "dependencies": {
+    "canvas": "workspace:*",
     "glob-parent": "5.1.2",
     "react": "18.2.0"
   }

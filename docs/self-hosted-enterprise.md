@@ -103,7 +103,7 @@ three are mirrored, because their sources are not part of this repository:
 | `benxianyu/apitable-dataenv-pm2` | built from source | AlmaLinux 8 + MySQL/MinIO/Redis/RabbitMQ/OpenResty/PM2 |
 | `benxianyu/apitable-dataenv-liquibase-pm2` | built from source | dataenv-pm2 + Corretto 17 + Liquibase |
 | `benxianyu/apitable-new` | built from source | The all-in-one delivery image |
-| `benxianyu/apitable-node` | built from source | `packaging/Dockerfile.node-base`, Node 16.15.0 + canvas toolchain |
+| `benxianyu/apitable-node` | built from source | `packaging/Dockerfile.node-base`, Node 22.22.2 on Debian bookworm |
 | `benxianyu/apitable-nodepy` | built from source | `packaging/Dockerfile.nodepy-base`, alpine variant |
 | `benxianyu/apitable-databus-server` | **mirrored** | `apitable/databus-server:latest`, no source in this repository |
 | `benxianyu/apitable-init-appdata` | **mirrored** | `apitable/init-appdata:latest`, no source in this repository |
@@ -164,7 +164,7 @@ from the same Dockerfiles, so it does not need the upstream namespace at all.
 
 The base image tag is part of the component fingerprint used by the incremental
 build. After changing a base image Dockerfile, bump the tag
-(`NODE_BASE_TAG=v16.15.0-r1`, `NODEPY_BASE_TAG=16.15.0-alpine-r1`) in
+(`NODE_BASE_TAG=v22.22.2-r1`, `NODEPY_BASE_TAG=22.22.2-alpine-r1`) in
 `.github/workflows/dockerhub-all-in-one.yml` and in `.env`. Without the bump the
 fingerprint stays identical and the dependent component images would be reused
 from the previous release.
@@ -201,11 +201,11 @@ The base image references can be overridden through build args:
 ```bash
 docker build -f packaging/Dockerfile.room-server \
   --build-arg NODE_BASE_IMAGE=benxianyu/apitable-node \
-  --build-arg NODE_BASE_TAG=v16.15.0 .
+  --build-arg NODE_BASE_TAG=v22.22.2 .
 
 docker build -f packaging/Dockerfile.web-server \
   --build-arg NODEPY_BASE_IMAGE=benxianyu/apitable-nodepy \
-  --build-arg NODEPY_BASE_TAG=16.15.0-alpine .
+  --build-arg NODEPY_BASE_TAG=22.22.2-alpine .
 ```
 
 ### Known limitations
@@ -213,8 +213,8 @@ docker build -f packaging/Dockerfile.web-server \
 - The mirrored runtime component images keep whatever platforms the pinned
   upstream digest ships: `init-appdata` and `imageproxy-server` are
   `linux/amd64` + `linux/arm64`, `databus-server` is single architecture.
-- The all-in-one image is `linux/amd64` only, because the `node-canvas` binary
-  it patches in is only published for x64 glibc.
+- The all-in-one image is `linux/amd64` only, because the mirrored
+  `databus-server` layer it copies in is single-architecture.
 - `apitable/init-appdata` is pinned to a digest that corresponds to the upstream
   `1.8.0` release line, while this repository is at `1.14.0`. The seeded template
   space has to be verified after every deployment, see the smoke check script.

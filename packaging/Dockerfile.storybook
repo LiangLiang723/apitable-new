@@ -1,6 +1,6 @@
 # Base image is built from packaging/Dockerfile.nodepy-base.
 ARG NODEPY_BASE_IMAGE=benxianyu/apitable-nodepy
-ARG NODEPY_BASE_TAG=16.15.0-alpine
+ARG NODEPY_BASE_TAG=22.22.2-alpine
 
 # Install dependencies only when needed
 FROM ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG} AS deps
@@ -9,6 +9,9 @@ WORKDIR /workspace-install
 
 COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./
 COPY ./patches/ ./patches
+
+# server-side canvas stub, referenced by the root workspace package
+COPY packages/canvas-shim/package.json ./packages/canvas-shim/
 
 # components
 COPY packages/components/package.json ./packages/components/

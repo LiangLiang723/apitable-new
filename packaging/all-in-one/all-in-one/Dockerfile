@@ -31,17 +31,6 @@ COPY --from=imageproxy-server /app/ /app/imageproxy-server/
 COPY --from=init-db /liquibase/changelog/ /liquibase/changelog/
 COPY --from=init-appdata /app/ /app/init-appdata/
 
-RUN set -euxo pipefail; \
-  for i in 1 2 3 4 5; do \
-    curl -fL -O https://github.com/Automattic/node-canvas/releases/download/v2.9.1/canvas-v2.9.1-node-v93-linux-glibc-x64.tar.gz && break; \
-    test "$i" != "5"; \
-    sleep 3; \
-  done; \
-  tar -xzf canvas-v2.9.1-node-v93-linux-glibc-x64.tar.gz; \
-  rm -rf /app/web-server/node_modules/.pnpm/node_modules/canvas/build/Release; \
-  mv Release /app/web-server/node_modules/.pnpm/node_modules/canvas/build/; \
-  rm -f canvas-v2.9.1-node-v93-linux-glibc-x64.tar.gz
-
 COPY gateway/conf.d/ /etc/nginx/conf.d/
 
 RUN set -euxo pipefail; \

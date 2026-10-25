@@ -22,7 +22,7 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
 # quick install sdkman
 curl -s "https://get.sdkman.io" | bash
 # install nodejs 
-nvm install 16.15.0 && nvm use 16.15.0 && corepack enable
+nvm install 22.22.2 && nvm use 22.22.2 && corepack enable
 # install java development kit
 sdk env install
 ```

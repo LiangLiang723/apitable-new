@@ -57,7 +57,7 @@ RUN set -euxo pipefail; \
   chown -R "${GOSU_USER}:${GOSU_USER}" /var/lib/redis /var/log/redis; \
   mkdir -p /var/run/openresty; \
   \
-  NODE_VERSION=v16.15.1; \
+  NODE_VERSION=v22.22.2; \
   case "${arch}" in \
   aarch64) NODE_ARCH='arm64' ;; \
   x86_64) NODE_ARCH='x64' ;; \

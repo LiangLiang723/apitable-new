@@ -11,7 +11,7 @@ variable "NODE_BASE_IMAGE" {
 }
 
 variable "NODE_BASE_TAG" {
-  default = "v16.15.0"
+  default = "v22.22.2"
 }
 
 variable "NODEPY_BASE_IMAGE" {
@@ -19,7 +19,7 @@ variable "NODEPY_BASE_IMAGE" {
 }
 
 variable "NODEPY_BASE_TAG" {
-  default = "16.15.0-alpine"
+  default = "22.22.2-alpine"
 }
 
 variable "OPENRESTY_IMAGE" {
