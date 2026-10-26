@@ -1,5 +1,38 @@
 # APITable CHANGELOG
 
+## [v1.17.0](https://github.com/apitable/apitable/releases/tag/v1.17.0) (2026-10-26)
+
+构建、运行时与交付体积优化，不改变业务功能。
+
+### 镜像与构建
+
+* build: room-server 拆为 deps / prod-deps / builder / runner 四阶段，运行镜像改用 `node:22-bookworm-slim`，只保留生产依赖与构建产物（≈1.6G → ≈450M）
+* build: web-server 运行镜像改用 `node:22-alpine`，去掉运行期无用的锁文件（643M → ≈250M）
+* build: backend-server 运行镜像改用 `amazoncorretto:17-al2023-headless`，Gradle 依赖与编译缓存改为挂载复用
+* build: init-db 与 gateway 基础镜像改用 alpine 变体
+* build: `.dockerignore` 补齐 `docs`、`**/build`、`**/.gradle`、`**/dist`、根 `.env` 等，构建上下文 ≈800M → ≈170M
+* build: 拆分构建基础镜像与运行基础镜像，修复 `buildx bake --load` 与多平台清单冲突
+* build: CI 缓存按组件分档（backend 保留 `mode=max`，其余 `mode=min`），避免 GHA 缓存被 node_modules 挤出
+* build: 组件指纹纳入基础镜像 Dockerfile 与 `docker-bake.hcl`
+
+### 启动与内存
+
+* perf: `init-appdata` 以内置版本号作戳，同版本重启不再全量导入模板/组件数据（冷启动 81s → ~45s）
+* perf: liquibase 的 `clearChecksums` 改为 `update` 失败后的补偿路径，不再每次启动重算全部校验和
+* fix: 修正 `-Dtable.prefix` 缺少右引号导致 `-DDB_ENGINE` 从未传给 liquibase
+* perf: backend/room-server/web-server 显式设置堆上限，基础设施进程降低调度优先级
+* perf: MySQL 提高 buffer pool 与 redo log 容量，Redis 设置 `maxmemory` 与 `noeviction`
+* perf: compose 各服务内存上限可用 `.env` 覆盖（`*_MEM_LIMIT`）
+
+### 前端与网关
+
+* perf: 网关为 `/_next/static` 增加代理缓存与 `immutable` 长缓存，其余 `/_next` 路径显式 `no-store`
+* perf: 生产构建剔除 `console.*`，`gzip_types` 补齐 svg/xml/wasm
+
+### 修复
+
+* fix: `node-fetch` 被 automation webhook / slack 等运行时模块引用，但声明在 devDependencies，生产依赖安装后会缺失；已移动到 dependencies
+
 ## [v1.10.0-beta.3](https://github.com/apitable/apitable/releases/tag/v1.10.0-beta.3) (2024-05-06)
 
 
