@@ -77,6 +77,12 @@ RUN set -eux; \
 
 RUN pnpm --version
 
+# Build the workspace packages the datasheet depends on first. The build context
+# no longer carries packages/*/dist (see .dockerignore), so this step is what
+# produces @apitable/core, @apitable/components, ... instead of trusting (possibly
+# stale) artifacts from the host.
+RUN pnpm run build:dst:pre
+
 RUN pnpm run build:dst
 
 # stage runner

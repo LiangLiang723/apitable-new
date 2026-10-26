@@ -57,9 +57,13 @@ COPY packages/room-server/package.json ./packages/room-server/
 # dependency of room-server needs a build script (the only native module of the
 # repo, canvas, is replaced by the JS stub in packages/canvas-shim). If a native
 # dependency is added later, drop the flag and install the build toolchain.
+# Not using --frozen-lockfile on purpose: the repository carries historical
+# specifier drift (eslint is declared as ^7.21.0 but locked at 8.49.0 in a few
+# packages), which makes the frozen check fail. The deps stage above has the
+# same behaviour.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
     pnpm config set store-dir /pnpm-store && \
-    pnpm install --prod --frozen-lockfile --ignore-scripts \
+    pnpm install --prod --ignore-scripts \
         --filter @apitable/room-server --filter root
 
 # stage builder
