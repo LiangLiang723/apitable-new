@@ -49,6 +49,9 @@ COPY packages/core ./packages/core
 
 COPY packages/room-server ./packages/room-server
 
+# server-side canvas stub, referenced by the root workspace package
+COPY packages/canvas-shim ./packages/canvas-shim
+
 RUN pnpm run build:sr
 
 ARG KEEP_DEV_DEP
