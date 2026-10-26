@@ -12,6 +12,7 @@
 set -uo pipefail
 
 IMAGE="${1:?用法: scripts/smoke-test.sh <image:tag> [数据目录]}"
+TAG="${IMAGE##*:}"
 DATA_DIR="${2:-$(pwd)/.smoke-data}"
 PORT="${SMOKE_PORT:-18080}"
 BASE="http://127.0.0.1:${PORT}"
@@ -91,10 +92,16 @@ else
     log "容器内进程："
     docker exec "$NAME" sh -c 'ps -eo pid,comm,etime --sort=start_time | tail -20' 2>&1 || true
 fi
-if docker logs "$NAME" 2>&1 | grep -q "built-in application data already loaded"; then
-    log "版本戳生效：内置数据已跳过"
+# 版本戳文件是最可靠的证据：脚本的 stdout 会经过 pm2 的日志管道，
+# 有时被吞掉；容器内文件不会骗人。
+STAMP="$(docker exec "$NAME" cat /apitable/.appdata-stamp 2>/dev/null | tr -d '\r\n')"
+if [[ "${STAMP}" == "${TAG}" ]]; then
+    log "版本戳生效：/apitable/.appdata-stamp = ${STAMP}"
+elif docker logs "$NAME" 2>&1 | grep -q "built-in application data already loaded"; then
+    log "版本戳生效（通过日志确认）"
 else
-    fail "未看到内置数据跳过日志（可能是首次启动或版本戳未生效）"
+    fail "版本戳未生效（stamp='${STAMP}'，期望 '${TAG}'）"
+    docker logs --tail 60 "$NAME" 2>&1 | grep -iE "appdata|liquibase" || true
 fi
 
 log "--- 4/4 资源占用 ---"
