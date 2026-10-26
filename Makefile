@@ -219,8 +219,13 @@ test-ut-backend-docker:
 	@echo "${GREEN}finished unit test, clean up images...${RESET}"
 	make _test_clean
 
+# TZ 必须与 docker-compose.unit-test.yaml 里 test-mysql 的 TZ 一致：
+# MemberServiceImplTest 用 LocalDateTime.now() 圈定“今天”的邀请记录，而记录的
+# create_time 由 MySQL 按自身时区写入。CI runner 是 UTC、MySQL 是 Asia/Singapore，
+# 两者错开 8 小时，每天 16:00-24:00 UTC 跑测试就会算出 0 条，测试必然失败。
 test-ut-backend-run:
 	cd backend-server ;\
+	TZ=Asia/Singapore \
 	SELF_HOSTED_ENTERPRISE=false \
 	DATABASE_TABLE_PREFIX=apitable_ \
 	MYSQL_HOST=127.0.0.1  \
