@@ -183,27 +183,69 @@
 
 ---
 
-## v1.17.0 验证记录
+## v1.17.0 验证记录（已发布并端到端验证）
 
-本机无法访问镜像仓库与 GitHub，因此验证分两类：可在本地完成的已全部执行；需要真实构建的留在发布流水线。
+流水线：`构建并发布 APITable 自托管镜像` run 40308100018（全部 job 成功）+ `镜像冒烟测试` run 40310187039（全部通过）。
 
-### 已执行并全部通过
+### 实测数据
 
-| 检查 | 方法 | 结果 |
+| 指标 | v1.16.0 | v1.17.0（实测） |
 |---|---|---|
-| 运行时布局完整性 | 按 `Dockerfile.room-server` runner 的 COPY 清单在 `/tmp` 重建目录树，直接 `node ./dist/main.js` | Nest 应用完成 17 个模块初始化（后续仅因无数据库连接停下），说明 `dist`、`@apitable/core`、`@apitable/i18n-lang`、databus-wasm、canvas 桩的路径与链接全部正确 |
-| 启动脚本逻辑 | 用 stub 替换 `liquibase` / `java`，覆盖 5 个场景 | 首次启动写入 stamp；同版本重启跳过导入；`FORCE_APPDATA_RELOAD` 生效；版本变化重新导入；liquibase 失败后走 `clearChecksums` 补偿并最终成功 |
-| liquibase 参数 | stub 打印 argv | 13 个参数，`update`、`-Dtable.prefix=apitable_`、`-DDB_ENGINE=mysql` 各自独立（修复前的引号 bug 会把后两者粘成一个参数） |
-| 生产依赖闭包 | 扫描 `dist/**/*.js` 的 `require()` 与 `package.json` 比对 | 发现并修复 `node-fetch`；剩余 `@nestjs/testing` 仅被 `dist/shared/testing/test-environment.js` 引用，而该文件无人加载，属编译进产物的测试残留，不影响运行 |
-| lockfile 一致性 | 解析 `pnpm-lock.yaml` 与各 workspace 的 `package.json` 比对 specifier | `node-fetch` 归位后无新增差异；仅剩两处历史遗留（`@nestjs/microservices` 受 `resolutions` 影响、`eslint` spec 漂移），与本次改动无关 |
-| 版本一致性 | 17 个版本文件 + `.bumpversion.cfg` 交叉比对 | 全部为 `1.17.0`，无残留 `1.16.0` |
-| Dockerfile 静态检查 | 解析每条 `COPY/ADD`，校验源路径存在；校验 `ENTRYPOINT/CMD` 的 JSON 形式 | 无缺失源（`openresty` 的 `conf.d/` 相对 `./gateway` 上下文，正确）；启动指令 JSON 全部合法 |
-| bake / compose / 脚本 | `docker buildx bake --print`、`docker compose config -q`、`bash -n`、`js-yaml` | 全部通过 |
+| all-in-one 镜像 | — | **2.35 GB** |
+| room-server | ≈1.6 GB | **520 MB** |
+| web-server | 643 MB | **305 MB** |
+| backend-server | ≈650 MB | **577 MB** |
+| init-db | ≈600 MB | **292 MB** |
+| openresty | ≈380 MB | **87.1 MB** |
+| 离线交付包（13 镜像 gzip） | 3601 MB | **3299 MB**（−302 MB） |
+| 冷启动（空数据卷） | 81 s | **71 s** |
+| 同版本重启 | 不可用（见下） | **36 s** |
+| all-in-one 常驻内存 | 不可预测 | **2.35 GiB** |
 
-### 需要在发布流水线完成
+冒烟脚本输出（`scripts/smoke-test.sh`，GitHub 托管 runner）：
 
-| 事项 | 原因 |
-|---|---|
-| 五个组件镜像的真实构建 | 本机沙箱无法访问镜像仓库，拉不到 `node:22.22.2-*`、`amazoncorretto`、`liquibase`、`openresty` 基础镜像 |
-| 推送分支与 tag | 到 github.com 的 TLS 连接被拦截（直连与本地代理均失败） |
-| 端到端冒烟（`/login`、socket、缓存命中） | 依赖上一步产出的镜像 |
+```
+--- 1/4 冷启动 ---            健康检查通过，用时 71s
+--- 2/4 HTTP 与静态资源 ---    GET /login -> 200
+                              GET /_next/static/chunks/polyfills-*.js -> 200
+                              静态资源 X-Cache-Status=HIT
+--- 3/4 重启后跳过内置数据 --- 重启后健康检查通过，用时 36s
+                              版本戳生效：内置数据已跳过
+--- 4/4 资源占用 ---           apitable-smoke  2.345GiB / 15.61GiB
+```
+
+### 冒烟测试发现并修复的缺陷
+
+**1. 容器重启后 MySQL 拒绝启动（长期缺陷，v1.16.0 同样存在）**
+
+集群一直用 `--lower_case_table_names=2` 启动 mysqld。MySQL 8 规定该值必须与数据字典一致，
+而大小写敏感的 Linux 上 `mysqld --initialize` 会把它回落为 0（v1.16.0 首次启动日志里就有
+`Now setting lower_case_table_names to 0`）。于是重启时 mysqld 直接退出：
+
+```
+[ERROR] [MY-011087] Different lower_case_table_names settings for server ('2') and data dictionary ('0').
+[ERROR] [MY-010020] Data Dictionary initialization failed.
+```
+
+表现为容器重启后 backend 永远在等 `mysqladmin ping`，健康检查永不通过。修复：三处启动参数去掉该选项，
+`my.cnf` 显式写 `lower_case_table_names = 0`，让初始化与每次启动一致。
+
+**2. `node-fetch` 误置于 devDependencies**
+
+automation 的 webhook / slack / ruliu 与 `automation.service` 在模块加载时就 `require('node-fetch')`。
+原先镜像装全量依赖所以没暴露，改为按生产依赖安装后会直接缺失。已移到 `dependencies` 并同步 lockfile。
+
+### 发布过程中暴露并修复的构建问题
+
+| 现象 | 原因 | 修复 |
+|---|---|---|
+| `failed to calculate checksum ... /app/packages/i18n-lang/node_modules: not found` | `@apitable/i18n-lang` 没有 dependencies，`pnpm install --prod` 不会创建该目录，逐包 COPY 不可靠 | 改为整棵 `packages` 目录从 prod-deps 拷贝 |
+| 单测镜像构建告警 | 单测 compose 以 `target: builder` + `KEEP_DEV_DEP=1` 构建 | 保留 ARG 声明 |
+| `--frozen-lockfile` 潜在失败 | 仓库存在历史 specifier 漂移（eslint） | 生产安装不使用 frozen 校验 |
+
+### 交付物
+
+- 分支 `self-hosted-enterprise`，tag `v1.17.0`（commit `c0dea0ab3`）
+- Docker Hub：`benxianyu/apitable-{new,room-server,web-server,backend-server,init-db,openresty,dataenv-pm2,...}` 的 `v1.17.0` / sha / latest
+- GitHub Release：`https://github.com/LiangLiang723/apitable-new/releases/tag/v1.17.0`，含离线包 2 分片 + sha256 + OFFLINE-README
+- 复用命令：`gh workflow run image-smoke-test.yml -f tag=<版本>` 可对任意已发布镜像重跑冒烟
