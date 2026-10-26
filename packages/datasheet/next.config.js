@@ -84,6 +84,11 @@ const nextConfig = {
   },
   swcMinify: true,
   poweredByHeader: false,
+  compiler: {
+    // Strip console.* from production bundles (errors and warnings are kept).
+    // A datasheet grid renders a lot, so stray logs are not free.
+    removeConsole: isProd ? { exclude: ['error', 'warn'] } : false
+  },
   publicRuntimeConfig: {
     // use local public folder for editions, e.g. apitable
     staticFolder() {
