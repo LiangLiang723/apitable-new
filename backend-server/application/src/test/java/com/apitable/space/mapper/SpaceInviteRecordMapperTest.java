@@ -47,9 +47,14 @@ public class SpaceInviteRecordMapperTest extends AbstractMyBatisMapperTest {
     @Test
     @Sql("/sql/space-invite-record-data.sql")
     void testSelectCountBySpaceIdAndBetween() {
-        LocalDateTime startAt = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
-        LocalDateTime endAt =
-            LocalDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0);
+        // created_at 由数据库 CURRENT_TIMESTAMP 写入（容器时区），与 JVM 时区可能相差一天，
+        // 用 LocalDateTime.now() 圈“今天”在跨时区/跨零点时会统计到 0 条。以记录自身的时间
+        // 为基准构造区间，既保留对 BETWEEN 的验证，又与执行环境和时刻无关。
+        SpaceInviteRecordEntity record = spaceInviteRecordMapper.selectByInviteToken("token");
+        LocalDateTime createdAt = record.getCreatedAt();
+        assertThat(createdAt).as("created_at 未被映射，无法构造查询区间").isNotNull();
+        LocalDateTime startAt = createdAt.minusHours(12);
+        LocalDateTime endAt = createdAt.plusHours(12);
         Integer count =
             spaceInviteRecordMapper.selectCountBySpaceIdAndBetween("spc41", startAt, endAt);
         assertThat(count).isEqualTo(1);
