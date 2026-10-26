@@ -69,6 +69,12 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
 # stage builder
 FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS builder
 
+# Kept for compatibility with docker-compose.unit-test.yaml, which builds this
+# stage with KEEP_DEV_DEP=1. The builder always keeps devDependencies now (the
+# runtime image takes its production tree from the prod-deps stage instead), so
+# the argument has no effect.
+ARG KEEP_DEV_DEP
+
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
