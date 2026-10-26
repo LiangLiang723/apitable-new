@@ -60,7 +60,8 @@ services:
       init-db:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "curl -sS 'http://localhost:8081' || exit 1"]
+      # curl 在 corretto headless 基础镜像里不一定存在，补一条 bash /dev/tcp 兜底
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081 >/dev/null 2>&1 || bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081'"]
       interval: 5s
       timeout: 5s
       start_period: 30s
