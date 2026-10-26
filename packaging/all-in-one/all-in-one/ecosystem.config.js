@@ -1,14 +1,14 @@
 module.exports = {
   apps : [{
     name: 'minio',
-    script: 'minio --certs-dir /apitable/minio/config/certs server /apitable/minio/data',
+    script: 'nice -n 10 minio --certs-dir /apitable/minio/config/certs server /apitable/minio/data',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
     restart_delay: 1000
   }, {
     name: 'mysql',
-    script: 'gosu "${GOSU_USER}" mysqld --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --sql_mode=IGNORE_SPACE,NO_ENGINE_SUBSTITUTION --lower_case_table_names=2',
+    script: 'nice -n 10 gosu "${GOSU_USER}" mysqld --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --sql_mode=IGNORE_SPACE,NO_ENGINE_SUBSTITUTION --lower_case_table_names=2',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
@@ -22,7 +22,7 @@ module.exports = {
     restart_delay: 1000
   }, {
     name: 'rabbitmq',
-    script: 'ERL_AFLAGS="+JMsingle true" RABBITMQ_MNESIA_BASE=/apitable/rabbitmq RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME} RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD} gosu "${GOSU_USER}" rabbitmq-server',
+    script: 'ERL_AFLAGS="+JMsingle true" RABBITMQ_MNESIA_BASE=/apitable/rabbitmq RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME} RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD} nice -n 10 gosu "${GOSU_USER}" rabbitmq-server',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
@@ -30,7 +30,9 @@ module.exports = {
   }, {
     name: 'redis',
     cwd: '/apitable/redis',
-    script: 'gosu "${GOSU_USER}" redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}"',
+    // noeviction: Redis also carries the bull queues and the socket.io adapter,
+    // evicting keys would drop queued jobs.
+    script: 'nice -n 10 gosu "${GOSU_USER}" redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}" --maxmemory 384mb --maxmemory-policy noeviction',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
@@ -38,7 +40,7 @@ module.exports = {
   }, {
     name: 'backend-server',
     cwd: '/app/backend-server',
-    script: 'while ! mysqladmin ping -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u"${MYSQL_USERNAME}" -p"${MYSQL_PASSWORD}" --silent >/dev/null 2>&1; do sleep 2; done && init-appdata.sh && java -Dlogging.config=/app/backend-server/logback-all-in-one.xml -Dspring.autoconfigure.exclude=io.sentry.spring.boot.jakarta.SentryAutoConfiguration -Djava.security.egd=file:/dev/./urandom -jar app.jar',
+    script: 'while ! mysqladmin ping -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u"${MYSQL_USERNAME}" -p"${MYSQL_PASSWORD}" --silent >/dev/null 2>&1; do sleep 2; done && init-appdata.sh && java -Dlogging.config=/app/backend-server/logback-all-in-one.xml -Dspring.autoconfigure.exclude=io.sentry.spring.boot.jakarta.SentryAutoConfiguration -XX:MaxRAMPercentage=50 -XX:InitialRAMPercentage=20 -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=128m -Xss512k -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom -jar app.jar',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
@@ -57,7 +59,8 @@ module.exports = {
     env: {
       NODE_ENV: "production",
       PORT: "3333",
-      ENABLE_SOCKET: "true"
+      ENABLE_SOCKET: "true",
+      NODE_OPTIONS: "--max-old-space-size=1536 --max-semi-space-size=64 --max-http-header-size=80000"
     },
     script: 'while ! rabbitmq-diagnostics -q check_running >/dev/null 2>&1; do sleep 2; done && node ./dist/main.js',
     out_file: '/dev/null',
@@ -69,7 +72,8 @@ module.exports = {
     cwd: '/app/web-server/packages/datasheet',
     env: {
       NODE_ENV: "production",
-      PORT: "3000"
+      PORT: "3000",
+      NODE_OPTIONS: "--max-old-space-size=1024"
     },
     script: 'node server.js',
     out_file: '/dev/null',

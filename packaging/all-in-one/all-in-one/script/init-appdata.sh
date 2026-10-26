@@ -2,40 +2,77 @@
 
 set -e
 
-liquibase \
-    "--defaultsFile=/liquibase/liquibase.docker.properties" \
-    --classpath=/liquibase/changelog \
-    --changelog-file="${CHANGELOG_FILE:=db/changelog/db.changelog-master.xml}" \
-    --log-level=warning \
-    --username="${MYSQL_USERNAME}" \
-    --password="${MYSQL_PASSWORD}" \
-    --driver="com.mysql.cj.jdbc.Driver" \
-    --database-changelog-table-name="${DATABASE_TABLE_PREFIX:=apitable_}db_changelog" \
-    --database-changelog-lock-table-name="${DATABASE_TABLE_PREFIX:=apitable_}db_changelog_lock" \
-    --url="jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}?characterEncoding=utf8&autoReconnect=true&useSSL=true" \
-    clearChecksums
+# ---------------------------------------------------------------------------
+# Database migrations
+# ---------------------------------------------------------------------------
+# `clearChecksums` used to run before every single start, which forces liquibase
+# to recompute the checksum of all ~350 changesets on every boot. It is only
+# needed when a historical changeset was edited (the checksum then no longer
+# matches and `update` aborts), so it became a retry path instead of a
+# precondition.
+liquibase_run() {
+    liquibase \
+        "--defaultsFile=/liquibase/liquibase.docker.properties" \
+        --classpath=/liquibase/changelog \
+        --changelog-file="${CHANGELOG_FILE:=db/changelog/db.changelog-master.xml}" \
+        --log-level=warning \
+        --username="${MYSQL_USERNAME}" \
+        --password="${MYSQL_PASSWORD}" \
+        --driver="com.mysql.cj.jdbc.Driver" \
+        --database-changelog-table-name="${DATABASE_TABLE_PREFIX:=apitable_}db_changelog" \
+        --database-changelog-lock-table-name="${DATABASE_TABLE_PREFIX:=apitable_}db_changelog_lock" \
+        --url="jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}?characterEncoding=utf8&autoReconnect=true&useSSL=true" \
+        "$@"
+}
 
-liquibase \
-    "--defaultsFile=/liquibase/liquibase.docker.properties" \
-    --classpath=/liquibase/changelog \
-    --changelog-file="${CHANGELOG_FILE:=db/changelog/db.changelog-master.xml}" \
-    --log-level=warning \
-    --username="${MYSQL_USERNAME}" \
-    --password="${MYSQL_PASSWORD}" \
-    --driver="com.mysql.cj.jdbc.Driver" \
-    --database-changelog-table-name="${DATABASE_TABLE_PREFIX:=apitable_}db_changelog" \
-    --database-changelog-lock-table-name="${DATABASE_TABLE_PREFIX:=apitable_}db_changelog_lock" \
-    --url="jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}?characterEncoding=utf8&autoReconnect=true&useSSL=true" \
-    update \
-    -Dtable.prefix="${DATABASE_TABLE_PREFIX:=apitable_} \
-    -DDB_ENGINE=${DB_ENGINE:=mysql}"
+run_migrations() {
+    if liquibase_run "${ACTION:=update}" \
+        -Dtable.prefix="${DATABASE_TABLE_PREFIX:=apitable_}" \
+        -DDB_ENGINE="${DB_ENGINE:=mysql}"; then
+        return 0
+    fi
 
-cd /app/init-appdata
+    echo "liquibase update failed, retrying after clearChecksums" >&2
+    liquibase_run clearChecksums
+    liquibase_run "${ACTION:=update}" \
+        -Dtable.prefix="${DATABASE_TABLE_PREFIX:=apitable_}" \
+        -DDB_ENGINE="${DB_ENGINE:=mysql}"
+}
 
-for action in init-user load; do
-    java \
-        -Dlogging.level.com.amazonaws.services.s3.AmazonS3Client=ERROR \
-        -Dlogging.level.com.apitable.appdata.shared.starter.oss.AwsOssClientRequest=WARN \
-        '-Dlogging.level.org.springframework.context.support.PostProcessorRegistrationDelegate$BeanPostProcessorChecker=ERROR' \
-        -jar /app/init-appdata/init-appdata.jar "${action}"
-done
+# ---------------------------------------------------------------------------
+# Built-in application data (templates, widget center, automation, ...)
+# ---------------------------------------------------------------------------
+# The loader parses and upserts the bundled data on every run, which is the
+# single most expensive step of a container start (~24s in the reference boot
+# log). It only has to run for a new version, so the image version is used as a
+# stamp. Set FORCE_APPDATA_RELOAD=true to run it again (for example after
+# restoring a database dump into an existing volume).
+APP_DATA_STAMP=/apitable/.appdata-stamp
+
+run_app_data() {
+    cd /app/init-appdata
+    for action in init-user load; do
+        java \
+            -Dlogging.level.com.amazonaws.services.s3.AmazonS3Client=ERROR \
+            -Dlogging.level.com.apitable.appdata.shared.starter.oss.AwsOssClientRequest=WARN \
+            '-Dlogging.level.org.springframework.context.support.PostProcessorRegistrationDelegate$BeanPostProcessorChecker=ERROR' \
+            -jar /app/init-appdata/init-appdata.jar "${action}"
+    done
+}
+
+app_data_is_current() {
+    [[ "${FORCE_APPDATA_RELOAD:-}" != "true" ]] \
+        && [[ -f "${APP_DATA_STAMP}" ]] \
+        && [[ "$(cat "${APP_DATA_STAMP}")" == "${SEMVER_FULL}" ]]
+}
+
+# ---------------------------------------------------------------------------
+
+run_migrations
+
+if app_data_is_current; then
+    echo "built-in application data already loaded for ${SEMVER_FULL}, skipping"
+else
+    run_app_data
+    echo "${SEMVER_FULL}" > "${APP_DATA_STAMP}"
+fi

@@ -18,6 +18,11 @@ if [[ -n "$(ls -A /apitable/mysql)" ]]; then
     exit
 fi
 
+# A fresh MySQL data directory means the built-in application data (templates,
+# widget center, ...) has to be loaded again: drop the stamp that
+# init-appdata.sh uses to skip the loader on plain restarts.
+rm -f /apitable/.appdata-stamp
+
 gosu "${GOSU_USER}" mysqld --initialize
 
 gosu "${GOSU_USER}" mysqld --daemonize --skip-grant-tables --skip-networking

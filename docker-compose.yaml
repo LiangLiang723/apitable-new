@@ -1,19 +1,37 @@
 version: "3.9"
 
+# ---------------------------------------------------------------------------
+# 内存上限说明
+#
+# mem_limit 是"天花板"而不是"预占"：只要服务不真的用满，就不会影响其它服务。
+# 设置上限的目的是防止某个进程（尤其是 JVM 与 Node）按宿主机内存自行扩张，
+# 把整台机器吃光。各上限都可用 .env 覆盖，宿主机内存大时直接调高即可。
+#
+# 上限之和（默认约 12.5G）大于推荐的最小配置，是因为这些值不会同时被打满；
+# 实测一套小规模部署的常驻内存约 3~5G。建议宿主机至少 8G 内存，
+# 4G 机器请把 BACKEND/ROOM_SERVER 的上限调到 2g 并把 INSTANCE_COUNT 设为 1。
+# ---------------------------------------------------------------------------
+
 services:
   web-server:
     image: ${IMAGE_REGISTRY}/${IMAGE_WEB_SERVER}
+    mem_limit: ${WEB_SERVER_MEM_LIMIT:-1536m}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     restart: always
     expose:
       - "8080"
     env_file:
       - "${ENV_FILE:-.env}"
+    environment:
+      - TZ=${TIMEZONE}
+      # Node 默认堆上限（约 4G）高于容器上限，必须显式压到天花板以下。
+      - NODE_OPTIONS=--max-old-space-size=${WEB_SERVER_NODE_OLD_SPACE:-1024}
     networks:
       - apitable
 
   imageproxy-server:
     image: ${IMAGE_REGISTRY}/${IMAGE_IMAGEPROXY_SERVER}
+    mem_limit: ${IMAGEPROXY_MEM_LIMIT:-256m}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     restart: always
     expose:
@@ -26,6 +44,7 @@ services:
 
   backend-server:
     image: ${IMAGE_REGISTRY}/${IMAGE_BACKEND_SERVER}
+    mem_limit: ${BACKEND_MEM_LIMIT:-3g}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     restart: always
     env_file:
@@ -49,6 +68,7 @@ services:
 
   room-server:
     image: ${IMAGE_REGISTRY}/${IMAGE_ROOM_SERVER}
+    mem_limit: ${ROOM_SERVER_MEM_LIMIT:-3g}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     restart: always
     expose:
@@ -64,9 +84,12 @@ services:
     environment:
       - TZ=${TIMEZONE}
       - NODE_ENV=${ENV}
-      - NODE_OPTIONS=--max-old-space-size=2048 --max-http-header-size=80000
+      - NODE_OPTIONS=--max-old-space-size=${ROOM_SERVER_NODE_OLD_SPACE:-1024} --max-semi-space-size=64 --max-http-header-size=80000
       - API_MAX_MODIFY_RECORD_COUNTS=${API_MAX_MODIFY_RECORD_COUNTS:-9007199254740991}
-      - INSTANCE_MAX_MEMORY=4096M
+      # The image runs room-server through pm2 cluster mode. Two instances keep
+      # the socket workload spread without the default four eating 4x the heap.
+      - INSTANCE_COUNT=${ROOM_SERVER_INSTANCES:-2}
+      - INSTANCE_MAX_MEMORY=1280M
       - ENABLE_SOCKET=true
     networks:
       - apitable
@@ -76,6 +99,7 @@ services:
 
   databus-server:
     image: ${IMAGE_REGISTRY}/${IMAGE_DATABUS_SERVER}
+    mem_limit: ${DATABUS_MEM_LIMIT:-512m}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     restart: always
     expose:
@@ -93,6 +117,7 @@ services:
   # Third Party Dockers
   gateway:
     image: ${IMAGE_REGISTRY}/${IMAGE_GATEWAY}
+    mem_limit: ${GATEWAY_MEM_LIMIT:-256m}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     restart: always
     ports:
@@ -117,6 +142,7 @@ services:
   minio:
     container_name: minio
     image: ${IMAGE_MINIO}
+    mem_limit: ${MINIO_MEM_LIMIT:-1g}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     restart: always
     command: server --console-address ":9001" /data
@@ -143,6 +169,7 @@ services:
   redis:
     container_name: redis
     image: ${IMAGE_REDIS}
+    mem_limit: ${REDIS_MEM_LIMIT:-1g}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     restart: always
     command:
@@ -152,6 +179,12 @@ services:
           "yes",
           "--requirepass",
           "${REDIS_PASSWORD}",
+          # 低于 mem_limit，让它自己拒绝写入而不是被内核杀掉；
+          # noeviction 是刻意的：Redis 里同时有 bull 队列，淘汰键会丢任务。
+          "--maxmemory",
+          "${REDIS_MAXMEMORY:-768mb}",
+          "--maxmemory-policy",
+          "noeviction",
       ]
     expose:
       - "6379"
@@ -165,6 +198,7 @@ services:
   mysql:
     container_name: mysql
     image: ${IMAGE_MYSQL}
+    mem_limit: ${MYSQL_MEM_LIMIT:-1g}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     restart: always
     volumes:
@@ -192,6 +226,7 @@ services:
   rabbitmq:
     container_name: rabbitmq
     image: ${IMAGE_RABBITMQ}
+    mem_limit: ${RABBITMQ_MEM_LIMIT:-1g}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     restart: always
     volumes:
@@ -209,6 +244,7 @@ services:
   # init data
   init-db:
     image: ${IMAGE_REGISTRY}/${IMAGE_INIT_DB}
+    mem_limit: ${INIT_DB_MEM_LIMIT:-512m}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     security_opt:
       - seccomp=unconfined
@@ -230,6 +266,7 @@ services:
   # init-appdata
   init-appdata:
     image: ${IMAGE_REGISTRY}/${IMAGE_INIT_APPDATA}
+    mem_limit: ${INIT_APP_DATA_MEM_LIMIT:-512m}
     pull_policy: ${IMAGE_PULL_POLICY:-if_not_present}
     env_file:
       - "${ENV_FILE:-.env}"
