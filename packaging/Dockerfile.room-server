@@ -120,11 +120,12 @@ COPY --from=builder /usr/local/lib/node_modules/pm2 /usr/local/lib/node_modules/
 RUN ln -sf ../lib/node_modules/pm2/bin/pm2 /usr/local/bin/pm2 \
     && ln -sf ../lib/node_modules/pm2/bin/pm2-runtime /usr/local/bin/pm2-runtime
 
-# Production dependencies (no devDependencies, no source files).
+# Production dependencies (no devDependencies, no source files). The whole
+# packages tree is copied rather than per-package node_modules: pnpm only creates
+# packages/<name>/node_modules when that project actually has dependencies
+# (@apitable/i18n-lang has none), so individual COPY lines are not reliable.
 COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=prod-deps /app/packages/i18n-lang/node_modules ./packages/i18n-lang/node_modules
-COPY --from=prod-deps /app/packages/core/node_modules ./packages/core/node_modules
-COPY --from=prod-deps /app/packages/room-server/node_modules ./packages/room-server/node_modules
+COPY --from=prod-deps /app/packages ./packages
 
 # Build output and the workspace packages it links to. @apitable/core and
 # @apitable/i18n-lang are resolved through pnpm workspace symlinks, so their
