@@ -31,6 +31,11 @@
 
 ### 修复
 
+* fix: **容器重启后 MySQL 拒绝启动**。集群一直以 `--lower_case_table_names=2` 启动 mysqld，
+  而 MySQL 8 在大小写敏感的 Linux 文件系统上初始化时会强制回落为 0（首次启动日志里能看到
+  `Now setting lower_case_table_names to 0`），重启时参数与数据字典不一致，mysqld 直接退出
+  （`Different lower_case_table_names settings for server ('2') and data dictionary ('0')`），
+  表现为容器重启后 backend 一直等 MySQL、健康检查永远不通过。现统一为初始化与启动都用 0
 * fix: `node-fetch` 被 automation webhook / slack 等运行时模块引用，但声明在 devDependencies，生产依赖安装后会缺失；已移动到 dependencies
 
 ## [v1.10.0-beta.3](https://github.com/apitable/apitable/releases/tag/v1.10.0-beta.3) (2024-05-06)

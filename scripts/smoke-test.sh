@@ -86,6 +86,10 @@ if SECONDS_USED=$(wait_healthy); then
     log "重启后健康检查通过，用时 ${SECONDS_USED}s"
 else
     fail "重启后未通过健康检查"
+    log "容器日志（末尾 120 行）："
+    docker logs --tail 120 "$NAME" 2>&1 || true
+    log "容器内进程："
+    docker exec "$NAME" sh -c 'ps -eo pid,comm,etime --sort=start_time | tail -20' 2>&1 || true
 fi
 if docker logs "$NAME" 2>&1 | grep -q "built-in application data already loaded"; then
     log "版本戳生效：内置数据已跳过"

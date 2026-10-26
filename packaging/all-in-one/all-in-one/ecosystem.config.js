@@ -8,7 +8,7 @@ module.exports = {
     restart_delay: 1000
   }, {
     name: 'mysql',
-    script: 'nice -n 10 gosu "${GOSU_USER}" mysqld --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --sql_mode=IGNORE_SPACE,NO_ENGINE_SUBSTITUTION --lower_case_table_names=2',
+    script: 'nice -n 10 gosu "${GOSU_USER}" mysqld --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --sql_mode=IGNORE_SPACE,NO_ENGINE_SUBSTITUTION',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,
