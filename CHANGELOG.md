@@ -11,6 +11,8 @@
 * build: dataenv 的 rabbitmq-server / erlang / mysql-community-server-minimal / openresty / redis 钉到具体版本，镜像内输出 `/sbom/rpms.txt`
 * build: pnpm 版本统一为 8.13.1（`packageManager`、三个 CI 工作流、两个基础镜像原本就是 8.13.1）
 * build: 移除根依赖里未被任何源码引用的 `apitable@latest`
+* test: 修复 `MemberServiceImplTest` 的时区依赖 —— 邀请记录不写 `created_at` 时取数据库
+  `CURRENT_TIMESTAMP`（容器时区），与 JVM 时区差一天，导致每天 UTC 16:00 之后该用例必然失败
 
 ### 说明
 

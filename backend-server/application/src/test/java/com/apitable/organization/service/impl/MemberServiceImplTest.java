@@ -30,6 +30,7 @@ import com.apitable.space.mapper.SpaceInviteRecordMapper;
 import com.apitable.starter.mail.autoconfigure.EmailMessage;
 import com.apitable.workspace.enums.NodeType;
 import com.apitable.workspace.ro.NodeOpRo;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -84,6 +85,10 @@ public class MemberServiceImplTest extends AbstractIntegrationTest {
         for (int i = 0; i < 10; i++) {
             SpaceInviteRecordEntity entity = new SpaceInviteRecordEntity();
             entity.setInviteSpaceId(mockUserSpace.getSpaceId());
+            // shouldPreventInvitation 按“今天”统计，而 insert 不写 created_at 时会落到
+            // 数据库的 CURRENT_TIMESTAMP（容器时区），与 JVM 时区可能差一天，
+            // 导致每天 UTC 16:00 之后这个用例必然统计到 0 条。显式写入 JVM 时间。
+            entity.setCreatedAt(LocalDateTime.now());
             spaceInviteRecordMapper.insert(entity);
         }
         boolean prevent = iMemberService.shouldPreventInvitation(mockUserSpace.getSpaceId());
@@ -96,6 +101,10 @@ public class MemberServiceImplTest extends AbstractIntegrationTest {
         for (int i = 0; i < 9; i++) {
             SpaceInviteRecordEntity entity = new SpaceInviteRecordEntity();
             entity.setInviteSpaceId(mockUserSpace.getSpaceId());
+            // shouldPreventInvitation 按“今天”统计，而 insert 不写 created_at 时会落到
+            // 数据库的 CURRENT_TIMESTAMP（容器时区），与 JVM 时区可能差一天，
+            // 导致每天 UTC 16:00 之后这个用例必然统计到 0 条。显式写入 JVM 时间。
+            entity.setCreatedAt(LocalDateTime.now());
             spaceInviteRecordMapper.insert(entity);
         }
         boolean prevent = iMemberService.shouldPreventInvitation(mockUserSpace.getSpaceId());
