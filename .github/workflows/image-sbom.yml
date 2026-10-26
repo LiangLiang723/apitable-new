@@ -1,0 +1,58 @@
+---
+name: 镜像 SBOM 采集
+
+# 导出镜像内已安装的 RPM 清单，用于把 dataenv 的依赖钉到具体版本。
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: '镜像名（含命名空间）'
+        required: true
+        default: 'benxianyu/apitable-new'
+      tag:
+        description: '标签'
+        required: true
+        default: 'latest'
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    name: SBOM ${{ github.event.inputs.image }}:${{ github.event.inputs.tag }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 拉取镜像
+        env:
+          IMAGE: ${{ github.event.inputs.image }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: docker pull "${IMAGE}:${TAG}"
+
+      - name: 导出 RPM 清单
+        env:
+          IMAGE: ${{ github.event.inputs.image }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          docker run --rm --entrypoint sh "${IMAGE}:${TAG}" -c 'rpm -qa | sort' > rpms.txt
+          wc -l rpms.txt
+          echo '### 关键组件版本' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E '^(rabbitmq-server|erlang|redis|mysql-community-server-minimal|openresty|nodejs)' rpms.txt \
+            | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 上传清单
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpms-${{ github.event.inputs.tag }}
+          path: rpms.txt
