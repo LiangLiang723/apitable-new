@@ -15,6 +15,16 @@ RUN --mount=type=cache,target=/root/.gradle \
     --mount=type=cache,target=/app/.gradle \
     ./gradlew --no-daemon -Dorg.gradle.vfs.watch=false :application:bootJar
 
+# Split the fat jar into Spring Boot layers. The runtime image then copies the
+# dependency layers (which only change when a dependency changes) separately from
+# the application layer, so a code-only release pushes a few MB instead of 183MB.
+RUN set -eux; \
+    java -Djarmode=layertools \
+         -jar /app/application/build/libs/application.jar \
+         extract --destination /app/layers; \
+    mkdir -p /app/layers/dependencies /app/layers/spring-boot-loader \
+             /app/layers/snapshot-dependencies /app/layers/application
+
 
 # Runtime image only needs a JRE: the headless variant drops the GUI stack while
 # keeping everything the service uses (including the PDF export path).
@@ -25,9 +35,17 @@ ENV SEMVER_FULL=${SEMVER_FULL}
 
 WORKDIR /app
 
-COPY --from=builder /app/application/build/libs/*.jar /app/app.jar
+# Layer order matters: the more frequently a layer changes, the later it is
+# copied, so Docker can reuse the caches above it.
+COPY --from=builder /app/layers/dependencies/ ./
+COPY --from=builder /app/layers/spring-boot-loader/ ./
+COPY --from=builder /app/layers/snapshot-dependencies/ ./
+COPY --from=builder /app/layers/application/ ./
 
 EXPOSE 8081
+# The launcher is the one declared in META-INF/MANIFEST.MF of the built jar
+# (org.springframework.boot.loader.launch.JarLauncher on Spring Boot 3.2); it also
+# works for the exploded layer layout used here.
 # -Xss512k: Tomcat runs up to 200 request threads, the default 1MB stack each is
 #           a lot of reserved address space for a service that barely recurses.
 # -XX:MaxRAMPercentage=50: container aware heap sizing; without a cgroup limit
@@ -40,4 +58,4 @@ ENTRYPOINT ["java", \
     "-XX:+ExitOnOutOfMemoryError", \
     "-Djava.security.egd=file:/dev/./urandom", \
     "--add-opens=java.base/java.lang=ALL-UNNAMED", \
-    "-jar", "/app/app.jar"]
+    "org.springframework.boot.loader.launch.JarLauncher"]

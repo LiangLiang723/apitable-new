@@ -249,3 +249,26 @@ automation 的 webhook / slack / ruliu 与 `automation.service` 在模块加载�
 - Docker Hub：`benxianyu/apitable-{new,room-server,web-server,backend-server,init-db,openresty,dataenv-pm2,...}` 的 `v1.17.0` / sha / latest
 - GitHub Release：`https://github.com/LiangLiang723/apitable-new/releases/tag/v1.17.0`，含离线包 2 分片 + sha256 + OFFLINE-README
 - 复用命令：`gh workflow run image-smoke-test.yml -f tag=<版本>` 可对任意已发布镜像重跑冒烟
+
+---
+
+## v1.17.1 收尾（第三优先 5 项）
+
+| 项 | 状态 | 落地内容 | 验证方式 |
+|---|---|---|---|
+| Spring Boot 分层 jar | 已做 | builder 用 `layertools` 解包，运行镜像分四层拷贝，ENTRYPOINT 改用 `org.springframework.boot.loader.launch.JarLauncher`；all-in-one 的启动命令同步改为 JarLauncher | 冒烟（backend 起不来会直接卡在健康检查） |
+| Next 构建缓存 | 已做 | `webpack.config.js` 支持 `NEXT_WEBPACK_CACHE_DIR`，Dockerfile 里指向 BuildKit cache mount。注意：**CI 是临时 runner，cache mount 不跨 job 复用**，收益只在本地重复构建 | 构建日志中 cache 目录不再位于 `web_build` 下 |
+| dataenv 版本锁定 | 已做 | 从 v1.17.0 镜像的 `rpm -qa` 实测值钉死：rabbitmq-server 4.3.1、erlang 27.3.4.11、mysql-community-server-minimal 8.0.37、openresty 1.29.2.5、redis 6.2.20；镜像内输出 `/sbom/rpms.txt` | SBOM 工作流 `image-sbom.yml` 可随时重导 |
+| pnpm 版本统一 | 已做 | `packageManager` 8.6.12 → 8.13.1，三个工作流 8.7.5 → 8.13.1（镜像本就是 8.13.1）；移除未被引用的 `apitable@latest` | `pnpm --version` 各环境一致 |
+| 前端首屏 | 分析完成，未改代码 | 实测结论：自托管构建的客户端 chunk 中**不存在** `posthog`/`sentry`（tree-shaken），`exceljs`/`recharts`/`xgplayer`/`konva` 都已是异步 chunk；只剩 3.5 MB 全局 CSS | **需要视觉回归**，拆分成独立任务 |
+
+### 为什么第 5 项没动代码
+
+3.5 MB 的 CSS 来自 `_app.tsx` 里逐条 `import 'xxx.less'` 的全局累积，要降下来只能按页面拆分样式入口，
+属于"改完必须逐页看外观"的改动。本环境无法做视觉回归，冒烟脚本也只校验 HTTP 状态码，
+盲改的风险远大于收益，因此只做了度量与定位，不落代码。
+
+### 遗留（有意为之）
+
+- `dataenv` 镜像仍然保留 `microdnf -y update`：它会把基础层从 8.9 升到 8.10，属于残留的非确定性来源；去掉它风险更高（依赖版本可能对不上），暂不动
+- 镜像仍以 root 运行（all-in-one 需要 pm2 管理 mysqld/rabbitmq），未做非 root 化

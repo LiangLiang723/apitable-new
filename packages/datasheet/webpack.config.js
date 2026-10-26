@@ -221,5 +221,13 @@ module.exports = (config, options) => {
   //   }))
   // }
 
+  // Let the webpack filesystem cache live outside distDir: the package `build`
+  // script wipes web_build before every build, which would throw the cache away.
+  // Docker builds point this at a BuildKit cache mount.
+  const cacheDir = process.env.NEXT_WEBPACK_CACHE_DIR;
+  if (cacheDir && config.cache && typeof config.cache === 'object') {
+    config.cache.cacheDirectory = cacheDir;
+  }
+
   return config;
 };

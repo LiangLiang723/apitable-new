@@ -6,6 +6,11 @@ ARG GOSU_VERSION=1.17
 
 ENV GOSU_USER=rabbitmq
 
+# Runtime components are pinned to the versions the v1.17.0 image shipped
+# (the full list is kept at /sbom/rpms.txt inside the image). Without the pin
+# a rebuild silently picks up a newer broker/database, so two builds of the
+# same Dockerfile would behave differently. Bump them deliberately, with a
+# smoke test (gh workflow run image-smoke-test.yml).
 RUN set -euxo pipefail; \
   arch="$(uname -m)"; \
   case "${arch}" in \
@@ -43,14 +48,16 @@ RUN set -euxo pipefail; \
   rm -f "/tmp/${MC_BIN}" "/tmp/${MC_BIN}.sha256sum"; \
   microdnf -y module enable redis:6; \
   microdnf -y install \
-  mysql-community-server-minimal \
-  openresty \
-  rabbitmq-server erlang \
-  redis; \
+  mysql-community-server-minimal-8.0.37-1.el8 \
+  openresty-1.29.2.5-1.el8 \
+  rabbitmq-server-4.3.1-1.el8 \
+  erlang-27.3.4.11-1.el8 \
+  redis-6.2.20-1.module_el8.10.0+4056+739731b0; \
   getent group "${GOSU_USER}" >/dev/null || groupadd --system "${GOSU_USER}"; \
   id -u "${GOSU_USER}" >/dev/null 2>&1 || useradd --system --gid "${GOSU_USER}" --create-home "${GOSU_USER}"; \
   microdnf -y install tar xz; \
   microdnf clean all; \
+  mkdir -p /sbom; rpm -qa | sort > /sbom/rpms.txt; \
   \
   mkdir -p /etc/mysql/conf.d; \
   chown -R "${GOSU_USER}:${GOSU_USER}" /var/lib/mysql /var/run/mysqld /var/log/mysqld.log; \

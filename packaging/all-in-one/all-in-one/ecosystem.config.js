@@ -40,7 +40,7 @@ module.exports = {
   }, {
     name: 'backend-server',
     cwd: '/app/backend-server',
-    script: 'while ! mysqladmin ping -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u"${MYSQL_USERNAME}" -p"${MYSQL_PASSWORD}" --silent >/dev/null 2>&1; do sleep 2; done && init-appdata.sh && java -Dlogging.config=/app/backend-server/logback-all-in-one.xml -Dspring.autoconfigure.exclude=io.sentry.spring.boot.jakarta.SentryAutoConfiguration -XX:MaxRAMPercentage=50 -XX:InitialRAMPercentage=20 -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=128m -Xss512k -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom -jar app.jar',
+    script: 'while ! mysqladmin ping -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u"${MYSQL_USERNAME}" -p"${MYSQL_PASSWORD}" --silent >/dev/null 2>&1; do sleep 2; done && init-appdata.sh && java -Dlogging.config=/app/backend-server/logback-all-in-one.xml -Dspring.autoconfigure.exclude=io.sentry.spring.boot.jakarta.SentryAutoConfiguration -XX:MaxRAMPercentage=50 -XX:InitialRAMPercentage=20 -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=128m -Xss512k -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom org.springframework.boot.loader.launch.JarLauncher',
     out_file: '/dev/null',
     error_file: '/dev/null',
     max_restarts: 2147483647,

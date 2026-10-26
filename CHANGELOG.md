@@ -1,5 +1,21 @@
 # APITable CHANGELOG
 
+## [v1.17.1](https://github.com/apitable/apitable/releases/tag/v1.17.1) (2026-10-27)
+
+构建效率与可复现性收尾，不改变功能。
+
+### 构建
+
+* build: backend 镜像改为 Spring Boot 分层（`layertools`），运行镜像按 dependencies / spring-boot-loader / snapshot-dependencies / application 分四层拷贝，代码变更只推最后一层（≈5 MB，而不是 183 MB 的整包）
+* build: web-server 把 webpack 文件缓存放到 `distDir` 之外（`NEXT_WEBPACK_CACHE_DIR` + BuildKit cache mount），避免被 `rm -rf web_build` 清掉
+* build: dataenv 的 rabbitmq-server / erlang / mysql-community-server-minimal / openresty / redis 钉到具体版本，镜像内输出 `/sbom/rpms.txt`
+* build: pnpm 版本统一为 8.13.1（`packageManager`、三个 CI 工作流、两个基础镜像原本就是 8.13.1）
+* build: 移除根依赖里未被任何源码引用的 `apitable@latest`
+
+### 说明
+
+* 首屏分析结论：自托管构建的客户端包里**不含** `posthog-js` / `@sentry`（已被 tree-shake），`exceljs`(1.1MB) / `recharts`(373KB) / `xgplayer`(311KB) / `konva`(97KB) 已全部是异步 chunk。剩余首屏体积集中在单个 3.5 MB 的全局 CSS，需要按页面拆分并做视觉回归，单列为后续任务，本次不动
+
 ## [v1.17.0](https://github.com/apitable/apitable/releases/tag/v1.17.0) (2026-10-26)
 
 构建、运行时与交付体积优化，不改变业务功能。

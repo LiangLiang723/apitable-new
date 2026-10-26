@@ -286,7 +286,7 @@ jobs:
       - name: 设置 pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8.7.5
+          version: 8.13.1
 
       - name: 设置 JDK
         uses: actions/setup-java@v4

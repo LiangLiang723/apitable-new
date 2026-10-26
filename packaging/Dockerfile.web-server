@@ -51,6 +51,8 @@ ENV SEMVER_FULL=${SEMVER_FULL}
 
 # Disable telemetry for the build as well, not only for the runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
+# Keep the webpack filesystem cache outside web_build (the build script wipes it).
+ENV NEXT_WEBPACK_CACHE_DIR=/next-cache
 
 RUN npm install -g pnpm@8.13.1
 
@@ -83,7 +85,8 @@ RUN pnpm --version
 # stale) artifacts from the host.
 RUN pnpm run build:dst:pre
 
-RUN pnpm run build:dst
+RUN --mount=type=cache,id=next-webpack-cache,target=/next-cache \
+    pnpm run build:dst
 
 # stage runner
 FROM ${NODE_RUNTIME_IMAGE}:${NODE_RUNTIME_TAG} AS runner
