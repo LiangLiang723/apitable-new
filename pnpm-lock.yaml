@@ -1897,6 +1897,9 @@ importers:
       nestjs-proto-gen-ts:
         specifier: ^1.0.19
         version: 1.0.21
+      node-fetch:
+        specifier: '2'
+        version: 2.7.0
       node-os-utils:
         specifier: ^1.3.5
         version: 1.3.7
@@ -2069,9 +2072,6 @@ importers:
       jest-environment-jsdom:
         specifier: ^28.1.1
         version: 28.1.3(canvas@packages+canvas-shim)
-      node-fetch:
-        specifier: '2'
-        version: 2.7.0
       supertest:
         specifier: ^4.0.2
         version: 4.0.2
