@@ -3,6 +3,18 @@
 日期：2026-10-26
 配套：`docs/BUILD_OPTIMIZATION_REVIEW.md`、`docs/RUNTIME_PERFORMANCE_REVIEW.md`、`docs/OPTIMIZATION_PLAN.md`
 
+## 交付状态（v1.17.0）
+
+- 分支 `self-hosted-enterprise`，commit `cb0515cb1`，标签 `v1.17.0`
+- 版本号：`.version`、13 个 `package.json`、`backend-server/.version`、`init-db/.version`、`.bumpversion.cfg` 全部为 `1.17.0`
+- 本次落地后追加修复的两个缺陷（在离线验证阶段发现）：
+  1. `node-fetch` 声明在 `devDependencies`，但 automation 的 webhook / slack / ruliu 与 `automation.service` 在运行时 `require('node-fetch')`。原先镜像安装全量依赖时不会暴露，一旦按生产依赖安装就会缺包 → 已移到 `dependencies` 并同步 lockfile。
+  2. `docker-compose.unit-test.yaml` 以 `target: builder` 构建并传入 `KEEP_DEV_DEP=1`，若删除该 ARG 会产生构建告警 → 已保留声明（无实际作用）。
+
+离线验证结论见文末"v1.17.0 验证记录"。
+
+---
+
 本次改动共 **19 个文件**，全部可在仓库内独立回滚（`git revert` 单个 commit 即可）。下面先列已落地的，再列没改的以及为什么没改。
 
 ---
@@ -168,3 +180,30 @@
 | 冷启动 | 81 s | ≈45 s（稳态重启 ≈30 s） |
 | all-in-one 常驻内存 | 不可预测（峰值 6–8 GB） | ≈2.5–3 GB |
 | 首屏静态资源 | 每次都回源 Node | nginx 命中，`immutable` 长缓存 |
+
+---
+
+## v1.17.0 验证记录
+
+本机无法访问镜像仓库与 GitHub，因此验证分两类：可在本地完成的已全部执行；需要真实构建的留在发布流水线。
+
+### 已执行并全部通过
+
+| 检查 | 方法 | 结果 |
+|---|---|---|
+| 运行时布局完整性 | 按 `Dockerfile.room-server` runner 的 COPY 清单在 `/tmp` 重建目录树，直接 `node ./dist/main.js` | Nest 应用完成 17 个模块初始化（后续仅因无数据库连接停下），说明 `dist`、`@apitable/core`、`@apitable/i18n-lang`、databus-wasm、canvas 桩的路径与链接全部正确 |
+| 启动脚本逻辑 | 用 stub 替换 `liquibase` / `java`，覆盖 5 个场景 | 首次启动写入 stamp；同版本重启跳过导入；`FORCE_APPDATA_RELOAD` 生效；版本变化重新导入；liquibase 失败后走 `clearChecksums` 补偿并最终成功 |
+| liquibase 参数 | stub 打印 argv | 13 个参数，`update`、`-Dtable.prefix=apitable_`、`-DDB_ENGINE=mysql` 各自独立（修复前的引号 bug 会把后两者粘成一个参数） |
+| 生产依赖闭包 | 扫描 `dist/**/*.js` 的 `require()` 与 `package.json` 比对 | 发现并修复 `node-fetch`；剩余 `@nestjs/testing` 仅被 `dist/shared/testing/test-environment.js` 引用，而该文件无人加载，属编译进产物的测试残留，不影响运行 |
+| lockfile 一致性 | 解析 `pnpm-lock.yaml` 与各 workspace 的 `package.json` 比对 specifier | `node-fetch` 归位后无新增差异；仅剩两处历史遗留（`@nestjs/microservices` 受 `resolutions` 影响、`eslint` spec 漂移），与本次改动无关 |
+| 版本一致性 | 17 个版本文件 + `.bumpversion.cfg` 交叉比对 | 全部为 `1.17.0`，无残留 `1.16.0` |
+| Dockerfile 静态检查 | 解析每条 `COPY/ADD`，校验源路径存在；校验 `ENTRYPOINT/CMD` 的 JSON 形式 | 无缺失源（`openresty` 的 `conf.d/` 相对 `./gateway` 上下文，正确）；启动指令 JSON 全部合法 |
+| bake / compose / 脚本 | `docker buildx bake --print`、`docker compose config -q`、`bash -n`、`js-yaml` | 全部通过 |
+
+### 需要在发布流水线完成
+
+| 事项 | 原因 |
+|---|---|
+| 五个组件镜像的真实构建 | 本机沙箱无法访问镜像仓库，拉不到 `node:22.22.2-*`、`amazoncorretto`、`liquibase`、`openresty` 基础镜像 |
+| 推送分支与 tag | 到 github.com 的 TLS 连接被拦截（直连与本地代理均失败） |
+| 端到端冒烟（`/login`、socket、缓存命中） | 依赖上一步产出的镜像 |
