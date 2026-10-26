@@ -272,3 +272,40 @@ automation 的 webhook / slack / ruliu 与 `automation.service` 在模块加载�
 
 - `dataenv` 镜像仍然保留 `microdnf -y update`：它会把基础层从 8.9 升到 8.10，属于残留的非确定性来源；去掉它风险更高（依赖版本可能对不上），暂不动
 - 镜像仍以 root 运行（all-in-one 需要 pm2 管理 mysqld/rabbitmq），未做非 root 化
+
+---
+
+## v1.17.1 实测（已发布并通过冒烟）
+
+发布流水线 run 40366535968 全绿，冒烟 run 40373869428 全绿。
+
+| 指标 | v1.17.0 | v1.17.1（实测） |
+|---|---|---|
+| 冷启动（空卷） | 71 s | **61 s** |
+| 同版本重启 | 36 s | **31 s**（版本戳 = v1.17.1） |
+| all-in-one 常驻内存 | 2.345 GiB | **2.247 GiB** |
+| all-in-one 镜像 | 2.35 GB | **2.36 GB** |
+| backend-server | 577 MB | 587 MB |
+| room-server / web-server | 520 MB / 305 MB | 520 MB / 305 MB |
+| 离线交付包 | 3299 MB | 3296 MB |
+
+分层 jar 不减小镜像总大小（只是把 183 MB 的单层拆成 178 MB 依赖层 + 19 MB 应用层），
+收益体现在**增量推拉**：代码变更时只需推 application 层。
+
+### 这轮踩到的两个既有时区缺陷（都不是本次优化引入的）
+
+1. `MemberServiceImplTest.testShouldPreventInvitationForFreeSpace`：用 `LocalDateTime.now()`
+   圈"今天"，而插入的邀请记录不写 `created_at`，落到数据库 `CURRENT_TIMESTAMP`（容器时区
+   Asia/Singapore）。CI runner 是 UTC，两者差一天 → 每天 UTC 16:00 之后必然统计到 0 条。
+   修复：用例显式写入 `createdAt`。
+2. `SpaceInviteRecordMapperTest.testSelectCountBySpaceIdAndBetween`：同一根因（fixture 的
+   `created_at` 由数据库写入，查询区间由 JVM 时间构造）。修复：以记录自身的 `createdAt`
+   为基准取 ±12h 区间。
+
+两者只在 UTC 16:00-24:00 这个窗口暴露，所以历史上是"偶发失败"，实际是每天必然失败 8 小时。
+
+### 冒烟脚本的一次改进
+
+原来通过 `docker logs | grep "built-in application data already loaded"` 判断版本戳是否生效，
+但该行经过 pm2 的日志管道不一定会落到容器 stdout。改为直接读容器内
+`/apitable/.appdata-stamp`，与镜像 tag 比对，失败时再回退到日志并打印相关行。
