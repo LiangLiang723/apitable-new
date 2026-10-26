@@ -3,6 +3,11 @@
 ARG NODEPY_BASE_IMAGE=benxianyu/apitable-nodepy
 ARG NODEPY_BASE_TAG=22.22.2-alpine
 
+# Runtime base. The standalone output already contains every traced dependency,
+# so the runtime image needs neither a compiler toolchain nor python.
+ARG NODE_RUNTIME_IMAGE=node
+ARG NODE_RUNTIME_TAG=22.22.2-alpine
+
 # Install dependencies only when needed
 FROM ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG} AS deps
 
@@ -32,7 +37,9 @@ COPY packages/datasheet/package.json ./packages/datasheet/
 
 RUN sed -i 's~registry.npmmirror.com~registry.npmjs.org~g' pnpm-lock.yaml
 
-RUN pnpm install
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
+    pnpm config set store-dir /pnpm-store && \
+    pnpm install
 
 # stage builder
 FROM ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG} AS builder
@@ -41,6 +48,9 @@ ARG SEMVER_FULL="v0.0.0-alpha"
 ARG NEXT_ASSET_PREFIX=""
 ARG NEXT_PUBLIC_ASSET_PREFIX=""
 ENV SEMVER_FULL=${SEMVER_FULL}
+
+# Disable telemetry for the build as well, not only for the runtime.
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm install -g pnpm@8.13.1
 
@@ -70,7 +80,7 @@ RUN pnpm --version
 RUN pnpm run build:dst
 
 # stage runner
-FROM ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG} AS runner
+FROM ${NODE_RUNTIME_IMAGE}:${NODE_RUNTIME_TAG} AS runner
 
 WORKDIR /app
 
@@ -81,7 +91,6 @@ ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/pnpm-workspace.yaml /app/package.json /app/pnpm-lock.yaml ./
 COPY --from=builder /app/packages/datasheet/public ./packages/datasheet/public
 COPY --from=builder /app/packages/datasheet/next.config.js \
                     /app/packages/datasheet/package.json \

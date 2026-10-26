@@ -329,6 +329,8 @@ jobs:
             extra_args: |
               NODE_BASE_IMAGE=${{ needs.prepare.outputs.node_base_image }}
               NODE_BASE_TAG=${{ needs.prepare.outputs.node_base_tag }}
+              NODE_RUNTIME_IMAGE=node
+              NODE_RUNTIME_TAG=22.22.2-bookworm-slim
           - target: web-server
             image: benxianyu/apitable-web-server
             context: .
@@ -336,6 +338,8 @@ jobs:
             extra_args: |
               NODEPY_BASE_IMAGE=${{ needs.prepare.outputs.nodepy_base_image }}
               NODEPY_BASE_TAG=${{ needs.prepare.outputs.nodepy_base_tag }}
+              NODE_RUNTIME_IMAGE=node
+              NODE_RUNTIME_TAG=22.22.2-alpine
           - target: init-db
             image: benxianyu/apitable-init-db
             context: ./init-db
@@ -417,7 +421,11 @@ jobs:
             SEMVER_FULL=${{ needs.prepare.outputs.version_tag }}
             ${{ matrix.extra_args }}
           cache-from: type=gha,scope=${{ matrix.target }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+          # backend-server keeps mode=max: its layers are small and the Gradle
+          # dependency graph is worth caching across runs. room-server and
+          # web-server would export ~3GB of node_modules and the webpack cache,
+          # which evicts everything else from the 10GB GHA cache budget.
+          cache-to: type=gha,mode=${{ matrix.target == 'backend-server' && 'max' || 'min' }},ignore-error=true,scope=${{ matrix.target }}
 
       - name: 复用上一版本镜像
         if: steps.decide.outputs.build != 'true'
@@ -519,7 +527,7 @@ jobs:
           build-args: |
             SEMVER_FULL=${{ needs.prepare.outputs.version_tag }}
           cache-from: type=gha,scope=dataenv-pm2
-          cache-to: type=gha,mode=max,scope=dataenv-pm2
+          cache-to: type=gha,mode=min,ignore-error=true,scope=dataenv-pm2
 
       - name: 复用上一版本 dataenv-pm2 镜像
         if: steps.decide-pm2.outputs.build != 'true'
@@ -601,7 +609,7 @@ jobs:
             DATAENV_PM2_IMAGE=${{ env.DATAENV_IMAGE }}
             DATAENV_PM2_IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
           cache-from: type=gha,scope=dataenv-liquibase-pm2
-          cache-to: type=gha,mode=max,scope=dataenv-liquibase-pm2
+          cache-to: type=gha,mode=min,ignore-error=true,scope=dataenv-liquibase-pm2
 
       - name: 复用上一版本 dataenv-liquibase-pm2 镜像
         if: steps.decide-liquibase.outputs.build != 'true'
@@ -699,7 +707,7 @@ jobs:
           build-args: |
             SEMVER_FULL=${{ needs.prepare.outputs.version_tag }}
           cache-from: type=gha,scope=openresty
-          cache-to: type=gha,mode=max,scope=openresty
+          cache-to: type=gha,mode=min,ignore-error=true,scope=openresty
 
       - name: 复用上一版本镜像
         if: steps.decide.outputs.build != 'true'
@@ -797,7 +805,7 @@ jobs:
             IMAGEPROXY_IMAGE=${{ env.IMAGEPROXY_IMAGE }}
             IMAGEPROXY_IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
           cache-from: type=gha,scope=all-in-one
-          cache-to: type=gha,mode=max,scope=all-in-one
+          cache-to: type=gha,mode=min,ignore-error=true,scope=all-in-one
 
       - name: 输出结果
         shell: bash

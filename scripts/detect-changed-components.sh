@@ -49,18 +49,22 @@ ROOT_INPUTS=(
 component_inputs() {
   case "$1" in
     backend-server)
-      echo "backend-server packaging/Dockerfile.backend-server"
+      echo "backend-server packaging/Dockerfile.backend-server docker-bake.hcl"
       ;;
     room-server)
+      # Dockerfile.node-base and docker-bake.hcl carry the build and runtime
+      # base image references, so a change there has to rebuild the component.
       echo "packages/room-server packages/core packages/i18n-lang \
 packages/databus-wasm-web packages/databus-wasm-nodejs \
-packaging/Dockerfile.room-server ${ROOT_INPUTS[*]}"
+packaging/Dockerfile.room-server packaging/Dockerfile.node-base \
+docker-bake.hcl ${ROOT_INPUTS[*]}"
       ;;
     web-server)
       echo "packages/datasheet packages/core packages/components \
 packages/widget-sdk packages/i18n-lang packages/icons \
 packages/ai-components packages/api-client \
-packaging/Dockerfile.web-server ${ROOT_INPUTS[*]}"
+packaging/Dockerfile.web-server packaging/Dockerfile.nodepy-base \
+docker-bake.hcl ${ROOT_INPUTS[*]}"
       ;;
     init-db)
       echo "init-db"

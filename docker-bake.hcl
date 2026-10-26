@@ -22,6 +22,28 @@ variable "NODEPY_BASE_TAG" {
   default = "22.22.2-alpine"
 }
 
+# Runtime base images. The component images are built on a toolchain image, but
+# they only need a plain Node.js runtime. Keeping the two separate is what makes
+# room-server ~900MB smaller; override these when a component needs a different
+# runtime (for example a glibc toolchain at runtime).
+variable "NODE_RUNTIME_IMAGE" {
+  default = "node"
+}
+
+variable "NODE_RUNTIME_TAG" {
+  default = "22.22.2-bookworm-slim"
+}
+
+variable "NODE_RUNTIME_TAG_ALPINE" {
+  default = "22.22.2-alpine"
+}
+
+# Default platform list for `bake --push`. `make build-docker` overrides it with
+# the host platform, because `--load` cannot export a multi-platform manifest.
+variable "PLATFORMS" {
+  default = ["linux/amd64", "linux/arm64"]
+}
+
 variable "OPENRESTY_IMAGE" {
   default = "benxianyu/apitable-openresty"
 }
@@ -96,7 +118,7 @@ target "backend-server" {
   args = {
     SEMVER_FULL = SEMVER_FULL
   }
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = PLATFORMS
   tags = ["${BACKEND_IMAGE}:latest", "${BACKEND_IMAGE}:${IMAGE_TAG}"]
 }
 
@@ -107,8 +129,10 @@ target "room-server" {
     SEMVER_FULL = SEMVER_FULL
     NODE_BASE_IMAGE = NODE_BASE_IMAGE
     NODE_BASE_TAG = NODE_BASE_TAG
+    NODE_RUNTIME_IMAGE = NODE_RUNTIME_IMAGE
+    NODE_RUNTIME_TAG = NODE_RUNTIME_TAG
   }
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = PLATFORMS
   tags = ["${ROOM_IMAGE}:latest", "${ROOM_IMAGE}:${IMAGE_TAG}"]
 }
 
@@ -119,8 +143,10 @@ target "web-server" {
     SEMVER_FULL = SEMVER_FULL
     NODEPY_BASE_IMAGE = NODEPY_BASE_IMAGE
     NODEPY_BASE_TAG = NODEPY_BASE_TAG
+    NODE_RUNTIME_IMAGE = NODE_RUNTIME_IMAGE
+    NODE_RUNTIME_TAG = NODE_RUNTIME_TAG_ALPINE
   }
-  platforms = ["linux/amd64"]
+  platforms = PLATFORMS
   tags = ["${WEB_IMAGE}:latest", "${WEB_IMAGE}:${IMAGE_TAG}"]
 }
 
@@ -131,7 +157,7 @@ target "web-server-experimental" {
   args = {
     SEMVER_FULL = SEMVER_FULL
   }
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = PLATFORMS
   tags = ["${WEB_IMAGE}:latest", "${WEB_IMAGE}:${IMAGE_TAG}"]
 }
 
@@ -141,7 +167,7 @@ target "init-db" {
   args = {
     SEMVER_FULL = SEMVER_FULL
   }
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = PLATFORMS
   tags = ["${INIT_DB_IMAGE}:latest", "${INIT_DB_IMAGE}:${IMAGE_TAG}"]
 }
 
@@ -151,7 +177,7 @@ target "openresty" {
   args = {
     SEMVER_FULL = SEMVER_FULL
   }
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = PLATFORMS
   tags = ["${OPENRESTY_IMAGE}:latest", "${OPENRESTY_IMAGE}:${IMAGE_TAG}"]
 }
 
@@ -174,6 +200,6 @@ target "all-in-one" {
     IMAGEPROXY_IMAGE_TAG = IMAGEPROXY_IMAGE_TAG
     DATAENV_LIQUIBASE_IMAGE = DATAENV_LIQUIBASE_IMAGE
   }
-  platforms = ["linux/amd64"]
+  platforms = PLATFORMS
   tags = ["${FINAL_IMAGE}:latest", "${FINAL_IMAGE}:${IMAGE_TAG}"]
 }

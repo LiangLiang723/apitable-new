@@ -1,26 +1,45 @@
 node_modules
 **/node_modules
 dist
+**/dist
 scripts
 packages/datasheet/web_build
 
-# All secrets
-**/.env.local
-**/.env.development
-**/.env.*.local
+# All secrets — keep these root-only patterns so that package level .env files
+# (packages/datasheet/.env is read by the web-server build) are still sent.
+/.env
+/.env.*
+!/.env.example
 
 # Docker related
 .dockerignore
 Dockerfile
 Dockerfile.*
 docker-compose.*.yml
+docker-compose.yaml
 docker-compose.yml
-
 
 # By default all git files
 .git
 .gitignore
 .github
+
+# Local build output that is regenerated inside the image. Excluding it keeps the
+# build context small and prevents stale host artifacts from leaking into a
+# build (a known source of "compiled against an old dist" errors).
+**/build
+**/.gradle
+**/coverage
+**/tsconfig.tsbuildinfo
+**/.nx
+**/.turbo
+
+# Documentation and repo meta — never used by any Dockerfile
+docs
+**/*.md
+!packaging/**/*.md
+deleted_features_audit.md
+.workbuddy
 
 # Log files
 logs

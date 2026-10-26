@@ -4,6 +4,12 @@
 ARG NODE_BASE_IMAGE=benxianyu/apitable-node
 ARG NODE_BASE_TAG=v22.22.2
 
+# Runtime base. The service only needs Node.js: gcc/make/python3/git from the
+# build image are never used at runtime, and the buildpack-deps based
+# node:22-bookworm image is ~1.1GB on its own.
+ARG NODE_RUNTIME_IMAGE=node
+ARG NODE_RUNTIME_TAG=22.22.2-bookworm-slim
+
 # Install dependencies only when needed
 FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS deps
 
@@ -25,7 +31,36 @@ COPY packages/databus-wasm-nodejs/package.json ./packages/databus-wasm-nodejs/
 
 COPY packages/room-server/package.json ./packages/room-server/
 
-RUN pnpm install --filter @apitable/room-server --filter root
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
+    pnpm config set store-dir /pnpm-store && \
+    pnpm install --filter @apitable/room-server --filter root
+
+# Production dependency tree only. Built in its own stage so that the runtime
+# image never receives devDependencies (typescript, jest, ts-jest, @nestjs/cli,
+# eslint, ...) which are several hundred megabytes.
+FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS prod-deps
+
+WORKDIR /app
+
+COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./common-tsconfig.json ./
+COPY ./patches/ ./patches
+
+COPY packages/canvas-shim/package.json ./packages/canvas-shim/
+COPY packages/i18n-lang/package.json ./packages/i18n-lang/
+COPY packages/core/package.json ./packages/core/
+COPY packages/databus-wasm-web/package.json ./packages/databus-wasm-web/
+COPY packages/databus-wasm-nodejs/package.json ./packages/databus-wasm-nodejs/
+COPY packages/room-server/package.json ./packages/room-server/
+
+# --ignore-scripts: the root postinstall runs `husky install`, and husky is a
+# devDependency that this stage deliberately does not install. No production
+# dependency of room-server needs a build script (the only native module of the
+# repo, canvas, is replaced by the JS stub in packages/canvas-shim). If a native
+# dependency is added later, drop the flag and install the build toolchain.
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
+    pnpm config set store-dir /pnpm-store && \
+    pnpm install --prod --frozen-lockfile --ignore-scripts \
+        --filter @apitable/room-server --filter root
 
 # stage builder
 FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS builder
@@ -54,12 +89,12 @@ COPY packages/canvas-shim ./packages/canvas-shim
 
 RUN pnpm run build:sr
 
-ARG KEEP_DEV_DEP
-
-RUN if [ "$KEEP_DEV_DEP" = "" ] ; then pnpm install --filter @apitable/room-server; fi
+# pm2 is installed in the build stage and copied into the runtime image below,
+# so that the runtime stage needs neither npm nor a registry connection.
+RUN npm install -g pm2@5.4.3 --no-audit --no-fund
 
 # stage runner
-FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS runner
+FROM ${NODE_RUNTIME_IMAGE}:${NODE_RUNTIME_TAG} AS runner
 
 WORKDIR /app
 
@@ -70,12 +105,39 @@ ENV SEMVER_FULL=${SEMVER_FULL}
 
 # agenthub
 COPY --from=builder /app/packages/room-server/app-config.json /root/
-COPY --from=builder /app /app
 
-RUN npm install pm2@5.4.3 --global  \
-    && rm -fr packages/*/src
+COPY --from=builder /usr/local/lib/node_modules/pm2 /usr/local/lib/node_modules/pm2
+RUN ln -sf ../lib/node_modules/pm2/bin/pm2 /usr/local/bin/pm2 \
+    && ln -sf ../lib/node_modules/pm2/bin/pm2-runtime /usr/local/bin/pm2-runtime
 
-COPY packages/i18n-lang/src/config ./packages/i18n-lang/src/config
+# Production dependencies (no devDependencies, no source files).
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/packages/i18n-lang/node_modules ./packages/i18n-lang/node_modules
+COPY --from=prod-deps /app/packages/core/node_modules ./packages/core/node_modules
+COPY --from=prod-deps /app/packages/room-server/node_modules ./packages/room-server/node_modules
+
+# Build output and the workspace packages it links to. @apitable/core and
+# @apitable/i18n-lang are resolved through pnpm workspace symlinks, so their
+# package.json and dist directories have to live at the same relative paths.
+COPY --from=builder /app/packages/room-server/package.json \
+                    /app/packages/room-server/ecosystem.config.js \
+                    /app/packages/room-server/app-config.json \
+                    ./packages/room-server/
+COPY --from=builder /app/packages/room-server/dist ./packages/room-server/dist
+
+COPY --from=builder /app/packages/core/package.json ./packages/core/
+COPY --from=builder /app/packages/core/dist ./packages/core/dist
+
+COPY --from=builder /app/packages/i18n-lang/package.json ./packages/i18n-lang/
+COPY --from=builder /app/packages/i18n-lang/dist ./packages/i18n-lang/dist
+# runtime configuration files, loaded from src by the i18n package
+COPY --from=builder /app/packages/i18n-lang/src/config ./packages/i18n-lang/src/config
+
+COPY --from=builder /app/packages/databus-wasm-nodejs ./packages/databus-wasm-nodejs
+COPY --from=builder /app/packages/databus-wasm-web ./packages/databus-wasm-web
+
+# server-side canvas stub, referenced by the root workspace package
+COPY --from=builder /app/packages/canvas-shim ./packages/canvas-shim
 
 # (room|socket):http
 EXPOSE 3001

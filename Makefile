@@ -44,6 +44,10 @@ else
 	RUNNER := $(_DEVENV) run --rm --user $$UID:$$GID
 endif
 BUILDER := docker buildx bake
+# Platform used by the local build target. `--load` cannot export a multi
+# platform manifest, so the local recipe pins the host architecture while the
+# push recipe keeps using the platforms declared in docker-bake.hcl.
+PLATFORM ?= linux/$(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 # Docker Hub account used to push the built images.
 DOCKERHUB_USERNAME ?= benxianyu
@@ -248,11 +252,11 @@ test-init-db-docker:
 
 buildpush-docker: ## build all and push all to hub.docker.io registry
 	echo $$$$DOCKERHUB_TOKEN | docker login -u $(DOCKERHUB_USERNAME) --password-stdin || true;\
-	$(BUILDER) $(target) --push
+	$(BUILDER) $(or $(target),default) --push
 
 .PHONY: build
-build-docker: ## build all containers
-	$(BUILDER) $(target) --load
+build-docker: ## build all containers for the host platform
+	$(BUILDER) $(or $(target),default) --load --set '*.platform=$(PLATFORM)'
 
 .PHONY: _build-init-db
 _build-docker-init-db:
