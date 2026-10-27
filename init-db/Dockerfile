@@ -15,7 +15,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 FROM liquibase/liquibase:4.21.1-alpine
-RUN lpm add mysql --global
+
+# MySQL 驱动钉版本并校验。原来用 `lpm add mysql --global`：它会跟随上游索引解析版本，
+# 构建时可能拉到别的版本，甚至因为校验失败直接中断（v1.17.7 首次构建就是这样）。
+# 直连 Maven Central + SHA256 校验，版本与内容都固定。busybox 自带 wget 与
+# sha256sum，镜像里未必有 curl，也不一定允许 apk，所以优先用 wget。
+ARG MYSQL_DRIVER_VERSION=8.0.33
+ARG MYSQL_DRIVER_SHA256=e2a3b2fc726a1ac64e998585db86b30fa8bf3f706195b78bb77c5f99bf877bd9
+RUN set -eux; \
+    url="https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/${MYSQL_DRIVER_VERSION}/mysql-connector-j-${MYSQL_DRIVER_VERSION}.jar"; \
+    if command -v wget >/dev/null 2>&1; then wget -q -O /liquibase/lib/mysql-connector-j.jar "${url}"; \
+    else curl -fsSL -o /liquibase/lib/mysql-connector-j.jar "${url}"; fi; \
+    echo "${MYSQL_DRIVER_SHA256}  /liquibase/lib/mysql-connector-j.jar" | sha256sum -c -
 ADD src/main/resources /liquibase/changelog
 
 ARG SEMVER_FULL

@@ -1,17 +1,27 @@
 ARG DATAENV_PM2_IMAGE=benxianyu/apitable-dataenv-pm2
 ARG DATAENV_PM2_IMAGE_TAG=latest
 
+# The MySQL driver is fetched from Maven Central and verified by SHA256. The
+# previous `lpm add mysql --global` resolved whatever version the upstream
+# index pointed at, installed it somewhere unpredictable (/liquibase_libs or
+# /root/.liquibase) and aborted the whole build when the download failed its
+# checksum check.
 # Prepare stage on the same AlmaLinux base and Corretto toolchain as the final
 # image. Everything installed here (JDK, download tools, Liquibase, the MySQL
 # driver) is reduced to a jlink runtime and the /liquibase tree below.
+#
+# The runtime is built with ALL-MODULE-PATH: it keeps the full module set (TLS,
+# fonts for the PDF export path, jdk.unsupported, ...) while dropping jmods,
+# headers, sources, man pages and debug symbols.
 FROM ${DATAENV_PM2_IMAGE}:${DATAENV_PM2_IMAGE_TAG} AS prepare
 
 ARG LIQUIBASE_VERSION=4.21.1
-ARG LPM_VERSION=0.2.3
 ARG LB_SHA256=c04542865e5ece8b7b1ee9bd6beaefc5315e350620288d6ac1a2d32c3b1f7d8b
+ARG MYSQL_DRIVER_VERSION=8.0.33
+ARG MYSQL_DRIVER_SHA256=e2a3b2fc726a1ac64e998585db86b30fa8bf3f706195b78bb77c5f99bf877bd9
 
 RUN set -euxo pipefail; \
-  microdnf -y --disablerepo='rabbitmq_*' install findutils unzip; \
+  microdnf -y --disablerepo='rabbitmq_*' install findutils; \
   microdnf clean all; \
   \
   CORRETTO_VERSION=17.0.9.8-1; \
@@ -33,26 +43,9 @@ RUN set -euxo pipefail; \
   echo "$LB_SHA256  liquibase-${LIQUIBASE_VERSION}.tar.gz" | sha256sum -c -; \
   tar -xzf liquibase-${LIQUIBASE_VERSION}.tar.gz; \
   rm -f liquibase-${LIQUIBASE_VERSION}.tar.gz; \
-  curl -LO "https://github.com/liquibase/liquibase-package-manager/releases/download/v${LPM_VERSION}/lpm-${LPM_VERSION}-linux.zip"; \
-  unzip lpm-${LPM_VERSION}-linux.zip -d bin/; \
-  rm -f lpm-${LPM_VERSION}-linux.zip; \
-  export LIQUIBASE_HOME=/liquibase; \
-  lpm update; \
-  lpm add mysql --global; \
-  # lpm installs --global packages outside /liquibase in some versions
-  # (/liquibase_libs or /root/.liquibase). Normalise every jar into
-  # /liquibase/lib so the final stage only copies /liquibase, and fail here
-  # instead of shipping an image without a MySQL driver.
-  for dir in /liquibase_libs /root/.liquibase; do \
-    if [ -d "$dir" ]; then find "$dir" -name '*.jar' -exec cp -n {} /liquibase/lib/ \; ; fi; \
-  done; \
-  if ! ls /liquibase/lib/*mysql*.jar >/dev/null 2>&1; then \
-    find /liquibase -path /liquibase/lib -prune -o -name '*.jar' -exec cp -n {} /liquibase/lib/ \; ; \
-  fi; \
-  ls /liquibase/lib/*mysql*.jar >/dev/null; \
-  # Runtime only. ALL-MODULE-PATH keeps the full module set (TLS, fonts for the
-  # PDF export path, jdk.unsupported, ...) while dropping jmods, headers,
-  # sources, man pages and debug symbols.
+  curl -fsSL -o /liquibase/lib/mysql-connector-j.jar \
+    "https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/${MYSQL_DRIVER_VERSION}/mysql-connector-j-${MYSQL_DRIVER_VERSION}.jar"; \
+  echo "${MYSQL_DRIVER_SHA256}  /liquibase/lib/mysql-connector-j.jar" | sha256sum -c -; \
   jlink --add-modules ALL-MODULE-PATH \
         --strip-debug --no-man-pages --no-header-files \
         --compress=2 --output /opt/java-runtime; \
