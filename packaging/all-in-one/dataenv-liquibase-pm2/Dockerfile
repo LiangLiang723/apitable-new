@@ -13,6 +13,10 @@ ARG DATAENV_PM2_IMAGE_TAG=latest
 # The runtime is built with ALL-MODULE-PATH: it keeps the full module set (TLS,
 # fonts for the PDF export path, jdk.unsupported, ...) while dropping jmods,
 # headers, sources, man pages and debug symbols.
+#
+# binutils is a build-time dependency: `jlink --strip-debug` shells out to objcopy,
+# which the minimal base image does not ship. The final stage copies only the
+# produced runtime and /liquibase, so it never reaches the shipped image.
 FROM ${DATAENV_PM2_IMAGE}:${DATAENV_PM2_IMAGE_TAG} AS prepare
 
 ARG LIQUIBASE_VERSION=4.21.1
@@ -21,7 +25,7 @@ ARG MYSQL_DRIVER_VERSION=8.0.33
 ARG MYSQL_DRIVER_SHA256=e2a3b2fc726a1ac64e998585db86b30fa8bf3f706195b78bb77c5f99bf877bd9
 
 RUN set -euxo pipefail; \
-  microdnf -y --disablerepo='rabbitmq_*' install findutils; \
+  microdnf -y --disablerepo='rabbitmq_*' install findutils binutils; \
   microdnf clean all; \
   \
   CORRETTO_VERSION=17.0.9.8-1; \
