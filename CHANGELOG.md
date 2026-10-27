@@ -1,5 +1,29 @@
 # APITable CHANGELOG
 
+## [v1.17.7](https://github.com/apitable/apitable/releases/tag/v1.17.7) (2026-10-27)
+
+构建流水线收尾：组件复用判定、可重复构建、缓存命中与镜像分层。不改变运行行为。
+
+### 构建
+
+* build: 组件复用判定修正——输入清单补上 `.dockerignore`、Room/Web 的 `canvas-shim`、
+  Web 经 `core` 传递依赖的 `databus-wasm-web`/`databus-wasm-nodejs`；指纹脚本缺失或解析失败时
+  全量重建并打印原因，不再静默跳过
+* build: 构建指纹按 matrix 展开，覆盖 context / Dockerfile / target / platform / build args /
+  基础镜像 env，配置变化能正确触发对应组件重建
+* build: 锁文件冻结——6 个 workspace 的 eslint 声明统一，Room/Web 启用 `--frozen-lockfile` 并
+  复制 `.pnpmfile.cjs`（此前因为容器里没有这个文件才不得不关闭 frozen），移除构建期改锁文件的 sed
+* build: 后端 JAR 可重复——用 `SOURCE_DATE_EPOCH` 替代墙钟时间，归档任务固定顺序与时间戳，
+  同一 commit 两次构建产物 SHA256 一致
+* build: Room/Web 使用 GHCR registry cache（`mode=max`），基础镜像按组件分开 scope，缓存不再挤占
+  10GB 的 GHA 配额
+* build: 收窄层失效范围——Web 只复制 datasheet 的依赖闭包，版本注入延后到共享包构建之后；
+  后端先复制 wrapper 与构建脚本再复制源码
+* build: all-in-one 的后端按 layertools 四层顺序拷贝，业务类变化只让最后一层失效
+* build: node 基础镜像改用 `bookworm-slim` + 显式工具链，标签提升为 `v22.22.2-r1`
+* build: Room 运行期产物删除 `.d.ts`/`.map`；`rimraf`、`nestjs-proto-gen-ts` 移入 devDependencies
+* build: 新增只含 all-in-one 的精简离线包（与完整包并存），并补 `init-db/.dockerignore`
+
 ## [v1.17.6](https://github.com/apitable/apitable/releases/tag/v1.17.6) (2026-10-27)
 
 修复 v1.17.5 的启动失败。**v1.17.5 在已有数据卷上升级会起不来，请直接使用 v1.17.6。**
