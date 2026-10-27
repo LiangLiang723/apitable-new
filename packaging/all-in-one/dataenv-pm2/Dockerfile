@@ -18,6 +18,9 @@ ENV GOSU_USER=rabbitmq
 # GOSU_USER gets a fixed uid/gid (998:996) on purpose: the data volume is owned by
 # that user, and `useradd --system` hands out a different id when the package set
 # changes, which once made rabbitmq/mysql/redis fail with EACCES after an upgrade.
+# The user must be created before redis/rabbitmq are installed: their RPM scriptlets
+# create system users too, and whoever runs first gets 998:996 -- the id the data
+# volume is owned by.
 #
 # No blanket `microdnf -y update` here: it upgraded the whole base from 8.9 to 8.10
 # and left the superseded files in the base layer (~150MB of dead weight), while
@@ -38,6 +41,9 @@ RUN set -euxo pipefail; \
   rpm --import /etc/pki/rpm-gpg/cloudsmith.rabbitmq-server.9F4587F226208342.key; \
   rpm --import /etc/pki/rpm-gpg/rabbitmq-release-signing-key.asc; \
   microdnf -y install shadow-utils; \
+  getent group "${GOSU_USER}" >/dev/null || groupadd --system --gid 996 "${GOSU_USER}"; \
+  id -u "${GOSU_USER}" >/dev/null 2>&1 || useradd --system --uid 998 --gid "${GOSU_USER}" --create-home "${GOSU_USER}"; \
+  test "$(id -u "${GOSU_USER}")" = "998" -a "$(id -g "${GOSU_USER}")" = "996" || { echo >&2 "GOSU_USER uid/gid drift: $(id -u "${GOSU_USER}"):$(id -g "${GOSU_USER}")"; exit 1; }; \
   MINIO_RELEASE=RELEASE.2023-01-25T00-19-54Z; \
   MINIO_RPM="minio-20230125001954.0.0.${arch}.rpm"; \
   curl -fL --retry 5 --retry-delay 3 -o "/tmp/${MINIO_RPM}" \
@@ -63,9 +69,6 @@ RUN set -euxo pipefail; \
   rabbitmq-server-4.3.1-1.el8 \
   erlang-27.3.4.11-1.el8 \
   redis-6.2.20-1.module_el8.10.0+4056+739731b0; \
-  getent group "${GOSU_USER}" >/dev/null || groupadd --system --gid 996 "${GOSU_USER}"; \
-  id -u "${GOSU_USER}" >/dev/null 2>&1 || useradd --system --uid 998 --gid "${GOSU_USER}" --create-home "${GOSU_USER}"; \
-  test "$(id -u "${GOSU_USER}")" = "998" -a "$(id -g "${GOSU_USER}")" = "996" || { echo >&2 "GOSU_USER uid/gid drift: $(id -u "${GOSU_USER}"):$(id -g "${GOSU_USER}")"; exit 1; }; \
   microdnf -y install tar xz; \
   microdnf clean all; \
   mkdir -p /sbom; rpm -qa | sort > /sbom/rpms.txt; \
