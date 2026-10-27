@@ -66,6 +66,14 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
     pnpm install --prod --ignore-scripts \
         --filter @apitable/room-server --filter root
 
+# 运行时不需要类型声明、sourcemap、测试与示例目录，删掉能省几十 MB。
+# 刻意保留 *.md / LICENSE：那是再分发时要求保留的许可文件。
+RUN set -eux; \
+    find node_modules packages -type f \( -name '*.d.ts' -o -name '*.map' \) -delete; \
+    find node_modules packages -type d \
+        \( -name test -o -name __tests__ -o -name docs -o -name examples \) \
+        -prune -exec rm -rf {} +
+
 # stage builder
 FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS builder
 

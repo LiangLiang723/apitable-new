@@ -11,6 +11,10 @@ ENV GOSU_USER=rabbitmq
 # a rebuild silently picks up a newer broker/database, so two builds of the
 # same Dockerfile would behave differently. Bump them deliberately, with a
 # smoke test (gh workflow run image-smoke-test.yml).
+#
+# No blanket `microdnf -y update` here: it upgraded the whole base from 8.9 to 8.10
+# and left the superseded files in the base layer (~150MB of dead weight), while
+# `microdnf install` below already pulls whatever dependency versions it needs.
 RUN set -euxo pipefail; \
   arch="$(uname -m)"; \
   case "${arch}" in \
@@ -26,7 +30,6 @@ RUN set -euxo pipefail; \
   rpm --import /etc/pki/rpm-gpg/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key; \
   rpm --import /etc/pki/rpm-gpg/cloudsmith.rabbitmq-server.9F4587F226208342.key; \
   rpm --import /etc/pki/rpm-gpg/rabbitmq-release-signing-key.asc; \
-  microdnf -y update; \
   microdnf -y install shadow-utils; \
   MINIO_RELEASE=RELEASE.2023-01-25T00-19-54Z; \
   MINIO_RPM="minio-20230125001954.0.0.${arch}.rpm"; \

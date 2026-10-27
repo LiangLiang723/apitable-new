@@ -88,6 +88,9 @@ RUN pnpm run build:dst:pre
 RUN --mount=type=cache,id=next-webpack-cache,target=/next-cache \
     pnpm run build:dst
 
+# standalone 里带的 sourcemap 运行时用不到，删掉能省十几 MB。
+RUN find packages/datasheet/web_build/standalone -name '*.map' -delete 2>/dev/null || true
+
 # stage runner
 FROM ${NODE_RUNTIME_IMAGE}:${NODE_RUNTIME_TAG} AS runner
 

@@ -1,5 +1,19 @@
 # APITable CHANGELOG
 
+## [v1.17.2](https://github.com/apitable/apitable/releases/tag/v1.17.2) (2026-10-27)
+
+交付流水线与镜像体积的进一步压缩，不改变功能。
+
+### 构建
+
+* build: 离线包改用 `pigz -9`（gzip 的并行实现，输出仍是 `.tar.gz`，解包方式不变），拿不到时自动退回 `gzip -9`；13 个镜像改为 4 路并发拉取
+* build: room-server 生产依赖树删除 `*.d.ts`、`*.map` 与 test/`__tests__`/docs/examples 目录（保留 `*.md`/LICENSE）
+* build: web-server standalone 产物删除 sourcemap
+
+### 镜像
+
+* build: dataenv 不再执行整机 `microdnf -y update`（它把基础系统从 8.9 升到 8.10，升级前的文件仍留在基础层，属于纯浪费；`microdnf install` 本身会拉起所需的依赖版本）
+
 ## [v1.17.1](https://github.com/apitable/apitable/releases/tag/v1.17.1) (2026-10-27)
 
 构建效率与可复现性收尾，不改变功能。

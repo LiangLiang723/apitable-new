@@ -902,10 +902,9 @@ jobs:
             "${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG}"
           )
 
-          for image in "${images[@]}"; do
-            echo "==> 拉取 ${image}"
-            docker pull --platform linux/amd64 "${image}"
-          done
+          # 串行拉 13 个镜像要 3~4 分钟，并发 4 路能压到 1 分钟左右。
+          printf '%s\n' "${images[@]}" | \
+            xargs -P 4 -I{} sh -c 'echo "==> 拉取 $1"; docker pull --platform linux/amd64 "$1"' _ {}
 
           printf '%s\n' "${images[@]}" > image-list.txt
 
@@ -921,7 +920,22 @@ jobs:
           # `docker save` keeps the shared layers only once, so the bundle stays
           # far below the 2GB release asset limit.
           mapfile -t images < image-list.txt
-          docker save "${images[@]}" | gzip -9 > "${bundle}"
+
+          # 13 个镜像 save 出来约 9GB，单线程 gzip -9 要压 10 分钟以上。
+          # pigz 是 gzip 的并行实现，输出格式完全一致（仍是 .tar.gz），
+          # 4 核大约快 3~4 倍；拿不到 pigz 时退回 gzip。
+          if ! command -v pigz >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq pigz >/dev/null 2>&1 || true
+          fi
+          if command -v pigz >/dev/null 2>&1; then
+            COMPRESS=(pigz -9 -p "$(nproc)")
+            echo "使用 pigz $(pigz --version 2>&1 | head -1)，并行度 $(nproc)"
+          else
+            COMPRESS=(gzip -9)
+            echo "未取到 pigz，退回单线程 gzip -9"
+          fi
+
+          docker save "${images[@]}" | "${COMPRESS[@]}" > "${bundle}"
 
           size=$(stat -c %s "${bundle}")
           limit=$((1900 * 1024 * 1024))
