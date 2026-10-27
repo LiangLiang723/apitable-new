@@ -158,6 +158,13 @@ COPY --from=builder /app/packages/databus-wasm-web ./packages/databus-wasm-web
 # server-side canvas stub, referenced by the root workspace package
 COPY --from=builder /app/packages/canvas-shim ./packages/canvas-shim
 
+# 构建期自检：@golevelup/nestjs-rabbitmq 这类包 require 了未声明的 lodash，只能靠
+# 根 node_modules 的提升解析。缺了它只会在运行时炸（Cannot find module 'lodash'），
+# 这里提前暴露，避免再发出一个起不来的镜像。
+RUN cd /app/packages/room-server \
+    && node -e "require('lodash'); require('@golevelup/nestjs-rabbitmq')" \
+    && echo "room-server runtime deps ok"
+
 # (room|socket):http
 EXPOSE 3001
 EXPOSE 3333

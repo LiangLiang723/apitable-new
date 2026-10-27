@@ -73,7 +73,8 @@ docker-bake.hcl ${ROOT_INPUTS[*]}"
       echo "packaging/all-in-one/dataenv-pm2"
       ;;
     dataenv-liquibase-pm2)
-      echo "packaging/all-in-one/dataenv-liquibase-pm2"
+      # 它的 FROM 是 dataenv-pm2，基础层变了必须重建，否则会复用带旧 node 的镜像
+      echo "packaging/all-in-one/dataenv-liquibase-pm2 packaging/all-in-one/dataenv-pm2"
       ;;
     openresty)
       echo "gateway packaging/Dockerfile.openresty"

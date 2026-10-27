@@ -1,5 +1,19 @@
 # APITable CHANGELOG
 
+## [v1.17.4](https://github.com/apitable/apitable/releases/tag/v1.17.4) (2026-10-27)
+
+修复 v1.17.3 的运行时缺包问题。**v1.17.3 的 room-server 无法启动，请直接使用 v1.17.4。**
+
+### 修复
+
+* fix: **room-server 缺 lodash 无法启动**。`@golevelup/nestjs-rabbitmq` 在代码里 `require('lodash')` 但没有声明该依赖，
+  只能靠根 `node_modules` 的提升解析；`lodash` 原本在根 devDependencies，生产依赖安装后根目录没有它，
+  启动即 `Cannot find module 'lodash'` 并无限重启。已把 `lodash` 提升为根 dependencies，并在 room-server 镜像
+  构建期加 `require('lodash') && require('@golevelup/nestjs-rabbitmq')` 自检，同类问题不会再流出。
+* fix: **all-in-one 里的 node 实际是 16.15.1**（应为 22.22.2）。`dataenv-liquibase-pm2` 的变更指纹没有包含它的
+  基础层 `dataenv-pm2`，导致该镜像被判定"未变更"而复用了旧版本。已把它纳入指纹，重建后 AIO 使用 node 22。
+* test: 冒烟脚本的 pm2 检查改为"启动后稳定 30 秒再判定"，避免把正在重启的应用误判为 online。
+
 ## [v1.17.3](https://github.com/apitable/apitable/releases/tag/v1.17.3) (2026-10-27)
 
 修复 v1.17.1 / v1.17.2 的启动缺陷。**v1.17.1 与 v1.17.2 的 room-server 无法启动，请跳过这两个版本。**

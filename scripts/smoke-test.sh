@@ -81,24 +81,48 @@ else
     fail "登录页未引用任何 /_next/static 资源"
 fi
 
-log "--- 3/5 pm2 应用状态 ---"
-# 健康检查只覆盖 backend，room-server 之类的应用崩了不会被发现，
-# 这里直接问 pm2：任何一个不是 online 都算失败。
-PM2_JSON="$(docker exec "$NAME" pm2 jlist 2>/dev/null || true)"
-if [[ -n "${PM2_JSON}" ]]; then
-    if ! printf '%s' "${PM2_JSON}" | python3 -c '
+log "--- 3/5 pm2 应用状态（观察 30 秒，确认没有反复重启） ---"
+# 只查一次会被"崩溃-重启"的应用骗过去（pm2 在两次重启之间也显示 online）。
+# 隔 30 秒取两次快照：状态必须 online，且 restart_time 不变。
+PM2_BEFORE="$(docker exec "$NAME" pm2 jlist 2>/dev/null || true)"
+sleep 30
+PM2_AFTER="$(docker exec "$NAME" pm2 jlist 2>/dev/null || true)"
+if [[ -n "${PM2_BEFORE}" && -n "${PM2_AFTER}" ]]; then
+    if ! printf '%s\n@@SPLIT@@\n%s' "${PM2_BEFORE}" "${PM2_AFTER}" | python3 -c '
 import json, sys
+
 raw = sys.stdin.read()
-start = raw.find("[")
-data = json.loads(raw[start:]) if start >= 0 else []
-bad = [(a["name"], a["pm2_env"]["status"], a["pm2_env"].get("restart_time", 0))
-       for a in data if a["pm2_env"]["status"] != "online"]
-for name, status, restarts in bad:
-    print(f"    {name}: {status}（重启 {restarts} 次）")
-print(f"    应用总数 {len(data)}，异常 {len(bad)}")
+before, _, after = raw.partition("@@SPLIT@@")
+
+
+def load(text):
+    i, j = text.find("["), text.rfind("]")
+    return json.loads(text[i:j + 1]) if i >= 0 and j > i else []
+
+
+a, b = load(before), load(after)
+if not b:
+    print("    pm2 jlist 输出无法解析")
+    sys.exit(1)
+
+prev = dict((x["name"], x["pm2_env"].get("restart_time", 0)) for x in a)
+bad = []
+for x in b:
+    name = x["name"]
+    env = x["pm2_env"]
+    status = env["status"]
+    restarts = env.get("restart_time", 0)
+    if status != "online":
+        bad.append(name + " 状态 " + str(status))
+    elif restarts != prev.get(name, 0):
+        bad.append(name + " 30 秒内又重启 " + str(restarts - prev.get(name, 0)) + " 次")
+
+for item in bad:
+    print("    " + item)
+print("    应用总数 " + str(len(b)) + "，异常 " + str(len(bad)))
 sys.exit(1 if bad else 0)
 '; then
-        fail "有 pm2 应用不在 online 状态"
+        fail "有 pm2 应用不在 online 状态或仍在反复重启"
         docker exec "$NAME" pm2 status --no-color 2>&1 | tail -20 || true
     fi
 else
