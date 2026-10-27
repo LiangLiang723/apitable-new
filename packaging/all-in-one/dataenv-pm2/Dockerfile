@@ -12,6 +12,9 @@ ENV GOSU_USER=rabbitmq
 # same Dockerfile would behave differently. Bump them deliberately, with a
 # smoke test (gh workflow run image-smoke-test.yml).
 #
+# The node tarball is verified right after extraction: a stale layer once shipped
+# node 16.15.1 while this file asked for 22, and nothing failed at build time.
+#
 # No blanket `microdnf -y update` here: it upgraded the whole base from 8.9 to 8.10
 # and left the superseded files in the base layer (~150MB of dead weight), while
 # `microdnf install` below already pulls whatever dependency versions it needs.
@@ -76,6 +79,8 @@ RUN set -euxo pipefail; \
   curl -fsSLO --compressed "https://nodejs.org/download/release/${NODE_VERSION}/node-${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz"; \
   tar -xJf "node-$NODE_VERSION-linux-$NODE_ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner; \
   rm "node-$NODE_VERSION-linux-$NODE_ARCH.tar.xz"; \
+  test "$(node -v)" = "${NODE_VERSION}" || { echo >&2 "node version mismatch: $(node -v), expected ${NODE_VERSION}"; exit 1; }; \
+  echo "node $(node -v) installed"; \
   corepack enable; \
   npm i -g pm2@5.4.3; \
   \

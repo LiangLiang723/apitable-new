@@ -1,5 +1,18 @@
 # APITable CHANGELOG
 
+## [v1.17.5](https://github.com/apitable/apitable/releases/tag/v1.17.5) (2026-10-27)
+
+修正 all-in-one 镜像里的 node 运行时版本。
+
+### 构建
+
+* build: all-in-one 里实际运行的 node 是 **16.15.1**（自 v1.16.0 起），而 `dataenv-pm2` 的 Dockerfile 一直写的是
+  22.22.2 —— 该层被构建缓存/镜像复用判定为"未变更"，从未真正重建。现在解包后立即断言
+  `node -v == ${NODE_VERSION}`，版本不符直接构建失败；同时把 `dataenv-pm2` 纳入 `dataenv-liquibase-pm2`
+  的变更指纹（上一版已做），保证基础层变更能传导到 all-in-one。
+* build: 由此 all-in-one 内的 pm2 / room-server / web-server 全部运行在 node 22.22.2 上，与各组件镜像的
+  构建运行时一致。
+
 ## [v1.17.4](https://github.com/apitable/apitable/releases/tag/v1.17.4) (2026-10-27)
 
 修复 v1.17.3 的运行时缺包问题。**v1.17.3 的 room-server 无法启动，请直接使用 v1.17.4。**
