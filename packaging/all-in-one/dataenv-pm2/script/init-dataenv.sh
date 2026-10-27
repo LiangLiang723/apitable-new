@@ -21,6 +21,20 @@ done
 rm -f /var/run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock.lock \
       /var/run/mysqld/mysqlx.sock /var/run/mysqld/mysqlx.sock.lock
 
+# 数据卷的属主必须与当前镜像里的 GOSU_USER 一致。旧镜像用 useradd --system 分配
+# UID，重建后可能从 998 变成 997，导致 rabbitmq/mysql/redis 全部 EACCES 起不来。
+# 只在顶层目录属主不一致时递归修正一次，正常重启不会触发。
+want_uid="$(id -u "${GOSU_USER}")"
+want_gid="$(id -g "${GOSU_USER}")"
+for d in /apitable/mysql /apitable/rabbitmq /apitable/redis; do
+    [[ -d "${d}" ]] || continue
+    have="$(stat -c '%u:%g' "${d}")"
+    if [[ "${have}" != "${want_uid}:${want_gid}" ]]; then
+        echo "data dir ${d} owned by ${have}, fixing to ${want_uid}:${want_gid}" >&2
+        chown -R "${want_uid}:${want_gid}" "${d}"
+    fi
+done
+
 if [[ -n "$(ls -A /apitable/mysql)" ]]; then
     exit
 fi

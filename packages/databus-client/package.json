@@ -1,6 +1,6 @@
 {
   "name": "databus-client",
-  "version": "1.17.5",
+  "version": "1.17.6",
   "description": "OpenAPI client for databus-client",
   "author": "OpenAPI-Generator Contributors",
   "repository": {

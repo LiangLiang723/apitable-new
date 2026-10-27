@@ -1,5 +1,19 @@
 # APITable CHANGELOG
 
+## [v1.17.6](https://github.com/apitable/apitable/releases/tag/v1.17.6) (2026-10-27)
+
+修复 v1.17.5 的启动失败。**v1.17.5 在已有数据卷上升级会起不来，请直接使用 v1.17.6。**
+
+### 修复
+
+* fix: **重建 dataenv 层导致数据卷属主错位**。mysql / rabbitmq / redis 都以 `gosu $GOSU_USER` 运行，而
+  `useradd --system` 分配的 UID 会随已安装包变化——v1.17.4 是 998:996，重建后的 v1.17.5 变成 997:995，
+  于是三个服务对 `/apitable/{mysql,rabbitmq,redis}` 全部 EACCES：rabbitmq 报
+  `feature_flags_file_read_error eacces`，mysql/redis 反复重启。
+  现在把 `GOSU_USER` 固定为 **uid 998 / gid 996**，并在构建期断言，任何漂移都会让构建失败。
+* fix: `init-dataenv.sh` 启动时检查三个数据目录的属主，与当前 `GOSU_USER` 不一致时递归修正一次
+  （正常重启不会触发），这样老卷（998）和新卷都能自愈。
+
 ## [v1.17.5](https://github.com/apitable/apitable/releases/tag/v1.17.5) (2026-10-27)
 
 修正 all-in-one 镜像里的 node 运行时版本。

@@ -15,6 +15,10 @@ ENV GOSU_USER=rabbitmq
 # The node tarball is verified right after extraction: a stale layer once shipped
 # node 16.15.1 while this file asked for 22, and nothing failed at build time.
 #
+# GOSU_USER gets a fixed uid/gid (998:996) on purpose: the data volume is owned by
+# that user, and `useradd --system` hands out a different id when the package set
+# changes, which once made rabbitmq/mysql/redis fail with EACCES after an upgrade.
+#
 # No blanket `microdnf -y update` here: it upgraded the whole base from 8.9 to 8.10
 # and left the superseded files in the base layer (~150MB of dead weight), while
 # `microdnf install` below already pulls whatever dependency versions it needs.
@@ -59,8 +63,9 @@ RUN set -euxo pipefail; \
   rabbitmq-server-4.3.1-1.el8 \
   erlang-27.3.4.11-1.el8 \
   redis-6.2.20-1.module_el8.10.0+4056+739731b0; \
-  getent group "${GOSU_USER}" >/dev/null || groupadd --system "${GOSU_USER}"; \
-  id -u "${GOSU_USER}" >/dev/null 2>&1 || useradd --system --gid "${GOSU_USER}" --create-home "${GOSU_USER}"; \
+  getent group "${GOSU_USER}" >/dev/null || groupadd --system --gid 996 "${GOSU_USER}"; \
+  id -u "${GOSU_USER}" >/dev/null 2>&1 || useradd --system --uid 998 --gid "${GOSU_USER}" --create-home "${GOSU_USER}"; \
+  test "$(id -u "${GOSU_USER}")" = "998" -a "$(id -g "${GOSU_USER}")" = "996" || { echo >&2 "GOSU_USER uid/gid drift: $(id -u "${GOSU_USER}"):$(id -g "${GOSU_USER}")"; exit 1; }; \
   microdnf -y install tar xz; \
   microdnf clean all; \
   mkdir -p /sbom; rpm -qa | sort > /sbom/rpms.txt; \
