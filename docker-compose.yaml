@@ -85,7 +85,7 @@ services:
     environment:
       - TZ=${TIMEZONE}
       - NODE_ENV=${ENV}
-      - NODE_OPTIONS=--max-old-space-size=${ROOM_SERVER_NODE_OLD_SPACE:-1024} --max-semi-space-size=64 --max-http-header-size=80000
+      - NODE_OPTIONS=--max-old-space-size=${ROOM_SERVER_NODE_OLD_SPACE:-1024} --max-http-header-size=80000
       - API_MAX_MODIFY_RECORD_COUNTS=${API_MAX_MODIFY_RECORD_COUNTS:-9007199254740991}
       # The image runs room-server through pm2 cluster mode. Two instances keep
       # the socket workload spread without the default four eating 4x the heap.

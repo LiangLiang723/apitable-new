@@ -60,7 +60,7 @@ module.exports = {
       NODE_ENV: "production",
       PORT: "3333",
       ENABLE_SOCKET: "true",
-      NODE_OPTIONS: "--max-old-space-size=1536 --max-semi-space-size=64 --max-http-header-size=80000"
+      NODE_OPTIONS: "--max-old-space-size=1536 --max-http-header-size=80000"
     },
     script: 'while ! rabbitmq-diagnostics -q check_running >/dev/null 2>&1; do sleep 2; done && node ./dist/main.js',
     out_file: '/dev/null',

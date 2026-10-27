@@ -25,18 +25,33 @@ liquibase_run() {
         "$@"
 }
 
-run_migrations() {
-    if liquibase_run "${ACTION:=update}" \
-        -Dtable.prefix="${DATABASE_TABLE_PREFIX:=apitable_}" \
-        -DDB_ENGINE="${DB_ENGINE:=mysql}"; then
-        return 0
-    fi
-
-    echo "liquibase update failed, retrying after clearChecksums" >&2
-    liquibase_run clearChecksums
+run_update() {
     liquibase_run "${ACTION:=update}" \
         -Dtable.prefix="${DATABASE_TABLE_PREFIX:=apitable_}" \
         -DDB_ENGINE="${DB_ENGINE:=mysql}"
+}
+
+run_migrations() {
+    local out
+    if out="$(run_update 2>&1)"; then
+        [[ -n "${out}" ]] && printf '%s\n' "${out}"
+        return 0
+    fi
+    printf '%s\n' "${out}" >&2
+
+    # 上一次启动在做迁移时被 kill（docker restart、OOM、Ctrl-C）会在
+    # DATABASECHANGELOGLOCK 里留下 LOCKED=1，之后每次启动都报
+    # "Could not acquire change log lock" 并卡住 backend，必须显式释放。
+    if grep -q "Could not acquire change log lock" <<<"${out}"; then
+        echo "changelog lock 被上一次运行占用，执行 releaseLocks 后重试" >&2
+        liquibase_run releaseLocks || true
+    else
+        # checksum 不一致（历史上改过 changeset）时清掉校验和再试
+        echo "liquibase update 失败，按 checksum 冲突处理：clearChecksums 后重试" >&2
+        liquibase_run clearChecksums || true
+    fi
+
+    run_update
 }
 
 # ---------------------------------------------------------------------------

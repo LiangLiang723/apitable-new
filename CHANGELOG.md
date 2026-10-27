@@ -1,5 +1,22 @@
 # APITable CHANGELOG
 
+## [v1.17.3](https://github.com/apitable/apitable/releases/tag/v1.17.3) (2026-10-27)
+
+修复 v1.17.1 / v1.17.2 的启动缺陷。**v1.17.1 与 v1.17.2 的 room-server 无法启动，请跳过这两个版本。**
+
+### 修复
+
+* fix: **room-server 崩溃重启循环**。`NODE_OPTIONS` 里带了 `--max-semi-space-size=64`，Node 不允许该参数出现在
+  `NODE_OPTIONS` 中，进程一启动就退出（`node: --max-semi-space-size= is not allowed in NODE_OPTIONS`），
+  pm2 无限重启。all-in-one 与 compose 两处都已移除；需要限制 semi-space 时只能作为命令行参数传。
+* fix: **重启后 MySQL 起不来**。`docker restart` 会保留 `/var/run` 下上一次运行的 socket 与 socket 锁文件，
+  mysqld 认为仍有实例在跑（`Another process with pid xxx is using unix socket file`）而退出。
+  `init-dataenv.sh` 现在在启动前清理这些残留文件。
+* fix: **上次迁移被中断后永久启动失败**。迁移过程中容器被 kill 会在 `DATABASECHANGELOGLOCK` 留下 `LOCKED=1`，
+  之后每次启动都报 `Could not acquire change log lock`，backend 永远起不来。`init-appdata.sh` 现在识别该错误并
+  执行 `liquibase releaseLocks` 后重试。
+* test: 冒烟新增 pm2 全应用在线检查（此前只校验 backend 健康检查，room-server 崩溃不会被发现）。
+
 ## [v1.17.2](https://github.com/apitable/apitable/releases/tag/v1.17.2) (2026-10-27)
 
 交付流水线与镜像体积的进一步压缩，不改变功能。

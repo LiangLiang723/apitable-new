@@ -54,7 +54,7 @@ wait_healthy() {
 
 log "镜像 $IMAGE，数据目录 $DATA_DIR，端口 $PORT"
 
-log "--- 1/4 冷启动 ---"
+log "--- 1/5 冷启动 ---"
 start_container
 if SECONDS_USED=$(wait_healthy); then
     log "健康检查通过，用时 ${SECONDS_USED}s"
@@ -65,7 +65,7 @@ else
     fail "冷启动超时（${WAIT_SECONDS}s 内未通过健康检查）"
 fi
 
-log "--- 2/4 HTTP 与静态资源 ---"
+log "--- 2/5 HTTP 与静态资源 ---"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' "${BASE}/login")
 [[ "$CODE" == "200" ]] && log "GET /login -> 200" || fail "GET /login -> $CODE"
 
@@ -81,7 +81,31 @@ else
     fail "登录页未引用任何 /_next/static 资源"
 fi
 
-log "--- 3/4 重启后跳过内置数据导入 ---"
+log "--- 3/5 pm2 应用状态 ---"
+# 健康检查只覆盖 backend，room-server 之类的应用崩了不会被发现，
+# 这里直接问 pm2：任何一个不是 online 都算失败。
+PM2_JSON="$(docker exec "$NAME" pm2 jlist 2>/dev/null || true)"
+if [[ -n "${PM2_JSON}" ]]; then
+    if ! printf '%s' "${PM2_JSON}" | python3 -c '
+import json, sys
+raw = sys.stdin.read()
+start = raw.find("[")
+data = json.loads(raw[start:]) if start >= 0 else []
+bad = [(a["name"], a["pm2_env"]["status"], a["pm2_env"].get("restart_time", 0))
+       for a in data if a["pm2_env"]["status"] != "online"]
+for name, status, restarts in bad:
+    print(f"    {name}: {status}（重启 {restarts} 次）")
+print(f"    应用总数 {len(data)}，异常 {len(bad)}")
+sys.exit(1 if bad else 0)
+'; then
+        fail "有 pm2 应用不在 online 状态"
+        docker exec "$NAME" pm2 status --no-color 2>&1 | tail -20 || true
+    fi
+else
+    log "pm2 jlist 不可用，跳过该项"
+fi
+
+log "--- 4/5 重启后跳过内置数据导入 ---"
 docker restart "$NAME" >/dev/null
 if SECONDS_USED=$(wait_healthy); then
     log "重启后健康检查通过，用时 ${SECONDS_USED}s"
@@ -104,7 +128,7 @@ else
     docker logs --tail 60 "$NAME" 2>&1 | grep -iE "appdata|liquibase" || true
 fi
 
-log "--- 4/4 资源占用 ---"
+log "--- 5/5 资源占用 ---"
 docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}' || true
 
 if (( FAILED == 0 )); then

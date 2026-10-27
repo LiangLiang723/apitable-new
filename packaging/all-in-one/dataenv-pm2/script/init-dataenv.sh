@@ -14,6 +14,13 @@ for i in /apitable/mysql /apitable/redis /apitable/rabbitmq; do
     fi
 done
 
+# docker restart 时 /var/run 属于容器可写层，会保留上一次运行留下的 socket 与
+# socket 锁文件；mysqld 启动时发现锁文件里的 PID 在新 PID 命名空间里“还活着”，
+# 就会报 "Another process with pid xxx is using unix socket file" 并退出，表现为
+# 重启后 MySQL 反复重启、backend 一直等不到数据库。启动前先清掉。
+rm -f /var/run/mysqld/mysqld.sock /var/run/mysqld/mysqld.sock.lock \
+      /var/run/mysqld/mysqlx.sock /var/run/mysqld/mysqlx.sock.lock
+
 if [[ -n "$(ls -A /apitable/mysql)" ]]; then
     exit
 fi
