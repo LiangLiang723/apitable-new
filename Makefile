@@ -111,7 +111,10 @@ build-local:
 
 _build-ts:
 	pnpm install
-	nx run-many -t build --exclude @apitable/datasheet
+	# room-server is built last: its core:build-cjs target writes the same dist
+	# that core:build writes, so running both in one parallel run-many would race.
+	nx run-many -t build --exclude=@apitable/datasheet,@apitable/room-server
+	nx run @apitable/room-server:build
 
 _build-java:
 	cd backend-server && ./gradlew build -x test --stacktrace
@@ -127,6 +130,10 @@ _build-core:
 	pnpm install
 	nx run @apitable/core:build
 
+_build-sr:
+	pnpm install
+	pnpm build:sr
+
 ################################ test
 
 test: ## do test, unit tests, integration tests and so on.
@@ -140,7 +147,9 @@ test-e2e-open: ## start and debug integration tests
 ###### 【core unit test】 ######
 
 _test-ut-core:
-	make _build-ts
+	# Only the core build (and its workspace dependencies) is needed here; a
+	# full workspace build used to compile every package for a single test run.
+	make _build-core
 	pnpm run test:core
 
 _test-ut-core-cov:
@@ -161,21 +170,19 @@ _test_clean: ## clean the docker in test step
 	docker rm -fv $$(docker ps -a --filter "name=test-.*" --format "{{.ID}}") || true
 
 _test_docker_mysql: ## only run mysql container
-	docker compose -f docker-compose.unit-test.yaml up -d test-mysql
+	docker compose -f docker-compose.unit-test.yaml up -d --wait test-mysql
 
 _test_dockers: ## run depends container in test step
-	docker compose -f docker-compose.unit-test.yaml up -d test-mysql ;\
-	docker compose -f docker-compose.unit-test.yaml up -d test-redis ;\
-	docker compose -f docker-compose.unit-test.yaml up -d test-rabbitmq
+	docker compose -f docker-compose.unit-test.yaml up -d --wait \
+		test-mysql test-redis test-rabbitmq
 
 test-ut-room-local:
 	make _test_clean
-	docker compose -f docker-compose.unit-test.yaml up -d test-redis test-mysql test-rabbitmq
+	make _test_dockers
 ifeq ($(SIKP_INITDB),false)
-	sleep 20
 	make _test_init_db
 endif
-	make _build-ts
+	make _build-sr
 	MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_USERNAME=apitable MYSQL_PASSWORD=password MYSQL_DATABASE=apitable_test MYSQL_USE_SSL=false \
 	DATABASE_TABLE_PREFIX=apitable_ \
 	REDIS_HOST=127.0.0.1 REDIS_PORT=6379 REDIS_DB=4 REDIS_PASSWORD= \
@@ -189,7 +196,6 @@ test-ut-room-docker:
 	@echo "${LIGHTPURPLE}$$(docker compose version)${RESET}"
 	make _test_clean
 	make _test_dockers
-	sleep 20
 	make _test_init_db
 	docker compose -f docker-compose.unit-test.yaml build unit-test-room
 	docker compose -f docker-compose.unit-test.yaml run --rm \
@@ -213,7 +219,6 @@ test-ut-backend-docker:
 	@echo "$$(docker compose version)"
 	make _test_clean
 	make _test_dockers
-	sleep 20
 	make _test_init_db
 	make test-ut-backend-run
 	@echo "${GREEN}finished unit test, clean up images...${RESET}"
@@ -251,7 +256,6 @@ test-init-db-docker:
 	@echo "${LIGHTPURPLE}$$(docker compose version)${RESET}"
 	make _test_clean
 	make _test_docker_mysql
-	sleep 20
 	make _test_init_db
 	@echo "${GREEN}finished testing, clean up images...${RESET}"
 

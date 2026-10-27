@@ -16,7 +16,9 @@
 # The tag is part of the component fingerprint in the release workflow: when the
 # content of this file changes, bump NODE_BASE_TAG (for example to v22.22.2-r1)
 # and the fingerprint will mark room-server as changed.
-FROM node:22.22.2-bookworm
+# bookworm-slim instead of the buildpack-deps based image: the toolchain below is
+# installed explicitly, so the extra curl/git/svn layers are not needed.
+FROM node:22.22.2-bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 

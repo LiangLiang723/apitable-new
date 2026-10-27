@@ -16,7 +16,9 @@ FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS deps
 WORKDIR /app
 
 # install packages can use cache
-COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./common-tsconfig.json ./
+# Keep the pnpmfile in the install context: it pins eslint for every package,
+# including transitive ones, and the lockfile was generated with that hook.
+COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./common-tsconfig.json ./.pnpmfile.cjs ./
 COPY ./patches/ ./patches
 
 # server-side canvas stub, referenced by the root workspace package
@@ -33,7 +35,7 @@ COPY packages/room-server/package.json ./packages/room-server/
 
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
     pnpm config set store-dir /pnpm-store && \
-    pnpm install --filter @apitable/room-server --filter root
+    pnpm install --frozen-lockfile --filter @apitable/room-server --filter root
 
 # Production dependency tree only. Built in its own stage so that the runtime
 # image never receives devDependencies (typescript, jest, ts-jest, @nestjs/cli,
@@ -42,7 +44,7 @@ FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS prod-deps
 
 WORKDIR /app
 
-COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./common-tsconfig.json ./
+COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./common-tsconfig.json ./.pnpmfile.cjs ./
 COPY ./patches/ ./patches
 
 COPY packages/canvas-shim/package.json ./packages/canvas-shim/
@@ -57,13 +59,11 @@ COPY packages/room-server/package.json ./packages/room-server/
 # dependency of room-server needs a build script (the only native module of the
 # repo, canvas, is replaced by the JS stub in packages/canvas-shim). If a native
 # dependency is added later, drop the flag and install the build toolchain.
-# Not using --frozen-lockfile on purpose: the repository carries historical
-# specifier drift (eslint is declared as ^7.21.0 but locked at 8.49.0 in a few
-# packages), which makes the frozen check fail. The deps stage above has the
-# same behaviour.
+# --frozen-lockfile: the manifests match the lockfile now, so the install must
+# not be allowed to resolve anything on its own.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
     pnpm config set store-dir /pnpm-store && \
-    pnpm install --prod --ignore-scripts \
+    pnpm install --prod --ignore-scripts --frozen-lockfile \
         --filter @apitable/room-server --filter root
 
 # 运行时不需要类型声明、sourcemap、测试与示例目录，删掉能省几十 MB。
@@ -111,6 +111,17 @@ RUN pnpm run build:sr
 # so that the runtime stage needs neither npm nor a registry connection.
 RUN npm install -g pm2@5.4.3 --no-audit --no-fund
 
+# Project build outputs before they enter the runtime image. Declarations and
+# source maps are only useful for debugging and would otherwise ship in dist/.
+FROM ${NODE_BASE_IMAGE}:${NODE_BASE_TAG} AS runtime-artifacts
+
+WORKDIR /app
+
+COPY --from=builder /app/packages/room-server/dist ./packages/room-server/dist
+COPY --from=builder /app/packages/core/dist ./packages/core/dist
+COPY --from=builder /app/packages/i18n-lang/dist ./packages/i18n-lang/dist
+RUN find packages -type f \( -name '*.d.ts' -o -name '*.map' \) -delete
+
 # stage runner
 FROM ${NODE_RUNTIME_IMAGE}:${NODE_RUNTIME_TAG} AS runner
 
@@ -142,13 +153,13 @@ COPY --from=builder /app/packages/room-server/package.json \
                     /app/packages/room-server/ecosystem.config.js \
                     /app/packages/room-server/app-config.json \
                     ./packages/room-server/
-COPY --from=builder /app/packages/room-server/dist ./packages/room-server/dist
+COPY --from=runtime-artifacts /app/packages/room-server/dist ./packages/room-server/dist
 
 COPY --from=builder /app/packages/core/package.json ./packages/core/
-COPY --from=builder /app/packages/core/dist ./packages/core/dist
+COPY --from=runtime-artifacts /app/packages/core/dist ./packages/core/dist
 
 COPY --from=builder /app/packages/i18n-lang/package.json ./packages/i18n-lang/
-COPY --from=builder /app/packages/i18n-lang/dist ./packages/i18n-lang/dist
+COPY --from=runtime-artifacts /app/packages/i18n-lang/dist ./packages/i18n-lang/dist
 # runtime configuration files, loaded from src by the i18n package
 COPY --from=builder /app/packages/i18n-lang/src/config ./packages/i18n-lang/src/config
 

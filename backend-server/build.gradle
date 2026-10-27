@@ -25,6 +25,13 @@ subprojects {
         maxWarnings = 0
     }
 
+    // Every jar, including the module jars that end up inside the boot jar, has
+    // to be reproducible: a fixed entry order and no wall-clock file stamps.
+    tasks.withType(org.gradle.api.tasks.bundling.AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+
     configurations.configureEach {
         resolutionStrategy {
             cacheChangingModulesFor 0, 'seconds'

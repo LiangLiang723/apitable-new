@@ -1,0 +1,6 @@
+# The image only consumes the changelog resources; the Gradle project, wrapper
+# and local caches are build-time helpers for running Liquibase outside Docker.
+*
+!Dockerfile
+!src
+!src/**

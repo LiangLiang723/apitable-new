@@ -1,5 +1,8 @@
 # APITable 优化执行计划
 
+> **状态说明**：本文是历史执行计划，部分步骤已完成或已调整；
+> 当前构建行为以 `packaging/`、`docker-bake.hcl` 和 `.github/workflows/` 中的代码为准。
+
 配套文档：`docs/BUILD_OPTIMIZATION_REVIEW.md`（构建与镜像体积）、`docs/RUNTIME_PERFORMANCE_REVIEW.md`（启动 / 内存 / 流畅度）
 
 本文按**执行顺序**列出每一步。每一步都是可独立提交、可独立回滚的原子改动，完成定义统一为：改动落地 + 验收命令通过 + 回退方式明确。

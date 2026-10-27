@@ -1,5 +1,8 @@
 # 优化落地状态
 
+> **状态说明**：本文记录的是 2026-10-26 的历史优化，部分数字与结论已过时；
+> 当前构建行为以 `packaging/`、`docker-bake.hcl` 和 `.github/workflows/` 中的代码为准。
+
 日期：2026-10-26
 配套：`docs/BUILD_OPTIMIZATION_REVIEW.md`、`docs/RUNTIME_PERFORMANCE_REVIEW.md`、`docs/OPTIMIZATION_PLAN.md`
 

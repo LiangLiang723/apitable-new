@@ -73,7 +73,7 @@
     "@types/node": "^14.14.34",
     "@types/qs": "^6.9.4",
     "@types/string.prototype.matchall": "^4.0.1",
-    "eslint": "^7.21.0",
+    "eslint": "8.49.0",
     "fast-check": "^3.6.3",
     "jest": "^29.6.2",
     "jest-environment-jsdom": "^29.2.2",

@@ -1,0 +1,12 @@
+{
+  "name": "@apitable/room-server",
+  "targets": {
+    "build": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "build"
+      },
+      "dependsOn": ["@apitable/core:build-cjs", "@apitable/i18n-lang:build"]
+    }
+  }
+}

@@ -5,11 +5,24 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
-IMAGE_TAG="${IMAGE_TAG:-local}"
+# The tag defaults to a content fingerprint (tracked changes and untracked
+# files) instead of a mutable "local" tag: two different checkouts can never
+# share a tag, so cached layers are only reused for identical inputs.
+if [[ -z "${IMAGE_TAG:-}" ]]; then
+  IMAGE_TAG="$(
+    {
+      git rev-parse HEAD 2>/dev/null || echo no-git
+      git status --porcelain=v1 2>/dev/null || true
+      git diff HEAD 2>/dev/null || true
+      git ls-files --others --exclude-standard -z 2>/dev/null | xargs -0 -r sha256sum
+    } | sha256sum | cut -c1-12
+  )"
+fi
 FINAL_IMAGE="${FINAL_IMAGE:-benxianyu/apitable-new}"
 SEMVER_FULL="${SEMVER_FULL:-v$(cat .version 2>/dev/null || echo 0.0.0)-local}"
 PLATFORM="${PLATFORM:-linux/amd64}"
-FINAL_BUILD_NO_CACHE="${FINAL_BUILD_NO_CACHE:-1}"
+# Cache the final assembly by default. Set FINAL_BUILD_NO_CACHE=1 to force it.
+FINAL_BUILD_NO_CACHE="${FINAL_BUILD_NO_CACHE:-0}"
 DRY_RUN="${DRY_RUN:-0}"
 # Optional buildx builder to use. Set this when Docker Hub is not directly
 # reachable, e.g. to a builder that is configured with a registry mirror:

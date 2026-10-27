@@ -1,3 +1,6 @@
+# UNAVAILABLE: this entry point references packages/air-agent, which is not part
+# of this repository. It is kept for reference only and cannot be built.
+
 # Base image is built from packaging/Dockerfile.nodepy-base.
 ARG NODEPY_BASE_IMAGE=benxianyu/apitable-nodepy
 ARG NODEPY_BASE_TAG=22.22.2-alpine

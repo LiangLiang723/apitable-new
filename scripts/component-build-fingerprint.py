@@ -2,11 +2,15 @@
 """Computes a fingerprint of the build configuration of every image component.
 
 A plain file diff only detects changes of the source tree. The content of an
-image additionally depends on the build arguments that are passed to the build,
-and those live in the release workflow instead of the source tree. Changing a
-base image version or adding a build argument would therefore not be detected,
-and the component would be re-used from the previous release with the old
-configuration.
+image additionally depends on the build definition that is passed to the build,
+and that lives in the release workflow instead of the source tree: the build
+arguments (base image versions, registry, ...), the context, the Dockerfile
+path, the target stage and the platform list. Changing any of them would
+otherwise not be detected, and the component would be re-used from the previous
+release with the old configuration.
+
+The script exits non-zero when the workflow cannot be loaded or parsed, so the
+caller has to fall back to a full rebuild instead of reusing stale images.
 
 The script prints a JSON object for two git revisions:
 
@@ -36,8 +40,9 @@ WORKFLOW_PATH = ".github/workflows/dockerhub-all-in-one.yml"
 # The all-in-one image only assembles the other components.
 SKIP_COMPONENTS = {"all-in-one"}
 
-# A build argument that only carries the release version.
-IGNORED_ARGS = {"SEMVER_FULL"}
+# Build arguments that only carry release metadata and never change image
+# content: the version label and the reproducible-build timestamp.
+IGNORED_ARGS = {"SEMVER_FULL", "SOURCE_DATE_EPOCH"}
 
 # The workflow environment variables that influence the content of a component
 # image. A base image that is built by the `构建基础镜像` workflow changes the
@@ -54,6 +59,14 @@ COMPONENT_ENV_VARS = {
 }
 
 REF_PATTERN = re.compile(r"\$\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}")
+MATRIX_PATTERN = re.compile(r"\$\{\{\s*matrix\.([A-Za-z0-9_-]+)\s*\}\}")
+
+
+def resolve_matrix(value, entry: dict) -> str:
+    """Replaces `${{ matrix.<key> }}` with the value of the matrix entry."""
+    if not isinstance(value, str):
+        return "" if value is None else str(value)
+    return MATRIX_PATTERN.sub(lambda match: str(entry.get(match.group(1), "")), value)
 
 
 def git_show(ref: str, path: str) -> str | None:
@@ -100,32 +113,57 @@ def component_of_path(path: str) -> str | None:
     return None
 
 
-def collect_components(doc: dict) -> dict[str, list[str]]:
-    """Returns {component: [build argument fragments]} for every component."""
-    result: dict[str, list[str]] = {}
+def collect_components(doc: dict) -> dict[str, list[dict]]:
+    """Returns {component: [build definitions]} for every component.
+
+    A build definition carries every workflow level value that can change the
+    produced image, not only the build arguments.
+    """
+    result: dict[str, list[dict]] = {}
+
+    def add(component: str, definition: dict) -> None:
+        canonical = {key: "" if value is None else str(value) for key, value in definition.items()}
+        result.setdefault(component, []).append(canonical)
 
     for job in (doc.get("jobs") or {}).values():
-        # Matrix driven jobs carry the component specific arguments in the
-        # matrix entry.
         matrix = ((job.get("strategy") or {}).get("matrix")) or {}
-        for entry in matrix.get("include") or []:
-            target = entry.get("target")
-            if not target:
-                continue
-            result.setdefault(target, []).append(str(entry.get("extra_args") or ""))
+        entries = matrix.get("include") or [{}]
 
-        # Every build step passes its arguments to the build action.
+        # Every build step is expanded once per matrix entry, because the step
+        # usually carries `file: ${{ matrix.dockerfile }}`. Without the
+        # expansion the component could not be derived from the step and the
+        # platform, target and context would silently stay out of the
+        # fingerprint.
         for step in job.get("steps") or []:
+            if not isinstance(step, dict):
+                continue
             with_ = step.get("with") or {}
             build_args = with_.get("build-args")
             if not build_args:
                 continue
-            component = component_of_path(with_.get("file") or "")
-            if component is None:
-                component = component_of_path(with_.get("context") or "")
-            if component is None:
-                continue
-            result.setdefault(component, []).append(str(build_args))
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                context = resolve_matrix(with_.get("context"), entry)
+                dockerfile = resolve_matrix(with_.get("file"), entry)
+                # Matrix driven workflows name the component in the matrix and
+                # only reference it from the step, so both have to be kept.
+                target = resolve_matrix(with_.get("target"), entry) or str(entry.get("target") or "")
+                component = component_of_path(dockerfile)
+                if component is None:
+                    component = component_of_path(context)
+                if component is None:
+                    continue
+                add(
+                    component,
+                    {
+                        "context": context,
+                        "dockerfile": dockerfile,
+                        "target": target or component,
+                        "platforms": resolve_matrix(with_.get("platforms"), entry),
+                        "build_args": resolve_matrix(build_args, entry),
+                    },
+                )
 
     return result
 
@@ -162,6 +200,18 @@ def build_arg_fingerprint(build_args: str, env: dict) -> str:
     return hashlib.sha256("\n".join(parts).encode()).hexdigest()
 
 
+def definition_fingerprint(definition: dict, env: dict) -> str:
+    """Hashes one build definition: context, Dockerfile, target, platform, args."""
+    parts = [
+        f"context={definition.get('context', '')}",
+        f"dockerfile={definition.get('dockerfile', '')}",
+        f"target={definition.get('target', '')}",
+        f"platforms={definition.get('platforms', '')}",
+        f"args={build_arg_fingerprint(definition.get('build_args', ''), env)}",
+    ]
+    return hashlib.sha256("\n".join(parts).encode()).hexdigest()
+
+
 def fingerprints(doc: dict | None) -> dict[str, str]:
     """Returns {component: fingerprint of the build configuration}."""
     if doc is None:
@@ -170,10 +220,10 @@ def fingerprints(doc: dict | None) -> dict[str, str]:
     env = doc.get("env") or {}
     result: dict[str, str] = {}
 
-    for component, fragments in collect_components(doc).items():
+    for component, definitions in collect_components(doc).items():
         if component in SKIP_COMPONENTS:
             continue
-        parts = sorted(build_arg_fingerprint(fragment, env) for fragment in fragments)
+        parts = sorted(definition_fingerprint(definition, env) for definition in definitions)
         for var in COMPONENT_ENV_VARS.get(component, []):
             parts.append(f"env.{var}={env.get(var, '')}")
         result[component] = hashlib.sha256("\n".join(parts).encode()).hexdigest()
@@ -191,13 +241,26 @@ def main() -> int:
     doc_b = load_workflow(rev_b)
 
     if doc_a is None or doc_b is None:
-        # The workflow did not exist at one of the revisions, every build
-        # configuration has to be considered as changed.
-        print(json.dumps({"fingerprints": {}, "changed": ["*"]}, ensure_ascii=False))
-        return 0
+        # The workflow did not exist at one of the revisions and every build
+        # configuration has to be considered as changed. The caller turns the
+        # non-zero exit status into a full rebuild.
+        print(
+            f"ERROR: cannot load {WORKFLOW_PATH} at '{rev_a}' or '{rev_b}'",
+            file=sys.stderr,
+        )
+        return 1
 
     fp_a = fingerprints(doc_a)
     fp_b = fingerprints(doc_b)
+
+    if not fp_a or not fp_b:
+        # A workflow without any recognised build definition would compare as
+        # "nothing changed", which is the opposite of what the caller needs.
+        print(
+            f"ERROR: no build definitions found in {WORKFLOW_PATH} at '{rev_a}' or '{rev_b}'",
+            file=sys.stderr,
+        )
+        return 1
 
     changed = sorted(
         component

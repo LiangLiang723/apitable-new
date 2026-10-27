@@ -5,14 +5,30 @@ RUN dnf install -y findutils \
     && rm -rf /var/cache/dnf
 
 WORKDIR /app
-COPY ./backend-server/. .
+
+# The wrapper and its build logic are stable across source changes, so they are
+# copied before the sources: warming the wrapper distribution stays cached when
+# only application code changes.
+COPY backend-server/gradlew backend-server/gradlew.bat \
+     backend-server/settings.gradle backend-server/build.gradle \
+     backend-server/gradle.properties ./
+COPY backend-server/gradle ./gradle
+COPY backend-server/buildSrc ./buildSrc
+
+# The jar manifest records this timestamp instead of the wall clock, so the same
+# commit produces the same jar. Local builds fall back to the epoch.
+ARG SOURCE_DATE_EPOCH=0
 
 # Gradle caches are mounted instead of baked into the layer: the dependency
 # graph is resolved once and reused by every later build, while the produced
 # image only keeps the jar. ./gradlew -v warms the wrapper distribution.
 RUN --mount=type=cache,target=/root/.gradle ./gradlew -v
+
+COPY backend-server/ ./
+
 RUN --mount=type=cache,target=/root/.gradle \
     --mount=type=cache,target=/app/.gradle \
+    SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} \
     ./gradlew --no-daemon -Dorg.gradle.vfs.watch=false :application:bootJar
 
 # Split the fat jar into Spring Boot layers. The runtime image then copies the

@@ -30,11 +30,14 @@ ALL_COMPONENTS=(
 )
 
 # Root level files that are part of every Node.js package build.
+# `.dockerignore` decides which of these files reach the build context at all,
+# so a change there can change the produced image without touching any source.
 ROOT_INPUTS=(
   package.json
   pnpm-lock.yaml
   pnpm-workspace.yaml
   .pnpmfile.cjs
+  .dockerignore
   patches
   build.js
   nx.json
@@ -56,13 +59,18 @@ component_inputs() {
       # base image references, so a change there has to rebuild the component.
       echo "packages/room-server packages/core packages/i18n-lang \
 packages/databus-wasm-web packages/databus-wasm-nodejs \
+packages/canvas-shim \
 packaging/Dockerfile.room-server packaging/Dockerfile.node-base \
 docker-bake.hcl ${ROOT_INPUTS[*]}"
       ;;
     web-server)
+      # The web image copies packages/canvas-shim and builds @apitable/core,
+      # which depends on both databus-wasm packages, so all three are build
+      # inputs even though no Dockerfile mentions the wasm packages directly.
       echo "packages/datasheet packages/core packages/components \
 packages/widget-sdk packages/i18n-lang packages/icons \
 packages/ai-components packages/api-client \
+packages/canvas-shim packages/databus-wasm-web packages/databus-wasm-nodejs \
 packaging/Dockerfile.web-server packaging/Dockerfile.nodepy-base \
 docker-bake.hcl ${ROOT_INPUTS[*]}"
       ;;
@@ -161,7 +169,10 @@ if [[ -f "scripts/component-build-fingerprint.py" ]]; then
   # output. A sentinel would be word split like any other word, and a "*" would
   # then be expanded to the content of the working directory, so the safety net
   # would be defeated exactly when it is needed.
-  if ! fingerprint_output="$(scripts/component-build-fingerprint.py "${PREV_TAG}" "${CURRENT_REF}" 2>/dev/null)"; then
+  fingerprint_err="$(mktemp)"
+  if ! fingerprint_output="$(scripts/component-build-fingerprint.py "${PREV_TAG}" "${CURRENT_REF}" 2>"${fingerprint_err}")"; then
+    # 把失败原因原样打出来（例如缺 PyYAML），否则只会看到"回退全量"这一句
+    cat "${fingerprint_err}" >&2
     build_config_failed=1
   elif ! build_config_changed="$(printf '%s' "${fingerprint_output}" \
     | python3 -c 'import json,sys
@@ -169,17 +180,27 @@ data = json.load(sys.stdin)
 print(" ".join(str(name) for name in data.get("changed", [])))' 2>/dev/null)"; then
     build_config_failed=1
   fi
-fi
-
-if [[ -n "${build_config_failed}" ]]; then
-  echo "Build configuration could not be compared, rebuilding everything." >&2
-  changed=("${ALL_COMPONENTS[@]}")
 else
+  # Without the comparison every component could be reused with a stale build
+  # configuration, so treat the missing script as "everything changed".
+  echo "Build configuration comparison script is missing, rebuilding everything." >&2
+  build_config_failed=1
+fi
+rm -f "${fingerprint_err:-}"
+
+if [[ -z "${build_config_failed}" ]]; then
   # read -a splits the output on whitespace without expanding globbing
   # characters, and every name is validated against ALL_COMPONENTS, so an
   # unexpected value can never be reported as a buildable component.
   read -r -a build_config_components <<< "${build_config_changed}"
   for component in ${build_config_components[@]+"${build_config_components[@]}"}; do
+    if [[ "${component}" == "*" ]]; then
+      # Older versions of the comparison script reported "*" when the workflow
+      # could not be parsed. It must never be silently ignored.
+      echo "Build configuration comparison reported every component as changed." >&2
+      build_config_failed=1
+      break
+    fi
     if [[ " ${ALL_COMPONENTS[*]} " != *" ${component} "* ]]; then
       echo "Ignoring unknown component '${component}' from the build configuration comparison." >&2
       continue
@@ -193,6 +214,11 @@ else
       changed+=("${component}")
     fi
   done
+fi
+
+if [[ -n "${build_config_failed}" ]]; then
+  echo "Build configuration could not be compared, rebuilding everything." >&2
+  changed=("${ALL_COMPONENTS[@]}")
 fi
 
 if [[ ${#changed[@]} -eq 0 ]]; then

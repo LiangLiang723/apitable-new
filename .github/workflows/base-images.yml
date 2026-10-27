@@ -41,7 +41,8 @@ jobs:
         include:
           - component: node
             image: benxianyu/apitable-node
-            tag: v22.22.2
+            # -r1: bookworm-slim 基础 + 显式工具链（内容变了，标签必须变）
+            tag: v22.22.2-r1
             dockerfile: packaging/Dockerfile.node-base
           - component: nodepy
             image: benxianyu/apitable-nodepy
@@ -71,8 +72,10 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: ${{ env.PLATFORMS }}
           push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # A dedicated scope per base image: the default scope is shared with
+          # every other GHA cache user and would be overwritten by them.
+          cache-from: type=gha,scope=base-${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=base-${{ matrix.component }}
           tags: |
             ${{ matrix.image }}:${{ matrix.tag }}
             ${{ matrix.image }}:sha-${{ github.sha }}

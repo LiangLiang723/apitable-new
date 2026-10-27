@@ -184,7 +184,6 @@ hutool-json = { module = "cn.hutool:hutool-json", version.ref = "hutool" }
 hutool-crypto = { module = "cn.hutool:hutool-crypto", version.ref = "hutool" }
 hutool-http = { module = "cn.hutool:hutool-http", version.ref = "hutool" }
 pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
-pdfbox-tools = { module = "org.apache.pdfbox:pdfbox-tools", version.ref = "pdfbox" }
 pdfbox-jbig2 = { module = "org.apache.pdfbox:jbig2-imageio", version.ref = "imageio-jbig2" }
 imageio-jpeg2000 = { module = "com.github.jai-imageio:jai-imageio-jpeg2000", version.ref = "imageio" }
 nimbus = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbus" }
@@ -202,7 +201,7 @@ xstream = { module = "com.thoughtworks.xstream:xstream", version.ref = "xstream"
 hutool = ["hutool-core", "hutool-json", "hutool-crypto", "hutool-http"]
 easyexcel = ["easyexcel", "xerces-impl"]
 slf4j-logback = ["slf4j", "logback"]
-pdfbox = ["pdfbox", "pdfbox-tools", "pdfbox-jbig2", "imageio-jpeg2000"]
+pdfbox = ["pdfbox", "pdfbox-jbig2", "imageio-jpeg2000"]
 shedlock = ["shedlock", "shedlock-redis"]
 sentry = ["sentry-spring", "sentry-logback"]
 social = ["social-feishu", "social-dingtalk", "social-wecom", "social-qq"]

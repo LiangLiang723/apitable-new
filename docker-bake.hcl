@@ -181,6 +181,26 @@ target "openresty" {
   tags = ["${OPENRESTY_IMAGE}:latest", "${OPENRESTY_IMAGE}:${IMAGE_TAG}"]
 }
 
+target "dataenv-pm2" {
+  context = "packaging/all-in-one/dataenv-pm2"
+  dockerfile = "packaging/all-in-one/dataenv-pm2/Dockerfile"
+  platforms = PLATFORMS
+  tags = ["${DATAENV_IMAGE}:latest", "${DATAENV_IMAGE}:${DATAENV_IMAGE_TAG}"]
+}
+
+target "dataenv-liquibase-pm2" {
+  context = "packaging/all-in-one/dataenv-liquibase-pm2"
+  dockerfile = "packaging/all-in-one/dataenv-liquibase-pm2/Dockerfile"
+  args = {
+    DATAENV_PM2_IMAGE = DATAENV_IMAGE
+    DATAENV_PM2_IMAGE_TAG = DATAENV_IMAGE_TAG
+  }
+  # The base image has to be pushed before this target can pull it as FROM.
+  dependencies = ["dataenv-pm2"]
+  platforms = PLATFORMS
+  tags = ["${DATAENV_LIQUIBASE_IMAGE}:latest", "${DATAENV_LIQUIBASE_IMAGE}:${DATAENV_IMAGE_TAG}"]
+}
+
 target "all-in-one" {
   context = "."
   dockerfile = "packaging/all-in-one/all-in-one/Dockerfile"

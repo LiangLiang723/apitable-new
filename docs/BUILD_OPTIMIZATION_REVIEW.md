@@ -1,5 +1,8 @@
 # APITable 构建流程与镜像体积优化审查
 
+> **状态说明**：本文是历史审查记录，部分结论已被后续改动取代；
+> 当前构建行为以 `packaging/`、`docker-bake.hcl` 和 `.github/workflows/` 中的代码为准。
+
 审查日期：2026-10-26
 审查范围：`docker-bake.hcl`、`packaging/**`、`init-db/Dockerfile`、`.dockerignore`、`Makefile`、`.github/workflows/*`、`packages/{room-server,datasheet}` 构建配置、`backend-server` Gradle 配置
 参考：`apitable-20261026151835.log`（真实容器启动日志）

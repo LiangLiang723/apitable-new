@@ -15,7 +15,7 @@ RUN npm install -g pnpm@8.13.1
 
 WORKDIR /workspace-install
 
-COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./
+COPY ./pnpm-workspace.yaml ./package.json ./pnpm-lock.yaml ./.pnpmfile.cjs ./
 COPY ./patches/ ./patches
 
 # server-side canvas stub, referenced by the datasheet workspace package
@@ -35,31 +35,35 @@ COPY packages/api-client/package.json ./packages/api-client/
 # datasheet main
 COPY packages/datasheet/package.json ./packages/datasheet/
 
-RUN sed -i 's~registry.npmmirror.com~registry.npmjs.org~g' pnpm-lock.yaml
-
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
     pnpm config set store-dir /pnpm-store && \
-    pnpm install
+    pnpm install --frozen-lockfile
 
 # stage builder
 FROM ${NODEPY_BASE_IMAGE}:${NODEPY_BASE_TAG} AS builder
-
-ARG SEMVER_FULL="v0.0.0-alpha"
-ARG NEXT_ASSET_PREFIX=""
-ARG NEXT_PUBLIC_ASSET_PREFIX=""
-ENV SEMVER_FULL=${SEMVER_FULL}
 
 # Disable telemetry for the build as well, not only for the runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
 # Keep the webpack filesystem cache outside web_build (the build script wipes it).
 ENV NEXT_WEBPACK_CACHE_DIR=/next-cache
 
-RUN npm install -g pnpm@8.13.1
-
 WORKDIR /app
 
 COPY ./pnpm-workspace.yaml ./build.js ./package.json ./pnpm-lock.yaml ./nx.json ./common-tsconfig.json ./tsconfig.json ./.eslintrc ./
-COPY packages/ ./packages/
+
+# Only the datasheet dependency closure. Copying all of packages/ made every
+# unrelated package change invalidate the shared-package build below.
+COPY packages/canvas-shim ./packages/canvas-shim
+COPY packages/databus-wasm-web ./packages/databus-wasm-web
+COPY packages/databus-wasm-nodejs ./packages/databus-wasm-nodejs
+COPY packages/i18n-lang ./packages/i18n-lang
+COPY packages/core ./packages/core
+COPY packages/icons ./packages/icons
+COPY packages/components ./packages/components
+COPY packages/widget-sdk ./packages/widget-sdk
+COPY packages/ai-components ./packages/ai-components
+COPY packages/api-client ./packages/api-client
+COPY packages/datasheet ./packages/datasheet
 
 COPY --from=deps /workspace-install/patches ./patches
 COPY --from=deps /workspace-install/node_modules ./node_modules
@@ -72,18 +76,21 @@ COPY --from=deps /workspace-install/packages/widget-sdk/node_modules ./packages/
 COPY --from=deps /workspace-install/packages/ai-components/node_modules ./packages/ai-components/node_modules
 COPY --from=deps /workspace-install/packages/api-client/node_modules ./packages/api-client/node_modules
 
-RUN set -eux; \
-    sed -i~ '$a\WEB_CLIENT_VERSION='${SEMVER_FULL}'' packages/datasheet/.env; \
-    sed -i~ 's~^NEXT_ASSET_PREFIX=.*~NEXT_ASSET_PREFIX='${NEXT_ASSET_PREFIX}'~' packages/datasheet/.env; \
-    sed -i~ 's~^NEXT_PUBLIC_ASSET_PREFIX=.*~NEXT_PUBLIC_ASSET_PREFIX='${NEXT_PUBLIC_ASSET_PREFIX}'~' packages/datasheet/.env
-
-RUN pnpm --version
-
 # Build the workspace packages the datasheet depends on first. The build context
 # no longer carries packages/*/dist (see .dockerignore), so this step is what
 # produces @apitable/core, @apitable/components, ... instead of trusting (possibly
 # stale) artifacts from the host.
 RUN pnpm run build:dst:pre
+
+# The release metadata is injected after the shared packages are built: a version
+# bump must not rebuild them.
+ARG SEMVER_FULL="v0.0.0-alpha"
+ARG NEXT_ASSET_PREFIX=""
+ARG NEXT_PUBLIC_ASSET_PREFIX=""
+RUN set -eux; \
+    sed -i~ '$a\WEB_CLIENT_VERSION='${SEMVER_FULL}'' packages/datasheet/.env; \
+    sed -i~ 's~^NEXT_ASSET_PREFIX=.*~NEXT_ASSET_PREFIX='${NEXT_ASSET_PREFIX}'~' packages/datasheet/.env; \
+    sed -i~ 's~^NEXT_PUBLIC_ASSET_PREFIX=.*~NEXT_PUBLIC_ASSET_PREFIX='${NEXT_PUBLIC_ASSET_PREFIX}'~' packages/datasheet/.env
 
 RUN --mount=type=cache,id=next-webpack-cache,target=/next-cache \
     pnpm run build:dst

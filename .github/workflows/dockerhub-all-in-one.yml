@@ -28,7 +28,9 @@ on:
 
 permissions:
   contents: read
-  packages: read
+  # Room and web stages export their intermediate layers to GHCR (the GHA cache
+  # budget is 10GB and one web build is larger than that).
+  packages: write
 
 concurrency:
   group: dockerhub-all-in-one-${{ github.ref }}
@@ -51,7 +53,7 @@ env:
   # carries the revision, so bumping it is what tells the fingerprint that the
   # component has to be rebuilt.
   NODE_BASE_IMAGE: benxianyu/apitable-node
-  NODE_BASE_TAG: v22.22.2
+  NODE_BASE_TAG: v22.22.2-r1
   NODEPY_BASE_IMAGE: benxianyu/apitable-nodepy
   NODEPY_BASE_TAG: 22.22.2-alpine
   # These three are the only images that still come from upstream: their sources
@@ -74,6 +76,8 @@ jobs:
       push_latest: ${{ steps.vars.outputs.push_latest }}
       previous_tag: ${{ steps.changes.outputs.previous_tag }}
       changed: ${{ steps.changes.outputs.changed }}
+      source_date_epoch: ${{ steps.vars.outputs.source_date_epoch }}
+      cache_repo: ${{ steps.vars.outputs.cache_repo }}
       node_base_image: ${{ steps.vars.outputs.node_base_image }}
       node_base_tag: ${{ steps.vars.outputs.node_base_tag }}
       nodepy_base_image: ${{ steps.vars.outputs.nodepy_base_image }}
@@ -125,6 +129,10 @@ jobs:
             echo "version_tag=${version}"
             echo "short_sha=${short_sha}"
             echo "push_latest=${push_latest}"
+            # Commit time keeps the backend jar reproducible for the same commit.
+            echo "source_date_epoch=$(git log -1 --format=%ct HEAD)"
+            # Docker 引用必须全小写，而 github.repository 会保留所有者的大小写
+            echo "cache_repo=ghcr.io/${GITHUB_REPOSITORY,,}/build-cache"
             # The env context is not available in a job strategy block, so the
             # base image references are handed over through the job outputs.
             echo "node_base_image=${NODE_BASE_IMAGE}"
@@ -278,17 +286,24 @@ jobs:
       - name: 拉取源码
         uses: actions/checkout@v4
 
-      - name: 设置 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.22.2'
-
+      # The four test commands need different toolchains: the backend test runs
+      # Gradle on the runner, the core test is the only one that needs Node and
+      # pnpm, and the other two only use Docker.
       - name: 设置 pnpm
+        if: matrix.command == '_test-ut-core'
         uses: pnpm/action-setup@v2
         with:
           version: 8.13.1
 
+      - name: 设置 Node.js
+        if: matrix.command == '_test-ut-core'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: 'pnpm'
+
       - name: 设置 JDK
+        if: matrix.command == 'test-ut-backend-docker'
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -296,6 +311,7 @@ jobs:
           cache: 'gradle'
 
       - name: 安装编译依赖
+        if: matrix.command == '_test-ut-core'
         run: sudo apt-get update -y && sudo apt-get install -y build-essential
 
       - name: 运行单元测试 ${{ matrix.command }}
@@ -321,7 +337,10 @@ jobs:
             image: benxianyu/apitable-backend-server
             context: .
             dockerfile: packaging/Dockerfile.backend-server
-            extra_args: ""
+            extra_args: |
+              SOURCE_DATE_EPOCH=${{ needs.prepare.outputs.source_date_epoch }}
+            cache_from: type=gha,scope=backend-server
+            cache_to: type=gha,mode=max,ignore-error=true,scope=backend-server
           - target: room-server
             image: benxianyu/apitable-room-server
             context: .
@@ -331,6 +350,12 @@ jobs:
               NODE_BASE_TAG=${{ needs.prepare.outputs.node_base_tag }}
               NODE_RUNTIME_IMAGE=node
               NODE_RUNTIME_TAG=22.22.2-bookworm-slim
+            # mode=max over a per-component registry ref: it exports the
+            # node_modules install layer without spending the GHA cache budget.
+            cache_from: |
+              type=gha,scope=room-server
+              type=registry,ref=${{ needs.prepare.outputs.cache_repo }}:room-server
+            cache_to: type=registry,ref=${{ needs.prepare.outputs.cache_repo }}:room-server,mode=max,ignore-error=true
           - target: web-server
             image: benxianyu/apitable-web-server
             context: .
@@ -340,11 +365,17 @@ jobs:
               NODEPY_BASE_TAG=${{ needs.prepare.outputs.nodepy_base_tag }}
               NODE_RUNTIME_IMAGE=node
               NODE_RUNTIME_TAG=22.22.2-alpine
+            cache_from: |
+              type=gha,scope=web-server
+              type=registry,ref=${{ needs.prepare.outputs.cache_repo }}:web-server
+            cache_to: type=registry,ref=${{ needs.prepare.outputs.cache_repo }}:web-server,mode=max,ignore-error=true
           - target: init-db
             image: benxianyu/apitable-init-db
             context: ./init-db
             dockerfile: ./init-db/Dockerfile
             extra_args: ""
+            cache_from: type=gha,scope=init-db
+            cache_to: type=gha,mode=min,ignore-error=true,scope=init-db
 
     steps:
       - name: 拉取源码
@@ -358,6 +389,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 登录 GHCR（构建缓存）
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 判断是否需要重新构建
         id: decide
@@ -420,12 +458,12 @@ jobs:
           build-args: |
             SEMVER_FULL=${{ needs.prepare.outputs.version_tag }}
             ${{ matrix.extra_args }}
-          cache-from: type=gha,scope=${{ matrix.target }}
-          # backend-server keeps mode=max: its layers are small and the Gradle
-          # dependency graph is worth caching across runs. room-server and
-          # web-server would export ~3GB of node_modules and the webpack cache,
-          # which evicts everything else from the 10GB GHA cache budget.
-          cache-to: type=gha,mode=${{ matrix.target == 'backend-server' && 'max' || 'min' }},ignore-error=true,scope=${{ matrix.target }}
+          cache-from: ${{ matrix.cache_from }}
+          # room/web use a registry cache (mode=max); backend/init-db stay on the
+          # GHA cache. Cache mounts (pnpm store, Gradle home, webpack cache) are
+          # builder-local, so the install/build layers exported here are what
+          # survives between runners.
+          cache-to: ${{ matrix.cache_to }}
 
       - name: 复用上一版本镜像
         if: steps.decide.outputs.build != 'true'
@@ -952,6 +990,86 @@ jobs:
 
           find . -maxdepth 1 -name "${bundle}*" -exec ls -lh {} + | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: 生成精简离线交付包（仅 AIO）
+        shell: bash
+        env:
+          VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
+          FINAL_IMAGE_NAME: ${{ needs.prepare.outputs.final_image }}
+        run: |
+          set -euo pipefail
+
+          # The all-in-one deployment only needs the final image. The full bundle
+          # above stays available for component based deployments.
+          bundle="apitable-offline-aio-${VERSION_TAG}.tar.gz"
+
+          if command -v pigz >/dev/null 2>&1; then
+            COMPRESS=(pigz -9 -p "$(nproc)")
+          else
+            COMPRESS=(gzip -9)
+          fi
+
+          docker save "${FINAL_IMAGE_NAME}:${VERSION_TAG}" | "${COMPRESS[@]}" > "${bundle}"
+
+          size=$(stat -c %s "${bundle}")
+          limit=$((1900 * 1024 * 1024))
+          if [[ "${size}" -gt "${limit}" ]]; then
+            split -b "${limit}" -d -a 2 "${bundle}" "${bundle}.part-"
+            rm -f "${bundle}"
+            for part in "${bundle}".part-*; do
+              sha256sum "${part}" >> "${bundle}.sha256"
+            done
+          else
+            sha256sum "${bundle}" > "${bundle}.sha256"
+          fi
+
+          cat > AIO-OFFLINE-README.md <<EOF
+          # APITable 离线部署包（仅 all-in-one）${VERSION_TAG}
+
+          本包只包含最终 all-in-one 镜像 \`${FINAL_IMAGE_NAME}:${VERSION_TAG}\`，
+          适合直接运行单容器部署。组件镜像、基础镜像和构建环境**不在**本包内，
+          需要它们时请使用完整的 \`apitable-offline-${VERSION_TAG}.tar.gz\`。
+
+          ## 校验
+
+          \`\`\`bash
+          sha256sum -c ${bundle}.sha256
+          \`\`\`
+
+          如果是分卷包，先按顺序对每个分卷校验：
+
+          \`\`\`bash
+          sha256sum -c ${bundle}.sha256
+          \`\`\`
+
+          ## 导入
+
+          \`\`\`bash
+          gunzip -c ${bundle} | docker load
+          \`\`\`
+
+          如果是分卷包：
+
+          \`\`\`bash
+          cat ${bundle}.part-* > ${bundle}
+          gunzip -c ${bundle} | docker load
+          \`\`\`
+
+          ## 启动
+
+          \`\`\`bash
+          docker run -d --name apitable -p 80:80 \\
+            -v "\$(pwd)/.data:/apitable" \\
+            ${FINAL_IMAGE_NAME}:${VERSION_TAG}
+          \`\`\`
+
+          容器内由 PM2 托管 mysql / redis / rabbitmq / minio / gateway /
+          backend-server / room-server / web-server / databus-server /
+          imageproxy-server 全部服务。
+          EOF
+
+          find . -maxdepth 1 -name "${bundle}*" -o -name 'AIO-OFFLINE-README.md' \
+            | xargs -r ls -lh | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: 生成离线包使用说明
         shell: bash
         env:
@@ -1029,6 +1147,9 @@ jobs:
             echo "本 Release 附带完整的离线镜像包 \`apitable-offline-${VERSION_TAG}.tar.gz\`，"
             echo "适用于无外网的内网环境，导入方式见包内的 \`OFFLINE-README.md\`。"
             echo
+            echo "只部署 all-in-one 时可用更小的 \`apitable-offline-aio-${VERSION_TAG}.tar.gz\`，"
+            echo "说明见 \`AIO-OFFLINE-README.md\`。"
+            echo
             echo "### 本次构建"
             echo
             echo "- 上一版本：${PREVIOUS_TAG:-（首个版本）}"
@@ -1037,7 +1158,7 @@ jobs:
           } > release-notes.md
 
           assets=()
-          for file in apitable-offline-*.tar.gz* OFFLINE-README.md; do
+          for file in apitable-offline-*.tar.gz* OFFLINE-README.md AIO-OFFLINE-README.md; do
             [[ -e "${file}" ]] && assets+=("${file}")
           done
 

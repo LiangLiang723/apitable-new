@@ -1,5 +1,4 @@
 import java.nio.charset.StandardCharsets
-import java.time.LocalDateTime
 
 plugins {
     id 'testing.java-conventions'
@@ -132,16 +131,21 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs += '-Xlint:-deprecation'
 }
 
+// Reproducible artifacts: the manifest must not carry the wall clock, the host
+// name or the build user, otherwise the same commit produces a different jar.
+// SOURCE_DATE_EPOCH is set by the release build to the commit time.
+def sourceDateEpoch = providers.environmentVariable('SOURCE_DATE_EPOCH')
+    .map { it.trim().toLong() }
+    .getOrElse(0L)
+def buildTimestamp = java.time.Instant.ofEpochSecond(sourceDateEpoch).toString()
+
 bootJar {
     mainClass.set('com.apitable.Application')
     manifest {
         attributes 'Start-Class': 'com.apitable.Application'
         attributes 'Implementation-Version': archiveVersion
         attributes 'Built-Gradle': gradle.gradleVersion
-        attributes 'Build-OS': System.getProperty("os.name")
-        attributes 'Built-By': System.getProperty("user.name")
-        attributes 'Build-Jdk': System.getProperty("java.version")
-        attributes 'Build-Timestamp': LocalDateTime.now().toString()
+        attributes 'Build-Timestamp': buildTimestamp
     }
 }
 
