@@ -19,7 +19,9 @@
   10GB 的 GHA 配额
 * build: 收窄层失效范围——Web 只复制 datasheet 的依赖闭包，版本注入延后到共享包构建之后；
   后端先复制 wrapper 与构建脚本再复制源码
-* build: all-in-one 的后端按 layertools 四层顺序拷贝，业务类变化只让最后一层失效
+* build: all-in-one 的后端仍整包拷贝。layertools 把 BOOT-INF/lib、BOOT-INF/classes、org/ 平铺进 /app，
+  按“层目录”拆分拷贝需要精确依赖 idx 文件位置，上游一改就静默失效；AIO 只要任一组件变化就会重建，
+  拆层的缓存收益很小，因此保留整包（后端镜像自身仍然是分层的）
 * build: node 基础镜像改用 `bookworm-slim` + 显式工具链，标签提升为 `v22.22.2-r1`
 * build: Room 运行期产物删除 `.d.ts`/`.map`；`rimraf`、`nestjs-proto-gen-ts` 移入 devDependencies
 * build: 新增只含 all-in-one 的精简离线包（与完整包并存），并补 `init-db/.dockerignore`

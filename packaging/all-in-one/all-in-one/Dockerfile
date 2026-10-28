@@ -23,14 +23,11 @@ FROM ${IMAGEPROXY_IMAGE}:${IMAGEPROXY_IMAGE_TAG} as imageproxy-server
 
 FROM ${DATAENV_LIQUIBASE_IMAGE}:${DATAENV_IMAGE_TAG}
 
-# 保持 Spring Boot 的分层顺序，而不是把 /app 整块拷进来：loader 与三方 jar 位于
-# 靠前的层，业务类变化时只让最后一层失效。后端镜像用 layertools 解包，四个层目录
-# 就是运行时的 classpath 根，必须按 dependencies -> loader -> snapshot -> application
-# 的顺序拷贝，ENTRYPOINT 的 JarLauncher 才能在 /app/backend-server 下找到它们。
-COPY --from=backend-server /app/dependencies/ /app/backend-server/dependencies/
-COPY --from=backend-server /app/spring-boot-loader/ /app/backend-server/spring-boot-loader/
-COPY --from=backend-server /app/snapshot-dependencies/ /app/backend-server/snapshot-dependencies/
-COPY --from=backend-server /app/application/ /app/backend-server/application/
+# 整块拷 /app。layertools 把每一层的内容（BOOT-INF/lib、BOOT-INF/classes、org/…）
+# 平铺进 /app，而不是留下 dependencies/、application/ 这样的目录；按"层目录"拆分拷贝
+# 需要精确知道每个 idx 文件的位置，一旦上游 Spring Boot 调整布局就会静默失效。
+# 而 AIO 只要任一组件变化就会重建，拆层的缓存收益本来就很小，这里选择稳的写法。
+COPY --from=backend-server /app/ /app/backend-server/
 COPY --from=databus-server /usr/local/bin/ /app/databus-server/
 COPY --from=room-server /app/ /app/room-server/
 COPY --from=web-server /app/ /app/web-server/
