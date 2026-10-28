@@ -312,3 +312,36 @@ automation 的 webhook / slack / ruliu 与 `automation.service` 在模块加载�
 原来通过 `docker logs | grep "built-in application data already loaded"` 判断版本戳是否生效，
 但该行经过 pm2 的日志管道不一定会落到容器 stdout。改为直接读容器内
 `/apitable/.appdata-stamp`，与镜像 tag 比对，失败时再回退到日志并打印相关行。
+
+---
+
+## v1.17.8 实测（P0–P3 落地后的第一次真实构建）
+
+| 指标 | v1.17.6 | v1.17.8 |
+|---|---|---|
+| all-in-one 镜像 | 2.38 GB | **1.97 GB**（-17%） |
+| room-server | 430 MB | **416 MB** |
+| dataenv-pm2 | 797 MB | 797 MB |
+| 完整离线包 | 3051 MB | **2497 MB**（-18%） |
+| 仅 AIO 精简包 | — | **975 MB** |
+| 冷启动 | 61 s | 61 s |
+| 同版本重启 | 31 s | 31 s |
+| 常驻内存 | 2.25 GiB | **1.92 GiB** |
+
+组件复用也第一次真正生效：本次只有 backend / AIO 需要重建，web-server、room-server、
+dataenv 在 0.4~0.5 分钟内完成（命中已发布的同版本镜像），而完整构建时 web 需要 ~12 分钟。
+
+### 落地过程中踩到并修掉的四个问题
+
+1. **`lpm add mysql --global` 校验失败直接中断构建**（init-db 与 dataenv-liquibase 同时挂）：
+   改成从 Maven Central 直取 `mysql-connector-j 8.0.33` 并校验 SHA256。
+2. **`jlink --strip-debug` 需要 objcopy**：最小化基础镜像没有 binutils，构建期补上（不进交付镜像）。
+3. **AIO 按“层目录”拆分拷贝是错的**：layertools 把 `BOOT-INF/lib`、`BOOT-INF/classes`、`org/`
+   平铺进 `/app`，没有 `dependencies/`、`application/` 目录。改回整包拷贝。
+4. **可重复构建导致后端启动即退出**：固定归档顺序后 `BOOT-INF/lib` 中 `pull-parser-2.jar`
+   排在 `xercesImpl` 前面，两个 jar 都声明了 `META-INF/services/javax.xml.parsers.SAXParserFactory`，
+   ServiceLoader 选中 `org.gjt.xpp.jaxp11`（不支持标准 SAX feature），logback 解析配置时抛
+   `SAXNotRecognizedException`。现在显式 `-Djavax.xml.parsers.SAXParserFactory=org.apache.xerces.jaxp.SAXParserFactoryImpl`。
+
+第 4 条说明：**可重复构建会改变 jar 顺序，进而改变 ServiceLoader 的解析结果**，
+这类“顺序敏感”的隐式依赖需要在启动参数上钉死，而不是依赖 classpath 顺序。
