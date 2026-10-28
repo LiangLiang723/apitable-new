@@ -1,5 +1,19 @@
 # APITable CHANGELOG
 
+## [v1.17.8](https://github.com/apitable/apitable/releases/tag/v1.17.8) (2026-10-27)
+
+修复 v1.17.7 无法启动的问题。
+
+### 修复
+
+* fix: **后端启动即退出**。可重复构建（固定归档顺序）改变了 `BOOT-INF/lib` 内的 jar 顺序，
+  而 `pull-parser-2.jar` 与 `xercesImpl-2.12.2.jar` 都声明了
+  `META-INF/services/javax.xml.parsers.SAXParserFactory`；顺序变化后 ServiceLoader 选中了
+  `org.gjt.xpp.jaxp11.SAXParserFactoryImpl`，它不支持标准 SAX feature，logback 解析配置时抛
+  `SAXNotRecognizedException`，进程直接退出。现在显式指定 `org.apache.xerces.jaxp.SAXParserFactoryImpl`，
+  不再依赖 jar 顺序（后端镜像 ENTRYPOINT 与 all-in-one 启动命令都已加）。
+* test: 冒烟在健康检查超时时会输出容器内诊断（/proc 进程、java -version、MySQL 可达性、changelog 锁、负载）。
+
 ## [v1.17.7](https://github.com/apitable/apitable/releases/tag/v1.17.7) (2026-10-27)
 
 构建流水线收尾：组件复用判定、可重复构建、缓存命中与镜像分层。不改变运行行为。

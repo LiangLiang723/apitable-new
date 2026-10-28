@@ -64,6 +64,11 @@ EXPOSE 8081
 # works for the exploded layer layout used here.
 # -Xss512k: Tomcat runs up to 200 request threads, the default 1MB stack each is
 #           a lot of reserved address space for a service that barely recurses.
+# The reproducible jar changes the BOOT-INF/lib order, and xpp3 ships its own
+# SAXParserFactory (org.gjt.xpp.jaxp11) that the ServiceLoader then picks up first:
+# logback fails to parse its config with SAXNotRecognizedException and the backend
+# exits immediately. xercesImpl (also on the classpath) is pinned explicitly so the
+# provider no longer depends on the jar order inside BOOT-INF/lib.
 # -XX:MaxRAMPercentage=50: container aware heap sizing; without a cgroup limit
 #           the JVM still falls back to 50% of the host memory.
 ENTRYPOINT ["java", \
@@ -73,5 +78,6 @@ ENTRYPOINT ["java", \
     "-Xss512k", \
     "-XX:+ExitOnOutOfMemoryError", \
     "-Djava.security.egd=file:/dev/./urandom", \
+    "-Djavax.xml.parsers.SAXParserFactory=org.apache.xerces.jaxp.SAXParserFactoryImpl", \
     "--add-opens=java.base/java.lang=ALL-UNNAMED", \
     "org.springframework.boot.loader.launch.JarLauncher"]
