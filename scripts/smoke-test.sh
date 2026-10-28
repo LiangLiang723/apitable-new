@@ -22,6 +22,28 @@ NAME="apitable-smoke-$$"
 
 log() { printf '[smoke] %s\n' "$*"; }
 fail() { printf '[smoke] FAIL: %s\n' "$*" >&2; FAILED=1; }
+
+# 镜像里没有 ps/top，超时后只能靠 /proc 和容器内命令取证；
+# 否则看到的永远只是"健康检查超时"这一句，不知道该看哪。
+dump_diagnostics() {
+    log "容器日志（末尾 80 行）："
+    docker logs --tail 80 "$NAME" 2>&1 || true
+
+    log "进程（/proc）："
+    docker exec "$NAME" sh -c 'for p in /proc/[0-9]*; do c=$(tr "\0" " " < "$p/comm" 2>/dev/null); [ -n "$c" ] && echo "${p#/proc/} $c"; done | sort -n | tail -20' 2>&1 || true
+
+    log "java："
+    docker exec "$NAME" sh -c 'java -version 2>&1 | head -3' 2>&1 || true
+
+    log "MySQL 可达性："
+    docker exec "$NAME" sh -c 'mysqladmin ping -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u"$MYSQL_USERNAME" -p"$MYSQL_PASSWORD" 2>&1 | tail -1' 2>&1 || true
+
+    log "changelog 锁："
+    docker exec "$NAME" sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -D "${MYSQL_DATABASE:-apitable}" -e "SELECT ID,LOCKED,LOCKEDBY FROM ${DATABASE_TABLE_PREFIX:-apitable_}db_changeloglock" 2>&1 | grep -v Warning | tail -5' 2>&1 || true
+
+    log "负载/内存："
+    docker exec "$NAME" sh -c 'cat /proc/loadavg; grep -E "MemTotal|MemAvailable" /proc/meminfo' 2>&1 || true
+}
 FAILED=0
 
 cleanup() {
@@ -63,6 +85,7 @@ if SECONDS_USED=$(wait_healthy); then
     fi
 else
     fail "冷启动超时（${WAIT_SECONDS}s 内未通过健康检查）"
+    dump_diagnostics
 fi
 
 log "--- 2/5 HTTP 与静态资源 ---"
@@ -135,10 +158,7 @@ if SECONDS_USED=$(wait_healthy); then
     log "重启后健康检查通过，用时 ${SECONDS_USED}s"
 else
     fail "重启后未通过健康检查"
-    log "容器日志（末尾 120 行）："
-    docker logs --tail 120 "$NAME" 2>&1 || true
-    log "容器内进程："
-    docker exec "$NAME" sh -c 'ps -eo pid,comm,etime --sort=start_time | tail -20' 2>&1 || true
+    dump_diagnostics
 fi
 # 版本戳文件是最可靠的证据：脚本的 stdout 会经过 pm2 的日志管道，
 # 有时被吞掉；容器内文件不会骗人。
