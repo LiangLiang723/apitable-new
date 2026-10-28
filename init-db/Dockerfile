@@ -24,8 +24,8 @@ ARG MYSQL_DRIVER_VERSION=8.0.33
 ARG MYSQL_DRIVER_SHA256=e2a3b2fc726a1ac64e998585db86b30fa8bf3f706195b78bb77c5f99bf877bd9
 RUN set -eux; \
     url="https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/${MYSQL_DRIVER_VERSION}/mysql-connector-j-${MYSQL_DRIVER_VERSION}.jar"; \
-    if command -v wget >/dev/null 2>&1; then wget -q -O /liquibase/lib/mysql-connector-j.jar "${url}"; \
-    else curl -fsSL -o /liquibase/lib/mysql-connector-j.jar "${url}"; fi; \
+    if command -v wget >/dev/null 2>&1; then wget -q -T 60 -t 5 -O /liquibase/lib/mysql-connector-j.jar "${url}"; \
+    else curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors --max-time 300 -o /liquibase/lib/mysql-connector-j.jar "${url}"; fi; \
     echo "${MYSQL_DRIVER_SHA256}  /liquibase/lib/mysql-connector-j.jar" | sha256sum -c -
 ADD src/main/resources /liquibase/changelog
 

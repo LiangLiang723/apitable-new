@@ -13,6 +13,8 @@ ARG DATAENV_PM2_IMAGE_TAG=latest
 # The runtime is built with ALL-MODULE-PATH: it keeps the full module set (TLS,
 # fonts for the PDF export path, jdk.unsupported, ...) while dropping jmods,
 # headers, sources, man pages and debug symbols.
+# --compress=2 is deliberately not used: it is deprecated on 17 and dominates the
+# jlink runtime (minutes) for a few MB saved.
 #
 # binutils is a build-time dependency: `jlink --strip-debug` shells out to objcopy,
 # which the minimal base image does not ship. The final stage copies only the
@@ -31,28 +33,29 @@ RUN set -euxo pipefail; \
   CORRETTO_VERSION=17.0.9.8-1; \
   GNUPGHOME="$(mktemp -d)"; \
   export GNUPGHOME; \
-  curl -fL -o corretto.key https://yum.corretto.aws/corretto.key; \
+  curl -fL --retry 5 --retry-delay 3 --retry-all-errors --max-time 300 -o corretto.key https://yum.corretto.aws/corretto.key; \
   gpg --batch --import corretto.key; \
   gpg --batch --export --armor '6DC3636DAE534049C8B94623A122542AB04F24E3' > corretto.key; \
   rpm --import corretto.key; \
   rm -fr "$GNUPGHOME" corretto.key; \
-  curl -fL -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo; \
+  curl -fL --retry 5 --retry-delay 3 --retry-all-errors --max-time 300 -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo; \
   grep -q '^gpgcheck=1' /etc/yum.repos.d/corretto.repo; \
   echo "priority=9" >> /etc/yum.repos.d/corretto.repo; \
   microdnf -y --disablerepo='rabbitmq_*' install "java-17-amazon-corretto-devel-${CORRETTO_VERSION}"; \
   \
   mkdir -p /liquibase/bin; \
   cd /liquibase; \
-  curl -LO "https://github.com/liquibase/liquibase/releases/download/v${LIQUIBASE_VERSION}/liquibase-${LIQUIBASE_VERSION}.tar.gz"; \
+  curl -fL --retry 5 --retry-delay 3 --retry-all-errors --max-time 600 -o "liquibase-${LIQUIBASE_VERSION}.tar.gz" \
+    "https://github.com/liquibase/liquibase/releases/download/v${LIQUIBASE_VERSION}/liquibase-${LIQUIBASE_VERSION}.tar.gz"; \
   echo "$LB_SHA256  liquibase-${LIQUIBASE_VERSION}.tar.gz" | sha256sum -c -; \
   tar -xzf liquibase-${LIQUIBASE_VERSION}.tar.gz; \
   rm -f liquibase-${LIQUIBASE_VERSION}.tar.gz; \
-  curl -fsSL -o /liquibase/lib/mysql-connector-j.jar \
+  curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors --max-time 300 -o /liquibase/lib/mysql-connector-j.jar \
     "https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/${MYSQL_DRIVER_VERSION}/mysql-connector-j-${MYSQL_DRIVER_VERSION}.jar"; \
   echo "${MYSQL_DRIVER_SHA256}  /liquibase/lib/mysql-connector-j.jar" | sha256sum -c -; \
   jlink --add-modules ALL-MODULE-PATH \
         --strip-debug --no-man-pages --no-header-files \
-        --compress=2 --output /opt/java-runtime; \
+        --output /opt/java-runtime; \
   /opt/java-runtime/bin/java -version
 
 FROM ${DATAENV_PM2_IMAGE}:${DATAENV_PM2_IMAGE_TAG}
