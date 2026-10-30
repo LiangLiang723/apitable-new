@@ -1,0 +1,31 @@
+{
+  "repository": "LiangLiang723/apitable-new",
+  "verified_objects": 101449,
+  "changed_refs": [
+    "refs/heads/develop",
+    "refs/heads/develop-backup",
+    "refs/heads/privacy-cleanup-20261030",
+    "refs/heads/self-hosted-enterprise",
+    "refs/heads/v3.0.0",
+    "refs/tags/v1.0.0",
+    "refs/tags/v1.1.1",
+    "refs/tags/v1.1.2",
+    "refs/tags/v1.1.4",
+    "refs/tags/v1.1.5",
+    "refs/tags/v1.1.6",
+    "refs/tags/v1.13.0",
+    "refs/tags/v1.15.0",
+    "refs/tags/v1.16.0",
+    "refs/tags/v1.17.0",
+    "refs/tags/v1.17.1",
+    "refs/tags/v1.17.2",
+    "refs/tags/v1.17.3",
+    "refs/tags/v1.17.4",
+    "refs/tags/v1.17.5",
+    "refs/tags/v1.17.6",
+    "refs/tags/v1.17.7",
+    "refs/tags/v1.17.8"
+  ],
+  "encrypted_backup_sha256": "294ba6ccc94355304aeb1adcc991e2eeb05089a7ed4760990ec6b337967a9f1b",
+  "published": false
+}
