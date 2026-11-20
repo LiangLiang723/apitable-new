@@ -1,12 +1,12 @@
-local addKey = {}
-for _, v in ipairs(KEYS) do
-  if (redis.call('SET', v, ARGV[1], 'NX', 'EX', ARGV[2])) then
-    addKey[#addKey + 1] = v
+local acquired = {}
+for _, key in ipairs(KEYS) do
+  if redis.call('SET', key, ARGV[1], 'NX', 'PX', ARGV[2]) then
+    acquired[#acquired + 1] = key
   else
-    if (#addKey > 0) then
-      redis.call('DEL', unpack(addKey))
+    for _, acquiredKey in ipairs(acquired) do
+      redis.call('DEL', acquiredKey)
     end
-    return { 0, addKey }
+    return 0
   end
 end
-return { 1, addKey }
+return 1

@@ -260,7 +260,7 @@ export class OtService {
 
     const msgIds = message.changesets.map(cs => cs.messageId);
     const client = this.redisService.getClient();
-    const lock = RedisLock(client as any);
+    const lock = RedisLock(client);
     // Lock resource, messages of the same resource are consumed sequentially. Timeout is 120s
     const unlock = await lock(message.changesets.map(cs => cs.resourceId), 120 * 1000);
     const attachCites: any[] = [];
@@ -315,8 +315,12 @@ export class OtService {
 
       // ======== multiple-resource operation transaction END ========
     } finally {
-      // Release lock of each resource
-      await unlock();
+      try {
+        await unlock();
+      } catch (error) {
+        // The lease expires even when Redis is temporarily unavailable.
+        this.logger.error(`Failed to release changeset lock for room ${message.roomId}`, { error });
+      }
     }
 
     // Only perform attachment computation if no exception was thrown, to ensure
