@@ -82,7 +82,8 @@ rm -f "$socket" "$socket.lock" "$pid_file"
 gosu "$GOSU_USER" mysqld --daemonize --skip-grant-tables --skip-networking \
     --datadir="$bootstrap_dir" --socket="$socket" --pid-file="$pid_file"
 trap 'if [[ -s "$pid_file" ]]; then kill -TERM "$(cat "$pid_file")" 2>/dev/null || true; fi' EXIT
-mysql_args=(--protocol=socket --socket="$socket" --user=root)
+# The all-in-one environment sets MYSQL_HOST for TCP clients.
+mysql_args=(--host=localhost --protocol=socket --socket="$socket" --user=root)
 
 if [[ "$bootstrap_dir" == "$mysql_dir" ]]; then
     # An interrupted legacy bootstrap can have valid system tables. Check the

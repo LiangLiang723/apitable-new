@@ -89,7 +89,7 @@ wait_healthy() {
 mysql_query() {
     docker exec "$NAME" sh -c '
         export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
-        exec mysql --protocol=socket -uroot --batch --skip-column-names "$MYSQL_DATABASE" "$@"
+        exec mysql --host=localhost --protocol=socket -uroot --batch --skip-column-names "$MYSQL_DATABASE" "$@"
     ' sh "$@"
 }
 
@@ -112,7 +112,7 @@ verify_upgrade_and_restore() {
     start_container "$SMOKE_UPGRADE_FROM" "$UPGRADE_VOLUME" && wait_healthy && save_record || return 1
     docker exec "$NAME" sh -c '
         export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
-        exec mysqldump --protocol=socket -uroot --single-transaction --no-tablespaces --set-gtid-purged=OFF "$MYSQL_DATABASE"
+        exec mysqldump --host=localhost --protocol=socket -uroot --single-transaction --no-tablespaces --set-gtid-purged=OFF "$MYSQL_DATABASE"
     ' > "$BACKUP" || return 1
     [[ -s "$BACKUP" ]] || return 1
     docker stop "$NAME" >/dev/null && docker rm "$NAME" >/dev/null || return 1
@@ -126,8 +126,8 @@ verify_upgrade_and_restore() {
         init-dataenv.sh
         gosu "$GOSU_USER" mysqld --daemonize --skip-networking
         export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
-        mysql --protocol=socket -uroot "$MYSQL_DATABASE"
-        mysqladmin --protocol=socket -uroot shutdown
+        mysql --host=localhost --protocol=socket -uroot "$MYSQL_DATABASE"
+        mysqladmin --host=localhost --protocol=socket -uroot shutdown
     ' < "$BACKUP" || return 1
     start_container "$IMAGE" "$RESTORE_VOLUME" && wait_healthy && record_matches
 }
