@@ -21,6 +21,7 @@ export * from './exports/store';
 export * from './exports/api';
 export * from './command_manager';
 export * from './commands';
+export { normalizeSingleTextCellValue } from './commands/common/field';
 export * from './engine';
 export * from './io';
 export * from './tablebundle';

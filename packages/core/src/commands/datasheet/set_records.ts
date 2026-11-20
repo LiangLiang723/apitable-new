@@ -128,12 +128,14 @@ export const setRecords: ICollaCommandDef<ISetRecordsOptions> = {
     const uniquePrimaryField = getUniqueSingleTextPrimaryField(snapshot);
     if (uniquePrimaryField) {
       const primaryFieldUpdates = data.filter(item => item.fieldId === uniquePrimaryField.id);
-      const touchedRecordIds = new Set(primaryFieldUpdates.map(item => item.recordId));
-      const existingValueToRecordId = getExistingCellValueMap(snapshot, uniquePrimaryField.id, touchedRecordIds);
-      const seenInBatch = new Set<string>();
-      primaryFieldUpdates.forEach(item => {
-        assertPrimaryFieldValueNotDuplicated(existingValueToRecordId, seenInBatch, item.recordId, item.value, uniquePrimaryField.name);
-      });
+      if (primaryFieldUpdates.length) {
+        const touchedRecordIds = new Set(primaryFieldUpdates.map(item => item.recordId));
+        const existingValueToRecordId = getExistingCellValueMap(snapshot, uniquePrimaryField.id, touchedRecordIds);
+        const seenInBatch = new Set<string>();
+        primaryFieldUpdates.forEach(item => {
+          assertPrimaryFieldValueNotDuplicated(existingValueToRecordId, seenInBatch, item.recordId, item.value, uniquePrimaryField.name);
+        });
+      }
     }
 
     const fieldMap = snapshot.meta.fieldMap;

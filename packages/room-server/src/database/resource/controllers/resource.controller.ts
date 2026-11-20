@@ -32,7 +32,7 @@ import { RecordHistoryTypeEnum } from 'shared/enums/record.history.enum';
 import { PermissionException, ServerException } from 'shared/exception';
 import { ResourceDataInterceptor } from 'database/resource/middleware/resource.data.interceptor';
 import type { ChangesetView, DatasheetPack } from '../../interfaces';
-import type { RecordHistoryQueryRo } from '../../datasheet/ros/record.history.query.ro';
+import { RecordHistoryQueryRo } from '../../datasheet/ros/record.history.query.ro';
 import type { RecordHistoryVo } from '../vos/record.history.vo';
 
 @Controller('nest/v1')

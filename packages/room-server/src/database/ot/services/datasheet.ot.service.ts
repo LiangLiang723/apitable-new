@@ -42,6 +42,7 @@ import {
   isSameSet,
   IViewProperty,
   jot,
+  normalizeSingleTextCellValue,
   OTActionName,
   ViewType,
 } from '@apitable/core';
@@ -129,33 +130,7 @@ export class DatasheetOtService {
     }
   }
 
-  /**
-   * demo scope: normalize a SingleText cell value the same way the client-side check does
-   * (packages/core/src/commands/common/field.ts#normalizeSingleTextCellValue): concatenate
-   * segment texts and trim. Blank values are not considered for uniqueness.
-   */
-  private static normalizeSingleTextCellValue(value: any): string | null {
-    if (!Array.isArray(value)) {
-      return null;
-    }
-    const text = value.map((seg: any) => (seg && typeof seg.text === 'string' ? seg.text : '')).join('').trim();
-    return text.length ? text : null;
-  }
-
-  /**
-   * demo scope: authoritative primary-field "unique value" check (SingleText only).
-   *
-   * Looks at every new/updated primary-field value in this changeset (from
-   * resultSet.toCreateRecord and resultSet.replaceCellMap, which at this point already hold the
-   * final, format-validated values that are about to be persisted), normalizes them, and compares
-   * against:
-   *  - all other existing values currently stored for this field in this datasheet (DB read), and
-   *  - the other values in this same batch (paste/fill of several rows at once).
-   *
-   * Throws ServerException(DatasheetException.PRIMARY_FIELD_VALUE_DUPLICATED) on the first
-   * conflict found, before analyseOperates returns - i.e. before any of this changeset's effects
-   * are applied.
-   */
+  /** Validate normalized primary values before writing the changeset. */
   private async assertPrimaryFieldValueNotDuplicated(
     datasheetId: string,
     primaryFieldId: string,
@@ -176,42 +151,32 @@ export class DatasheetOtService {
       }
     }
 
-    if (!incoming.length) {
+    const values = new Set<string>();
+    for (const { value } of incoming) {
+      const normalized = normalizeSingleTextCellValue(value);
+      if (normalized === null) {
+        continue;
+      }
+      if (values.has(normalized)) {
+        throw new ServerException(DatasheetException.PRIMARY_FIELD_VALUE_DUPLICATED);
+      }
+      values.add(normalized);
+    }
+    if (!values.size) {
       return;
     }
 
-    // Records this same batch is about to overwrite the value of must not be counted as
-    // "existing" conflicts - otherwise a batch that swaps two records' values (A: X->Y, B: Y->X)
-    // would be falsely rejected, since B's about-to-be-overwritten Y would look like a conflict
-    // for A's incoming Y.
+    // Compare against rows outside this batch so that swapping two values is valid.
     const touchedRecordIds = new Set(incoming.map(item => item.recordId));
-
-    const existingRows = await this.recordService.getFieldValuesByDstId(datasheetId, primaryFieldId);
-    const existingValueToRecordId = new Map<string, string>();
-    for (const row of existingRows) {
-      if (touchedRecordIds.has(row.recordId)) {
+    const candidates = await this.recordService.findSingleTextCandidates(datasheetId, primaryFieldId, Array.from(values));
+    for (const { recordId, fieldValue } of candidates) {
+      if (touchedRecordIds.has(recordId)) {
         continue;
       }
-      const normalized = DatasheetOtService.normalizeSingleTextCellValue(row.fieldValue);
-      if (normalized != null) {
-        existingValueToRecordId.set(normalized, row.recordId);
-      }
-    }
-
-    const seenInBatch = new Set<string>();
-    for (const { recordId, value } of incoming) {
-      const normalized = DatasheetOtService.normalizeSingleTextCellValue(value);
-      if (normalized == null) {
-        continue;
-      }
-      const existingRecordId = existingValueToRecordId.get(normalized);
-      if (existingRecordId && existingRecordId !== recordId) {
+      const normalized = normalizeSingleTextCellValue(fieldValue);
+      if (normalized !== null && values.has(normalized)) {
         throw new ServerException(DatasheetException.PRIMARY_FIELD_VALUE_DUPLICATED);
       }
-      if (seenInBatch.has(normalized)) {
-        throw new ServerException(DatasheetException.PRIMARY_FIELD_VALUE_DUPLICATED);
-      }
-      seenInBatch.add(normalized);
     }
   }
 

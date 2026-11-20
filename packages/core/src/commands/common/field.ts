@@ -34,7 +34,7 @@ import { getDateTimeCellAlarm } from 'modules/database/store/selectors/resource/
 import { getCellValue } from 'modules/database/store/selectors/resource/datasheet/cell_calc';
 import { KanbanStyleKey } from '../../modules/shared/store/constants';
 import { getDatasheet, getDatasheetPrimaryField, getSnapshot } from 'modules/database/store/selectors/resource/datasheet/base';
-import { FieldType, IField, ILinkField, ISegment, ISelectField, readonlyFields } from 'types';
+import { FieldType, IField, ILinkField, ISelectField, readonlyFields } from 'types';
 import { getNewId, getUniqName, IDPrefix, isSelectField } from 'utils';
 import { ViewAction } from 'commands_actions/view';
 
@@ -556,11 +556,11 @@ export function setAffectFieldAttr2Action(snapshot: ISnapshot, fieldId: string) 
  * concatenate segment texts and trim. An empty result is treated as "no value" and is
  * never considered a duplicate (multiple blank primary cells are allowed).
  */
-export function normalizeSingleTextCellValue(value: ICellValue | null | undefined): string | null {
+export function normalizeSingleTextCellValue(value: unknown): string | null {
   if (!Array.isArray(value)) {
     return null;
   }
-  const text = (value as ISegment[]).map(seg => seg.text).join('').trim();
+  const text = value.map(segment => (typeof segment?.text === 'string' ? segment.text : '')).join('').trim();
   return text.length ? text : null;
 }
 

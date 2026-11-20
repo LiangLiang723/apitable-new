@@ -57,21 +57,26 @@ export class DatasheetRecordRepository extends Repository<DatasheetRecordEntity>
     );
   }
 
-  /**
-   * demo scope: fetch every (non-deleted) record's current value for a single field in a datasheet.
-   * Used by the primary-field "unique value" validation (SingleText only), see DatasheetOtService.
-   * Modeled after selectLinkRecordIdsByRecordIdAndFieldId above, but without the single-record filter.
-   */
-  selectFieldValuesByDstId(dstId: string, fieldId: string): Promise<{ recordId: string; fieldValue: any }[]> {
-    const path = `$.${fieldId}`;
-    // todo(itou): replace dynamic sql
+  findSingleTextCandidates(dstId: string, fieldId: string, values: string[]): Promise<{ recordId: string; fieldValue: unknown }[]> {
+    // Match String.trim() whitespace and compare single-segment text byte for byte.
+    // Legacy cells with multiple segments are checked by the shared normalizer in Room.
+    const whitespace = '[\u0009-\u000d\u0020\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]';
+    const trimPattern = `^${whitespace}+|${whitespace}+$`;
     return this.query(
       `
-       SELECT vdr.record_id as recordId, vdr.data->? as fieldValue
-       FROM ${this.manager.connection.options.entityPrefix}datasheet_record vdr
-       WHERE vdr.dst_id = ? AND vdr.is_deleted = 0
+      SELECT recordId, fieldValue
+      FROM (
+        SELECT vdr.record_id AS recordId, JSON_EXTRACT(vdr.data, ?) AS fieldValue
+        FROM ${this.manager.connection.options.entityPrefix}datasheet_record vdr
+        WHERE vdr.dst_id = ? AND vdr.is_deleted = 0
+      ) AS field_values
+      WHERE JSON_TYPE(fieldValue) = 'ARRAY'
+        AND (JSON_LENGTH(fieldValue) > 1 OR (
+          JSON_TYPE(JSON_EXTRACT(fieldValue, '$[0].text')) = 'STRING'
+          AND CAST(REGEXP_REPLACE(JSON_UNQUOTE(JSON_EXTRACT(fieldValue, '$[0].text')), ?, '') AS BINARY) IN (?)
+        ))
       `,
-      [path, dstId],
+      ['$.' + JSON.stringify(fieldId), dstId, trimPattern, values],
     );
   }
 

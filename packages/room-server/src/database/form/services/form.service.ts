@@ -32,6 +32,7 @@ import {
   IRecordCellValue,
   IServerDatasheetPack,
   ISnapshot,
+  normalizeSingleTextCellValue,
   OPEventNameEnums,
   ResourceType,
   Selectors,
@@ -83,18 +84,11 @@ export class FormService {
       return false;
     }
 
-    const normalize = (value: unknown): string | null => {
-      if (!Array.isArray(value)) {
-        return null;
-      }
-      const text = value.map(segment => (typeof segment?.text === 'string' ? segment.text : '')).join('').trim();
-      return text || null;
-    };
-    const submittedValue = normalize(recordData[primaryFieldId]);
+    const submittedValue = normalizeSingleTextCellValue(recordData[primaryFieldId]);
     if (submittedValue == null) {
       return false;
     }
-    return Object.values(snapshot.recordMap).some(record => normalize(record.data[primaryFieldId]) === submittedValue);
+    return Object.values(snapshot.recordMap).some(record => normalizeSingleTextCellValue(record.data[primaryFieldId]) === submittedValue);
   }
 
   async fetchFormData(formId: string, userId: string, auth: IAuthHeader): Promise<FormDataPack> {

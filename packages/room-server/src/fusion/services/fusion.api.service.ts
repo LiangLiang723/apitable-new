@@ -302,21 +302,17 @@ export class FusionApiService {
     });
 
     const records = await view.getRecords();
-
-    const recordVos = await this.getRecordViewObjects(records, query.cellFormat);
+    const pageSize = query.maxRecords || query.pageSize;
+    const start = (query.pageNum - 1) * pageSize;
+    const end = query.maxRecords === -1 ? records.length : start + pageSize;
+    const results = await this.getRecordViewObjects(records.slice(start, end), query.cellFormat);
 
     getRecordsProfiler.done({
       message: `getRecords ${dstId} profiler`,
     });
 
-    // page
-    let pageSize = query.maxRecords ? query.maxRecords : query.pageSize;
-    const start = (query.pageNum - 1) * pageSize;
-    const end = query.maxRecords === -1 ? recordVos.length : start + pageSize;
-    const results = recordVos.slice(start, end);
-
     return {
-      total: recordVos.length,
+      total: records.length,
       records: results,
       pageNum: query.pageNum,
       pageSize: results.length,

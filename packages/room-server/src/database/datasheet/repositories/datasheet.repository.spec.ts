@@ -17,6 +17,7 @@
  */
 
 import { DatasheetRepository } from './datasheet.repository';
+import { DatasheetRecordRepository } from './datasheet.record.repository';
 import { DatasheetEntity } from '../entities/datasheet.entity';
 import { DeepPartial, getConnection } from 'typeorm';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -37,7 +38,7 @@ describe('DatasheetRepositoryTest', () => {
         TypeOrmModule.forRootAsync({
           useClass: DatabaseConfigService,
         }),
-        TypeOrmModule.forFeature([DatasheetRepository]),
+        TypeOrmModule.forFeature([DatasheetRepository, DatasheetRecordRepository]),
       ],
       providers: [DatasheetRepository],
     }).compile();
@@ -61,5 +62,25 @@ describe('DatasheetRepositoryTest', () => {
     expect(revisions.length).toEqual(1);
     expect(revisions[0]?.resourceId).toEqual(entity.dstId);
     expect(revisions[0]?.revision).toEqual('1');
+  });
+
+  it('returns exact single-text matches and legacy multi-segment candidates', async() => {
+    const records = moduleFixture.get(DatasheetRecordRepository);
+    const base = { dstId: entity.dstId!, createdBy: '1', updatedBy: '1' };
+    const inputs = [
+      { recordId: 'match', texts: ['\ufeff\tAcme\u202f'] },
+      { recordId: 'differentCase', texts: ['acme'] },
+      { recordId: 'partialMatch', texts: ['Acme Ltd'] },
+      { recordId: 'legacy', texts: ['Ac', 'me'] },
+      { recordId: 'deleted', texts: ['Acme'], isDeleted: true },
+    ];
+    await records.save(inputs.map(({ recordId, texts, isDeleted }) => records.create({
+      ...base,
+      recordId,
+      isDeleted: Boolean(isDeleted),
+      data: { fldPrimary: texts.map(text => ({ type: 1, text })) },
+    })));
+    const candidates = await records.findSingleTextCandidates(base.dstId, 'fldPrimary', ['Acme']);
+    expect(candidates.map(row => row.recordId).sort()).toEqual(['legacy', 'match']);
   });
 });

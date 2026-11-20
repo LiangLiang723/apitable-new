@@ -191,9 +191,8 @@ export class DatasheetRecordService {
     const units: UnitInfoDto[] = [];
     let emojis: CommentEmojiDto = {};
     const revisions = await this.getRecordRevisionHistoryAsc(dstId, recordId, query.type, showRecordHistory, query.limitDays);
-    const maxRevisionIndex =
-      query.maxRevision && revisions.includes(query.maxRevision.toString()) ? revisions.indexOf(query.maxRevision.toString()) : revisions.length;
-    const canLoopRevisions = query.maxRevision ? revisions.slice(0, maxRevisionIndex).reverse() : revisions.reverse();
+    const maxRevision = Number(query.maxRevision);
+    const canLoopRevisions = (maxRevision ? revisions.filter(revision => Number(revision) < maxRevision) : revisions).reverse();
     if (!canLoopRevisions.length) {
       return { changesets, units, emojis, commentReplyMap: {} };
     }
@@ -344,13 +343,8 @@ export class DatasheetRecordService {
     return [];
   }
 
-  /**
-   * demo scope: read the current value of a single field for every (non-deleted) record in a
-   * datasheet. Used by the primary-field "unique value" validation (SingleText only).
-   */
-  async getFieldValuesByDstId(dstId: string, fieldId: string): Promise<{ recordId: string; fieldValue: any }[]> {
-    const raw = await this.recordRepo.selectFieldValuesByDstId(dstId, fieldId);
-    return raw || [];
+  findSingleTextCandidates(dstId: string, fieldId: string, values: string[]) {
+    return this.recordRepo.findSingleTextCandidates(dstId, fieldId, values);
   }
 
   public getRecordTitle(record: IRecord, datasheetMeta: IMeta, store: Store<IReduxState>) {
