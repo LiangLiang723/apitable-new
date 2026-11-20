@@ -160,6 +160,9 @@ jobs:
             || python3 -m pip install --quiet --break-system-packages --disable-pip-version-check pyyaml
           python3 -c 'import yaml'
 
+      - name: 验证组件变更检测
+        run: python3 -B -m unittest discover -s scripts/tests
+
       - name: 检测组件变更
         id: changes
         shell: bash
@@ -169,16 +172,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${FORCE_REBUILD}" == "true" ]]; then
-            echo "强制全量重建"
-            echo "previous_tag=" >> "$GITHUB_OUTPUT"
-            echo "changed=[\"backend-server\",\"room-server\",\"web-server\",\"init-db\",\"dataenv-pm2\",\"dataenv-liquibase-pm2\",\"openresty\"]" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
           result="$(scripts/detect-changed-components.sh "" HEAD)"
           previous_tag="$(echo "${result}" | python3 -c 'import json,sys; print(json.load(sys.stdin)["previous_tag"])')"
           changed="$(echo "${result}" | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)["changed"]))')"
+
+          if [[ "${FORCE_REBUILD}" == "true" ]]; then
+            echo "强制全量重建"
+            changed='["backend-server","room-server","web-server","init-db","dataenv-pm2","dataenv-liquibase-pm2","openresty"]'
+          fi
 
           echo "previous_tag=${previous_tag}" >> "$GITHUB_OUTPUT"
           echo "changed=${changed}" >> "$GITHUB_OUTPUT"
@@ -196,10 +197,11 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: 登录 Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        shell: bash
+        env:
+          REGISTRY_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: docker login --username "$REGISTRY_USER" --password-stdin <<< "$REGISTRY_TOKEN"
 
       - name: 校验基础镜像已发布
         shell: bash
@@ -322,6 +324,12 @@ jobs:
           SELF_HOSTED_ENTERPRISE: 'false'
         run: make ${{ matrix.command }}
 
+      - name: 验证 Datasheet 测试
+        if: matrix.command == '_test-ut-core'
+        run: |
+          pnpm --filter @apitable/core run build-cjs
+          pnpm --filter @apitable/datasheet run test --ci --runInBand
+
   build-component-images:
     name: 构建组件镜像 (${{ matrix.target }})
     runs-on: ubuntu-latest
@@ -385,17 +393,18 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: 登录 Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        shell: bash
+        env:
+          REGISTRY_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: docker login --username "$REGISTRY_USER" --password-stdin <<< "$REGISTRY_TOKEN"
 
       - name: 登录 GHCR（构建缓存）
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: docker login ghcr.io --username "$REGISTRY_USER" --password-stdin <<< "$REGISTRY_TOKEN"
 
       - name: 判断是否需要重新构建
         id: decide
@@ -432,16 +441,12 @@ jobs:
           IMAGE: ${{ matrix.image }}
           VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
           SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
-          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
         run: |
           set -euo pipefail
           {
             echo 'tags<<EOF'
             echo "${IMAGE}:${VERSION_TAG}"
             echo "${IMAGE}:${SHORT_SHA}"
-            if [[ "${PUSH_LATEST}" == "true" ]]; then
-              echo "${IMAGE}:latest"
-            fi
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
@@ -472,7 +477,6 @@ jobs:
           IMAGE: ${{ matrix.image }}
           VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
           SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
-          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
           PREVIOUS_TAG: ${{ needs.prepare.outputs.previous_tag }}
         run: |
           set -euo pipefail
@@ -483,11 +487,6 @@ jobs:
             docker buildx imagetools create \
               -t "${IMAGE}:${target_tag}" "${IMAGE}:${PREVIOUS_TAG}"
           done
-
-          if [[ "${PUSH_LATEST}" == "true" ]]; then
-            docker buildx imagetools create \
-              -t "${IMAGE}:latest" "${IMAGE}:${PREVIOUS_TAG}"
-          fi
 
           echo "已复用 ${IMAGE}:${PREVIOUS_TAG} -> ${IMAGE}:${VERSION_TAG}"
 
@@ -506,10 +505,11 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: 登录 Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        shell: bash
+        env:
+          REGISTRY_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: docker login --username "$REGISTRY_USER" --password-stdin <<< "$REGISTRY_TOKEN"
 
       - name: 判断 dataenv-pm2 是否需要重新构建
         id: decide-pm2
@@ -539,16 +539,12 @@ jobs:
           IMAGE: ${{ env.DATAENV_IMAGE }}
           VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
           SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
-          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
         run: |
           set -euo pipefail
           {
             echo 'tags<<EOF'
             echo "${IMAGE}:${VERSION_TAG}"
             echo "${IMAGE}:${SHORT_SHA}"
-            if [[ "${PUSH_LATEST}" == "true" ]]; then
-              echo "${IMAGE}:latest"
-            fi
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
@@ -574,7 +570,6 @@ jobs:
           IMAGE: ${{ env.DATAENV_IMAGE }}
           VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
           SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
-          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
           PREVIOUS_TAG: ${{ needs.prepare.outputs.previous_tag }}
         run: |
           set -euo pipefail
@@ -583,11 +578,6 @@ jobs:
             docker buildx imagetools create \
               -t "${IMAGE}:${target_tag}" "${IMAGE}:${PREVIOUS_TAG}"
           done
-
-          if [[ "${PUSH_LATEST}" == "true" ]]; then
-            docker buildx imagetools create \
-              -t "${IMAGE}:latest" "${IMAGE}:${PREVIOUS_TAG}"
-          fi
 
       # The liquibase image is built on top of dataenv-pm2, so it has to wait
       # until the base image carries the new version tag.
@@ -619,16 +609,12 @@ jobs:
           IMAGE: ${{ env.DATAENV_LIQUIBASE_IMAGE }}
           VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
           SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
-          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
         run: |
           set -euo pipefail
           {
             echo 'tags<<EOF'
             echo "${IMAGE}:${VERSION_TAG}"
             echo "${IMAGE}:${SHORT_SHA}"
-            if [[ "${PUSH_LATEST}" == "true" ]]; then
-              echo "${IMAGE}:latest"
-            fi
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
@@ -656,7 +642,6 @@ jobs:
           IMAGE: ${{ env.DATAENV_LIQUIBASE_IMAGE }}
           VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
           SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
-          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
           PREVIOUS_TAG: ${{ needs.prepare.outputs.previous_tag }}
         run: |
           set -euo pipefail
@@ -665,11 +650,6 @@ jobs:
             docker buildx imagetools create \
               -t "${IMAGE}:${target_tag}" "${IMAGE}:${PREVIOUS_TAG}"
           done
-
-          if [[ "${PUSH_LATEST}" == "true" ]]; then
-            docker buildx imagetools create \
-              -t "${IMAGE}:latest" "${IMAGE}:${PREVIOUS_TAG}"
-          fi
 
   build-openresty:
     name: 构建并推送 gateway (openresty) 镜像
@@ -686,10 +666,11 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: 登录 Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        shell: bash
+        env:
+          REGISTRY_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: docker login --username "$REGISTRY_USER" --password-stdin <<< "$REGISTRY_TOKEN"
 
       - name: 判断是否需要重新构建
         id: decide
@@ -719,16 +700,12 @@ jobs:
           IMAGE: ${{ env.OPENRESTY_IMAGE }}
           VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
           SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
-          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
         run: |
           set -euo pipefail
           {
             echo 'tags<<EOF'
             echo "${IMAGE}:${VERSION_TAG}"
             echo "${IMAGE}:${SHORT_SHA}"
-            if [[ "${PUSH_LATEST}" == "true" ]]; then
-              echo "${IMAGE}:latest"
-            fi
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
@@ -754,7 +731,6 @@ jobs:
           IMAGE: ${{ env.OPENRESTY_IMAGE }}
           VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
           SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
-          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
           PREVIOUS_TAG: ${{ needs.prepare.outputs.previous_tag }}
         run: |
           set -euo pipefail
@@ -764,11 +740,6 @@ jobs:
               -t "${IMAGE}:${target_tag}" "${IMAGE}:${PREVIOUS_TAG}"
           done
 
-          if [[ "${PUSH_LATEST}" == "true" ]]; then
-            docker buildx imagetools create \
-              -t "${IMAGE}:latest" "${IMAGE}:${PREVIOUS_TAG}"
-          fi
-
   build-all-in-one:
     name: 构建并推送最终 all-in-one 镜像
     runs-on: ubuntu-latest
@@ -776,6 +747,7 @@ jobs:
       - prepare
       - build-dataenv
       - build-component-images
+      - build-openresty
       - unit-test
 
     steps:
@@ -786,10 +758,11 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: 登录 Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        shell: bash
+        env:
+          REGISTRY_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: docker login --username "$REGISTRY_USER" --password-stdin <<< "$REGISTRY_TOKEN"
 
       - name: 校验 all-in-one Dockerfile
         shell: bash
@@ -798,27 +771,8 @@ jobs:
           test -f "${ALL_IN_ONE_DOCKERFILE}"
           echo "使用 Dockerfile: ${ALL_IN_ONE_DOCKERFILE}"
 
-      - name: 生成最终镜像标签
-        id: final-tags
-        shell: bash
-        env:
-          IMAGE: ${{ needs.prepare.outputs.final_image }}
-          VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
-          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
-          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
-        run: |
-          set -euo pipefail
-          {
-            echo 'tags<<EOF'
-            echo "${IMAGE}:${VERSION_TAG}"
-            echo "${IMAGE}:${SHORT_SHA}"
-            if [[ "${PUSH_LATEST}" == "true" ]]; then
-              echo "${IMAGE}:latest"
-            fi
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: 构建并推送最终 all-in-one 镜像
+      - name: 构建并推送候选镜像
+        id: candidate
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -826,7 +780,7 @@ jobs:
           platforms: linux/amd64
           provenance: false
           push: true
-          tags: ${{ steps.final-tags.outputs.tags }}
+          tags: ${{ needs.prepare.outputs.final_image }}:candidate-${{ github.run_id }}-${{ github.run_attempt }}
           build-args: |
             IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
             DATAENV_IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
@@ -844,6 +798,52 @@ jobs:
             IMAGEPROXY_IMAGE_TAG=${{ needs.prepare.outputs.version_tag }}
           cache-from: type=gha,scope=all-in-one
           cache-to: type=gha,mode=min,ignore-error=true,scope=all-in-one
+
+      - name: 验证候选镜像
+        shell: bash
+        env:
+          IMAGE: ${{ needs.prepare.outputs.final_image }}
+          DIGEST: ${{ steps.candidate.outputs.digest }}
+          PREVIOUS_TAG: ${{ needs.prepare.outputs.previous_tag }}
+          SMOKE_MYSQL_INTERRUPTION: 'true'
+        run: |
+          set -euo pipefail
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            previous_digest="$(docker buildx imagetools inspect "$IMAGE:$PREVIOUS_TAG" --format '{{.Manifest.Digest}}' 2>/dev/null || true)"
+            if [[ -z "$previous_digest" ]]; then
+              previous_digest="$(docker buildx imagetools inspect "$IMAGE:latest" --format '{{.Manifest.Digest}}')"
+            fi
+            export SMOKE_UPGRADE_FROM="$IMAGE@$previous_digest"
+          fi
+          bash scripts/smoke-test.sh "$IMAGE@$DIGEST" "$RUNNER_TEMP/apitable-smoke"
+
+      - name: 发布已验证的镜像
+        shell: bash
+        env:
+          IMAGE: ${{ needs.prepare.outputs.final_image }}
+          DIGEST: ${{ steps.candidate.outputs.digest }}
+          VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          PUSH_LATEST: ${{ needs.prepare.outputs.push_latest }}
+        run: |
+          set -euo pipefail
+          tags=(-t "$IMAGE:$VERSION_TAG" -t "$IMAGE:$SHORT_SHA")
+          if [[ "$PUSH_LATEST" == "true" ]]; then
+            tags+=(-t "$IMAGE:latest")
+            for component in "$BACKEND_IMAGE" "$ROOM_IMAGE" "$WEB_IMAGE" "$INIT_DB_IMAGE" \
+                "$DATAENV_IMAGE" "$DATAENV_LIQUIBASE_IMAGE" "$OPENRESTY_IMAGE"; do
+              docker buildx imagetools create --prefer-index=false -t "$component:latest" "$component:$VERSION_TAG"
+            done
+          fi
+          docker buildx imagetools create --prefer-index=false "${tags[@]}" "$IMAGE@$DIGEST"
+          for tag in "$VERSION_TAG" "$SHORT_SHA"; do
+            actual="$(docker buildx imagetools inspect "$IMAGE:$tag" --format '{{.Manifest.Digest}}')"
+            [[ "$actual" == "$DIGEST" ]]
+          done
+          if [[ "$PUSH_LATEST" == "true" ]]; then
+            actual="$(docker buildx imagetools inspect "$IMAGE:latest" --format '{{.Manifest.Digest}}')"
+            [[ "$actual" == "$DIGEST" ]]
+          fi
 
       - name: 输出结果
         shell: bash
@@ -912,10 +912,11 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: 登录 Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        shell: bash
+        env:
+          REGISTRY_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: docker login --username "$REGISTRY_USER" --password-stdin <<< "$REGISTRY_TOKEN"
 
       - name: 拉取全部镜像
         shell: bash
@@ -1130,12 +1131,18 @@ jobs:
           set -euo pipefail
 
           tag="${GITHUB_REF_NAME}"
+          release_title="🚀 发布 APITable ${tag} 自托管版"
 
           {
             echo "## APITable ${tag}"
             echo
             echo "自托管企业版镜像已发布到 Docker Hub (\`benxianyu\`)。"
             echo
+            awk -v heading="## [$tag]" '
+              index($0, heading) == 1 { printing = 1; next }
+              /^## \[/ && printing { exit }
+              printing { print }
+            ' CHANGELOG.md
             echo "### 镜像"
             echo
             echo '```bash'
@@ -1164,10 +1171,10 @@ jobs:
 
           if gh release view "${tag}" >/dev/null 2>&1; then
             gh release upload "${tag}" "${assets[@]}" --clobber
-            gh release edit "${tag}" --notes-file release-notes.md --title "APITable ${tag}"
+            gh release edit "${tag}" --notes-file release-notes.md --title "$release_title"
           else
             gh release create "${tag}" \
-              --title "APITable ${tag}" \
+              --title "$release_title" \
               --notes-file release-notes.md \
               "${assets[@]}"
           fi

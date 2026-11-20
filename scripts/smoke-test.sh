@@ -11,14 +11,17 @@
 
 set -uo pipefail
 
-IMAGE="${1:?用法: scripts/smoke-test.sh <image:tag> [数据目录]}"
-TAG="${IMAGE##*:}"
+IMAGE="${1:?用法: scripts/smoke-test.sh <image:tag 或 image@digest> [数据目录]}"
 DATA_DIR="${2:-$(pwd)/.smoke-data}"
 PORT="${SMOKE_PORT:-18080}"
 BASE="http://127.0.0.1:${PORT}"
 HEALTH_PATH="/api/v1/actuator/health"
 WAIT_SECONDS="${SMOKE_WAIT_SECONDS:-300}"
 NAME="apitable-smoke-$$"
+MARKER="$NAME"
+UPGRADE_VOLUME=""
+RESTORE_VOLUME=""
+BACKUP=""
 
 log() { printf '[smoke] %s\n' "$*"; }
 fail() { printf '[smoke] FAIL: %s\n' "$*" >&2; FAILED=1; }
@@ -48,19 +51,28 @@ FAILED=0
 
 cleanup() {
     docker rm -f "$NAME" >/dev/null 2>&1 || true
+    if [[ -n "$UPGRADE_VOLUME" ]]; then
+        docker volume rm "$UPGRADE_VOLUME" >/dev/null 2>&1 || true
+    fi
+    if [[ -n "$RESTORE_VOLUME" ]]; then
+        docker volume rm "$RESTORE_VOLUME" >/dev/null 2>&1 || true
+    fi
+    if [[ -n "$BACKUP" ]]; then
+        rm -f "$BACKUP"
+    fi
 }
 trap cleanup EXIT
 
 mkdir -p "$DATA_DIR"
 
 start_container() {
-    docker run -d --name "$NAME" -p "${PORT}:80" -v "${DATA_DIR}:/apitable" "$IMAGE" >/dev/null
+    docker run -d --name "$NAME" -p "127.0.0.1:${PORT}:80" -v "$2:/apitable" "$1" >/dev/null
 }
 
 wait_healthy() {
     local i
     for ((i = 1; i <= WAIT_SECONDS; i++)); do
-        if curl -fs -o /dev/null "${BASE}${HEALTH_PATH}"; then
+        if curl -fs --max-time 3 -o /dev/null "${BASE}${HEALTH_PATH}"; then
             echo "$i"
             return 0
         fi
@@ -74,10 +86,71 @@ wait_healthy() {
     return 1
 }
 
+mysql_query() {
+    docker exec "$NAME" sh -c '
+        export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
+        exec mysql --protocol=socket -uroot --batch --skip-column-names "$MYSQL_DATABASE" "$@"
+    ' sh "$@"
+}
+
+save_record() {
+    mysql_query -e "CREATE TABLE IF NOT EXISTS apitable_release_smoke (id INT PRIMARY KEY, marker VARCHAR(64));
+        REPLACE INTO apitable_release_smoke VALUES (1, '$MARKER');"
+}
+
+record_matches() {
+    [[ "$(mysql_query -e 'SELECT marker FROM apitable_release_smoke WHERE id = 1')" == "$MARKER" ]]
+}
+
+verify_upgrade_and_restore() {
+    docker rm -f "$NAME" >/dev/null || return 1
+    UPGRADE_VOLUME="$NAME-upgrade"
+    RESTORE_VOLUME="$NAME-restore"
+    BACKUP="$(mktemp)" || return 1
+
+    log "启动旧版本 $SMOKE_UPGRADE_FROM 并生成 MySQL 备份"
+    start_container "$SMOKE_UPGRADE_FROM" "$UPGRADE_VOLUME" && wait_healthy && save_record || return 1
+    docker exec "$NAME" sh -c '
+        export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
+        exec mysqldump --protocol=socket -uroot --single-transaction --no-tablespaces --set-gtid-purged=OFF "$MYSQL_DATABASE"
+    ' > "$BACKUP" || return 1
+    [[ -s "$BACKUP" ]] || return 1
+    docker stop "$NAME" >/dev/null && docker rm "$NAME" >/dev/null || return 1
+
+    log "使用旧版本的数据卷启动候选镜像"
+    start_container "$IMAGE" "$UPGRADE_VOLUME" && wait_healthy && record_matches || return 1
+    docker rm -f "$NAME" >/dev/null || return 1
+
+    log "把旧版本的备份恢复到候选镜像的新卷"
+    docker run --rm -i -v "$RESTORE_VOLUME:/apitable" --entrypoint bash "$IMAGE" -ec '
+        init-dataenv.sh
+        gosu "$GOSU_USER" mysqld --daemonize --skip-networking
+        export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
+        mysql --protocol=socket -uroot "$MYSQL_DATABASE"
+        mysqladmin --protocol=socket -uroot shutdown
+    ' < "$BACKUP" || return 1
+    start_container "$IMAGE" "$RESTORE_VOLUME" && wait_healthy && record_matches
+}
+
 log "镜像 $IMAGE，数据目录 $DATA_DIR，端口 $PORT"
 
 log "--- 1/5 冷启动 ---"
-start_container
+if [[ "${SMOKE_MYSQL_INTERRUPTION:-}" == "true" ]]; then
+    log "模拟 MySQL 写入初始化文件后首次启动中断"
+    if docker run --rm -v "$DATA_DIR:/apitable" --entrypoint bash "$IMAGE" -c '
+        gosu() {
+            if [[ "$2" == mysqld && "$3" == --daemonize ]]; then
+                return 86
+            fi
+            command gosu "$@"
+        }
+        export -f gosu
+        init-dataenv.sh
+    ' >/dev/null 2>&1 || [[ $? -ne 86 ]]; then
+        fail "MySQL 初始化没有到达预期的中断点"
+    fi
+fi
+start_container "$IMAGE" "$DATA_DIR"
 if SECONDS_USED=$(wait_healthy); then
     log "健康检查通过，用时 ${SECONDS_USED}s"
     if (( SECONDS_USED > 90 )); then
@@ -153,6 +226,10 @@ else
 fi
 
 log "--- 4/5 重启后跳过内置数据导入 ---"
+save_record || fail "写入重启验证记录失败"
+STAMP_COMMAND='cat /apitable/.appdata-stamp && printf "\n" && stat -c "%y %i" /apitable/.appdata-stamp'
+STAMP_BEFORE="$(docker exec "$NAME" sh -c "$STAMP_COMMAND")" || fail "无法读取重启前的版本戳"
+EXPECTED_VERSION="$(docker exec "$NAME" printenv SEMVER_FULL)" || fail "无法读取镜像版本"
 docker restart "$NAME" >/dev/null
 if SECONDS_USED=$(wait_healthy); then
     log "重启后健康检查通过，用时 ${SECONDS_USED}s"
@@ -160,20 +237,25 @@ else
     fail "重启后未通过健康检查"
     dump_diagnostics
 fi
-# 版本戳文件是最可靠的证据：脚本的 stdout 会经过 pm2 的日志管道，
-# 有时被吞掉；容器内文件不会骗人。
-STAMP="$(docker exec "$NAME" cat /apitable/.appdata-stamp 2>/dev/null | tr -d '\r\n')"
-if [[ "${STAMP}" == "${TAG}" ]]; then
-    log "版本戳生效：/apitable/.appdata-stamp = ${STAMP}"
-elif docker logs "$NAME" 2>&1 | grep -q "built-in application data already loaded"; then
-    log "版本戳生效（通过日志确认）"
+STAMP_AFTER="$(docker exec "$NAME" sh -c "$STAMP_COMMAND")" || fail "无法读取重启后的版本戳"
+if [[ -n "$EXPECTED_VERSION" && "$STAMP_BEFORE" == "$STAMP_AFTER" && "${STAMP_AFTER%%$'\n'*}" == "$EXPECTED_VERSION" ]]; then
+    log "重启保留了版本戳及其修改时间"
 else
-    fail "版本戳未生效（stamp='${STAMP}'，期望 '${TAG}'）"
-    docker logs --tail 60 "$NAME" 2>&1 | grep -iE "appdata|liquibase" || true
+    fail "重启缺少正确版本戳或重新运行了导入"
 fi
+record_matches || fail "重启后验证记录丢失"
 
 log "--- 5/5 资源占用 ---"
 docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}' || true
+
+if (( FAILED == 0 )) && [[ -n "${SMOKE_UPGRADE_FROM:-}" ]]; then
+    if verify_upgrade_and_restore; then
+        log "旧卷升级及备份恢复验证通过"
+    else
+        fail "旧卷升级或备份恢复验证失败"
+        dump_diagnostics
+    fi
+fi
 
 if (( FAILED == 0 )); then
     log "全部检查通过"

@@ -14,6 +14,24 @@ permissions:
   contents: read
 
 jobs:
+  datasheet-tests:
+    name: Datasheet unit tests
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.13.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter @apitable/i18n-lang run build
+      - run: pnpm --filter @apitable/core run build-cjs
+      - run: pnpm --filter @apitable/datasheet run test --ci --runInBand
+
   eslint:
     name: Run eslint scanning
     runs-on: ubuntu-latest
