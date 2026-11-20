@@ -1,6 +1,6 @@
 # APITable CHANGELOG
 
-## [v1.17.10](https://github.com/LiangLiang723/apitable-new/releases/tag/v1.17.10) (2026-11-20)
+## [v1.17.11](https://github.com/LiangLiang723/apitable-new/releases/tag/v1.17.11) (2026-11-20)
 
 ### 修复
 
@@ -11,7 +11,7 @@
 ### 性能与验证
 
 * ⚡️ Fusion API 仅转换和签名返回页，主字段查重减少 MySQL 到 Room 的数据传输。
-* ⚡️ 减少重复值筛选的数组复制，复用同一请求中的团队成员查询。
+* ⚡️ 分组比较使用有容量上限的缓存，减少重复值筛选的数组复制，并复用同一请求中的团队成员查询。
 * 👷 修复组件变更检测，恢复 Datasheet 测试和 OT 快照断言。候选镜像经过首次初始化中断、重启、旧卷升级及 SQL 恢复检查后发布。
 
 ## [v1.17.8](https://github.com/apitable/apitable/releases/tag/v1.17.8) (2026-10-27)
