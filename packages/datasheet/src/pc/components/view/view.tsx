@@ -58,7 +58,7 @@ import { Toolbar } from '../tool_bar';
 import { DATASHEET_VIEW_CONTAINER_ID } from './id';
 import styles from './style.module.less';
 export { DATASHEET_VIEW_CONTAINER_ID };
-import { debounce } from 'lodash';
+import { useDebounceFn } from 'ahooks';
 
 export const View: React.FC<React.PropsWithChildren<any>> = () => {
   const colors = useThemeColors();
@@ -122,30 +122,24 @@ export const View: React.FC<React.PropsWithChildren<any>> = () => {
 
   const { opEventManager } = resourceService.instance!;
   
-  // 使用 useRef 来保存防抖函数，避免因为依赖变化而重新创建
-  const debouncedDispatchRef = React.useRef(
-    debounce((datasheetId: string, mirrorId: string | undefined) => {
-      store.dispatch(StoreActions.getSubscriptionsAction(datasheetId, mirrorId));
-    }, 500)
+  const { run: refreshSubscriptions, cancel: cancelSubscriptionRefresh } = useDebounceFn(
+    (targetId: string, targetMirrorId?: string) => {
+      const params = store.getState().pageParams;
+      if (params.datasheetId !== targetId || params.mirrorId !== targetMirrorId || params.shareId || params.templateId || params.embedId) return;
+      store.dispatch(StoreActions.getSubscriptionsAction(targetId, targetMirrorId));
+    },
+    { wait: 500, maxWait: 600 },
   );
 
-  // 用于跟踪是否已有请求在进行中
-  const isRequestInProgressRef = React.useRef(false);
-
   const recordUpdatedCallBack = React.useCallback((context: ICellUpdatedContext) => {
-    const { fieldId } = context;
-    const field = fieldMap[fieldId];
-    
-    if (field && field.type === FieldType.Member && field.property.subscription && datasheetId && !isRequestInProgressRef.current) {
-      isRequestInProgressRef.current = true;
-      debouncedDispatchRef.current(datasheetId, mirrorId);
-      
-      // 500ms 后重置标志
-      setTimeout(() => {
-        isRequestInProgressRef.current = false;
-      }, 600); // 略大于防抖时间，确保防抖完成后再允许下次请求
+    if (!datasheetId || context.datasheetId !== datasheetId || shareId || templateId || embedId) return;
+    const field = fieldMap[context.fieldId];
+    if (field?.type === FieldType.Member && field.property.subscription) {
+      refreshSubscriptions(datasheetId, mirrorId);
     }
-  }, [fieldMap, datasheetId, mirrorId]);
+  }, [fieldMap, datasheetId, mirrorId, shareId, templateId, embedId, refreshSubscriptions]);
+
+  useEffect(() => cancelSubscriptionRefresh, [datasheetId, mirrorId, shareId, templateId, embedId, cancelSubscriptionRefresh]);
 
   useEffect(() => {
     // Only listen remote changesets of cell updated and update record subscriptions.

@@ -16,11 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { useMount } from 'ahooks';
+import { useMount, useThrottleFn } from 'ahooks';
 import classNames from 'classnames';
 import { compact } from 'lodash';
-import throttle from 'lodash/throttle';
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Box, LinkButton, Loading, Message, TextInput, useThemeColors } from '@apitable/components';
 import { Api, ApiInterface, ConfigConstant, INode, INodesMapItem, IParent, Strings, t } from '@apitable/core';
 import { ChevronRightOutlined, SearchOutlined } from '@apitable/icons';
@@ -80,45 +79,40 @@ export const SelectFolder: React.FC<
     }
   });
 
-  const getWholeList = useCallback((folderId: string) => {
-    const unitType = catalog === ConfigConstant.Modules.PRIVATE ? 3 : undefined;
-    Api.getChildNodeList(folderId, ConfigConstant.NodeType.FOLDER, unitType).then((res) => {
-      const { data, success, message } = res.data;
-      if (!success) {
-        Message.error({ content: message });
-        return;
-      }
-      setWholeList(data);
-    });
-  }, [catalog]);
-
   useEffect(() => {
     if (!isWhole || !currentFolderId || (isPrivate && !catalog)) {
       return;
     }
-    getWholeList(currentFolderId);
-  }, [currentFolderId, isWhole, catalog, getWholeList, isPrivate]);
+    let current = true;
+    const unitType = catalog === ConfigConstant.Modules.PRIVATE ? 3 : undefined;
+    Api.getChildNodeList(currentFolderId, ConfigConstant.NodeType.FOLDER, unitType).then((res) => {
+      if (!current) return;
+      const { data, success, message } = res.data;
+      if (success) setWholeList(data);
+      else Message.error({ content: message });
+    }).catch(() => {});
+    return () => { current = false; };
+  }, [currentFolderId, isWhole, catalog, isPrivate]);
 
-  const getSearchList = useMemo(() => {
-    return throttle((spaceId: string, keyword: string) => {
-      Api.searchNode(spaceId, keyword, isPrivate ? undefined : 1).then((res) => {
-        const { data, success, message } = res.data;
-        if (!success) {
-          Message.error({ content: message });
-          return;
-        }
-        const folders = data.filter((node) => node.type === ConfigConstant.NodeType.FOLDER);
-        setSearchList(folders);
-      });
-    }, 500);
-  }, [isPrivate]);
+  const requestId = useRef(0);
+  const { run: getSearchList, cancel: cancelSearch } = useThrottleFn((space: string, keyword: string, id: number) => {
+    Api.searchNode(space, keyword, isPrivate ? undefined : 1).then((res) => {
+      if (id !== requestId.current) return;
+      const { data, success, message } = res.data;
+      if (success) setSearchList(data.filter((node) => node.type === ConfigConstant.NodeType.FOLDER));
+      else Message.error({ content: message });
+    }).catch(() => {});
+  }, { wait: 500 });
 
   useEffect(() => {
+    const id = ++requestId.current;
     if (!keyword || !spaceId) {
+      cancelSearch();
       return;
     }
-    getSearchList(spaceId, keyword);
-  }, [spaceId, keyword, getSearchList]);
+    getSearchList(spaceId, keyword, id);
+    return () => { requestId.current++; };
+  }, [spaceId, keyword, isPrivate, getSearchList, cancelSearch]);
 
   const onClickItem = (folderIdOrCatalogType: string, nodePrivate?: boolean) => {
     setKeyword('');

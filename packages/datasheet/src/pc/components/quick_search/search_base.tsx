@@ -1,7 +1,7 @@
+import { useThrottleFn, useUnmount } from 'ahooks';
 import type { InputRef } from 'antd';
 import { Form } from 'antd';
 import classnames from 'classnames';
-import throttle from 'lodash/throttle';
 import { ShortcutActionManager, ShortcutActionName } from 'modules/shared/shortcut_key';
 import { getShortcutKeyString } from 'modules/shared/shortcut_key/keybinding_config';
 import Image from 'next/image';
@@ -23,8 +23,6 @@ import { FooterTips } from './footer_tips';
 import { ISearchNode, Node } from './node';
 import { nodeTypeList, TabNodeType, TypeTab } from './type_tab';
 import styles from './style.module.less';
-
-let reqToken: () => void;
 
 const shouldOpenInNewTab = (e: React.MouseEvent) => {
   // Press and hold meta or click with the middle mouse button to open the table in a new tab.
@@ -111,53 +109,74 @@ export const SearchBase: FC<React.PropsWithChildren<ISearchProps>> = ({ classNam
   const themeName = useAppSelector((state) => state.theme);
   const EmptyResultIcon = themeName === ThemeName.Light ? NotDataImgLight : NotDataImgDark;
 
-  const focusIntoView = throttle((direction: 'up' | 'down') => {
+  const { run: focusIntoView } = useThrottleFn((direction: 'up' | 'down') => {
     setTimeout(() => {
       // Follow the active item scrolled to the list
       if (listContainerRef?.current) {
         const viewPortHeight = listContainerRef.current.clientHeight;
         const activeElem = listContainerRef.current.querySelector('.active');
+        if (!activeElem) return;
         const activeElemHeight = activeElem.clientHeight;
         const top = activeElem.offsetTop - listContainerRef.current.scrollTop;
         const inViewPort = top > activeElemHeight && top + activeElemHeight < viewPortHeight;
         !inViewPort && activeElem && activeElem.scrollIntoView(direction === 'up');
       }
     }, 16);
-  }, 16);
+  }, { wait: 16 });
 
   const handleSubmit = () => {
     getNodeList(keyword);
   };
 
-  const getNodeList = throttle((val: string) => {
-    setLoading(true);
-    if (reqToken) {
-      reqToken();
-    }
-    Api.findNode(val, (c: () => void) => (reqToken = c))
+  const activeRequest = useRef<{ id: number; cancel?: () => void }>({ id: 0 });
+  const { run: search, cancel: cancelSearch } = useThrottleFn((val: string, id: number) => {
+    if (activeRequest.current.id !== id) return;
+    Api.findNode(val, (cancel: () => void) => {
+      activeRequest.current.cancel = cancel;
+    })
       .then((res) => {
-        const { data, success } = res.data;
-        if (success) {
-          setDataNodeList(data);
+        if (activeRequest.current.id === id && res.data.success) {
+          setDataNodeList(res.data.data);
         }
-        setLoading(false);
       })
-      .catch(() => {
-        console.log('Capture cancellation requests');
-        setLoading(false);
+      .catch(() => {})
+      .finally(() => {
+        if (activeRequest.current.id === id) {
+          activeRequest.current.cancel = undefined;
+          setLoading(false);
+        }
       });
-  }, 500);
+  }, { wait: 500 });
+
+  const getNodeList = (keyword: string) => {
+    const id = activeRequest.current.id + 1;
+    const cancel = activeRequest.current.cancel;
+    activeRequest.current = { id };
+    cancel?.();
+    if (!keyword) {
+      cancelSearch();
+      setDataNodeList([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    search(keyword, id);
+  };
+
+  useUnmount(() => {
+    const { id, cancel } = activeRequest.current;
+    activeRequest.current = { id: id + 1 };
+    cancel?.();
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setKeyword(val);
+    getNodeList(val);
     if (!val) {
-      reqToken();
-      setDataNodeList([]);
       setCurrentIndex(-1);
       return;
     }
-    getNodeList(val);
     setTabType(TabNodeType.ALL_TYPE);
   };
 
@@ -165,6 +184,7 @@ export const SearchBase: FC<React.PropsWithChildren<ISearchProps>> = ({ classNam
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
     setKeyword('');
+    getNodeList('');
 
     sessionStorage.removeItem('searchKeyword');
     sessionStorage.removeItem('searchData');
@@ -175,6 +195,7 @@ export const SearchBase: FC<React.PropsWithChildren<ISearchProps>> = ({ classNam
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.keyCode === KeyCode.Esc) {
       setKeyword('');
+      getNodeList('');
     }
   };
 

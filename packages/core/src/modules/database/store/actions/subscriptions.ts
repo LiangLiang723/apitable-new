@@ -17,8 +17,10 @@
  */
 
 import * as ActionConstants from 'modules/shared/store/action_constants';
-import { ISubscriptions } from 'exports/store/interfaces';
+import { ISetSubscriptionsAction, ISubscriptions } from 'exports/store/interfaces';
 import { getSubscriptions } from '../../api/datasheet_api';
+
+const subscriptionRequests = new WeakMap<(action: ISetSubscriptionsAction) => void, object>();
 
 /**
  * get current datasheet/mirrors' subscribed(followed) record ids
@@ -27,10 +29,17 @@ import { getSubscriptions } from '../../api/datasheet_api';
  * @returns
  */
 export const getSubscriptionsAction = (datasheetId: string, mirrorId?: string) => async (dispatch: any) => {
-  const { data } = await getSubscriptions(datasheetId, mirrorId);
-
-  if (data?.success) {
-    dispatch(setSubscriptionsAction(data.data || []));
+  const request = {};
+  subscriptionRequests.set(dispatch, request);
+  try {
+    const { data } = await getSubscriptions(datasheetId, mirrorId);
+    if (data?.success && subscriptionRequests.get(dispatch) === request) {
+      dispatch(setSubscriptionsAction(data.data || []));
+    }
+  } catch {
+    // Keep the current subscriptions when a refresh fails.
+  } finally {
+    if (subscriptionRequests.get(dispatch) === request) subscriptionRequests.delete(dispatch);
   }
 };
 
