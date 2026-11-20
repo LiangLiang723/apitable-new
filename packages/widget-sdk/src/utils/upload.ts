@@ -67,49 +67,44 @@ import { identity, pickBy } from 'lodash';
  * }
  * ```
  */
-export function upload(params: {
+export async function upload(params: {
   file: File,
   datasheetId: string;
   /** */
   onProgress?: (response: IUploadProgress) => void;
 }): Promise<IAttachmentValue> {
   const { file, datasheetId, onProgress } = params;
-  return new Promise(async(resolve, reject) => {
-    if (!file || !datasheetId) {
-      reject({ message: 'file or datasheetId is required' });
-    }
+  if (!file || !datasheetId) {
+    return Promise.reject({ message: 'file or datasheetId is required' });
+  }
 
-    const res = await uploadAttachToS3({
-      file,
-      fileType: UploadType.DstAttachment,
-      nodeId: datasheetId,
-      axiosConfig: {
-        onUploadProgress: ({ loaded, total }) => {
-          return onProgress && onProgress({ loaded, total });
-        },
+  const res = await uploadAttachToS3({
+    file,
+    fileType: UploadType.DstAttachment,
+    nodeId: datasheetId,
+    axiosConfig: {
+      onUploadProgress: ({ loaded, total }) => {
+        return onProgress && onProgress({ loaded, total });
       },
-    });
-
-    const { success, data, message } = res.data;
-    if (!success) {
-      reject({
-        message
-      });
-      return;
-    }
-
-    resolve(pickBy({
-      id: data.token,
-      name: data.name || file.name,
-      mimeType: data.mimeType,
-      token: data.token,
-      bucket: data.bucket,
-      size: data.size,
-      width: data.width,
-      height: data.height,
-      preview: data.preview,
-      previewUrl: data.preview ? cellValueToImageSrc(data, { isPreview: true }) : undefined,
-      url: cellValueToImageSrc(data),
-    }, identity) as IAttachmentValue);
+    },
   });
+
+  const { success, data, message } = res.data;
+  if (!success) {
+    return Promise.reject({ message });
+  }
+
+  return pickBy({
+    id: data.token,
+    name: data.name || file.name,
+    mimeType: data.mimeType,
+    token: data.token,
+    bucket: data.bucket,
+    size: data.size,
+    width: data.width,
+    height: data.height,
+    preview: data.preview,
+    previewUrl: data.preview ? cellValueToImageSrc(data, { isPreview: true }) : undefined,
+    url: cellValueToImageSrc(data),
+  }, identity) as IAttachmentValue;
 }

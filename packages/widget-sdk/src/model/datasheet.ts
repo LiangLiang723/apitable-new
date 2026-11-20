@@ -386,20 +386,23 @@ export class Datasheet {
 
     // Default position
     let view = Selectors.getCurrentView(state, this.datasheetId)!;
-    let viewId = view.id;
     let index = view.rows.length;
 
     // Designated location
     if (insertPosition) {
-      // Iterate through rows to find the actual insertion location, same as common/components/menu datasheet right click UI operation
-      // TODO: This approach will need to be optimized in the future
-      index = view.rows!.findIndex(row => row.recordId === insertPosition.anchorRecordId) ;
+      const snapshot = Selectors.getSnapshot(state, this.datasheetId)!;
+      const targetView = Selectors.getViewById(snapshot, insertPosition.viewId);
+      if (!targetView) {
+        throw new Error(`View ${insertPosition.viewId} does not exist in datasheet`);
+      }
+      view = targetView;
+      index = view.rows.findIndex(row => row.recordId === insertPosition.anchorRecordId);
       if (index === -1) {
         throw new Error(`Anchor recordId: ${insertPosition.anchorRecordId} is not exist in datasheet`);
       }
-      viewId = insertPosition.viewId;
-      const snapshot = Selectors.getSnapshot(state, this.datasheetId)!;
-      view = Selectors.getViewById(snapshot, viewId)!;
+      if (insertPosition.position === 'after') {
+        index += 1;
+      }
     }
 
     if (index < 0) {
@@ -410,15 +413,14 @@ export class Datasheet {
       throw new Error('Insert index should not greater than all row count in view');
     }
 
-    return new Promise(async(resolve) => {
-      const result: ICollaCommandExecuteResult<any> = await cmdExecute({
-        cmd: CollaCommandName.AddRecords,
-        datasheetId: this.datasheetId,
-        viewId,
-        count: transformedRecords.length,
-        index,
-        cellValues: transformedRecords,
-      }, this.wCtx.id);
+    return cmdExecute({
+      cmd: CollaCommandName.AddRecords,
+      datasheetId: this.datasheetId,
+      viewId: view.id,
+      count: transformedRecords.length,
+      index,
+      cellValues: transformedRecords,
+    }, this.wCtx.id).then(result => {
       if (result.result === ExecuteResult.Fail) {
         throw new Error(result.reason);
       }
@@ -426,7 +428,7 @@ export class Datasheet {
       if (result.result === ExecuteResult.None) {
         throw new Error('Add record method has been ignored');
       }
-      resolve(result.data as string[]);
+      return result.data as string[];
     });
   }
 

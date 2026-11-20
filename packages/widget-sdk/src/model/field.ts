@@ -21,7 +21,6 @@ import {
   ICurrencyFieldProperty, IDateTimeFieldProperty, IField, INumberFieldProperty,
   INumberFormatFieldProperty, LookUpField, Selectors, StatType, getFieldTypeString,
   IEffectOption,
-  ICollaCommandExecuteResult,
   CollaCommandName,
   ExecuteResult,
   IUpdateOpenMagicLinkFieldProperty,
@@ -266,23 +265,21 @@ export class Field {
     if (description && description.length > MAX_DESC) {
       throw new Error('Description exceeds the maximum length limit of 200');
     }
-    return new Promise(async(resolve) => {
-      const result: ICollaCommandExecuteResult<any> = await cmdExecute({
-        cmd: CollaCommandName.SetFieldAttr,
-        datasheetId: this.datasheetId,
-        fieldId: this.fieldData.id,
-        data: {
-          ...this.fieldData,
-          desc
-        }
-      }, this.wCtx.id);
+    return cmdExecute({
+      cmd: CollaCommandName.SetFieldAttr,
+      datasheetId: this.datasheetId,
+      fieldId: this.fieldData.id,
+      data: {
+        ...this.fieldData,
+        desc
+      }
+    }, this.wCtx.id).then(result => {
       if (result.result === ExecuteResult.Fail) {
         throw new Error(result.reason);
       }
       if (result.result === ExecuteResult.None) {
         throw new Error('update description method has been ignored');
       }
-      resolve();
     });
   }
 
@@ -324,30 +321,28 @@ export class Field {
       throw new Error(JSON.stringify(error));
     }
     const updateProperty = this.fieldEntity.updateOpenFieldPropertyTransformProperty(property);
-    let deleteBrotherField: boolean;
+    let deleteBrotherField: boolean | undefined;
     // Two-way Link special fields, need to determine whether to delete the associated fields of the associated table
     if (this.type === FieldType.MagicLink) {
       const { conversion } = property as IUpdateOpenMagicLinkFieldProperty;
       deleteBrotherField = conversion === Conversion.Delete;
     }
-    return new Promise(async(resolve) => {
-      const result: ICollaCommandExecuteResult<any> = await cmdExecute({
-        cmd: CollaCommandName.SetFieldAttr,
-        datasheetId: this.datasheetId,
-        fieldId: this.fieldData.id,
-        deleteBrotherField,
-        data: {
-          ...this.fieldData,
-          property: updateProperty
-        }
-      }, this.wCtx.id);
+    return cmdExecute({
+      cmd: CollaCommandName.SetFieldAttr,
+      datasheetId: this.datasheetId,
+      fieldId: this.fieldData.id,
+      deleteBrotherField,
+      data: {
+        ...this.fieldData,
+        property: updateProperty
+      }
+    }, this.wCtx.id).then(result => {
       if (result.result === ExecuteResult.Fail) {
         throw new Error(result.reason);
       }
       if (result.result === ExecuteResult.None) {
         throw new Error('update property method has been ignored');
       }
-      resolve();
     });
   }
 
