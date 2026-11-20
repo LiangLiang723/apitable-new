@@ -35,25 +35,93 @@ for d in /apitable/mysql /apitable/rabbitmq /apitable/redis; do
     fi
 done
 
-if [[ -n "$(ls -A /apitable/mysql)" ]]; then
-    exit
+mysql_dir=/apitable/mysql
+database="${MYSQL_DATABASE:-}"
+root_password="${MYSQL_ROOT_PASSWORD:-}"
+complete=.apitable-initialized
+staging=/apitable/.mysql-bootstrap
+
+# Existing volumes predate the marker. A system schema and the configured
+# application schema are sufficient to recognize the usual completed volume.
+if [[ -d "$mysql_dir/mysql" ]] &&
+   [[ -f "$mysql_dir/$complete" || -z "$database" || -d "$mysql_dir/$database" ]]; then
+    exit 0
 fi
 
-# A fresh MySQL data directory means the built-in application data (templates,
-# widget center, ...) has to be loaded again: drop the stamp that
-# init-appdata.sh uses to skip the loader on plain restarts.
+bootstrap_dir="$mysql_dir"
+if [[ -z "$(ls -A "$mysql_dir")" ]]; then
+    # Bootstrap a fresh database separately. The real data directory becomes
+    # populated only once credentials and schema are durable.
+    if [[ -L "$staging" ]]; then
+        echo "Unexpected symbolic link at $staging" >&2
+        exit 1
+    fi
+    if [[ -f "$staging/.apitable-bootstrap" ]]; then
+        rm -rf -- "$staging"
+    fi
+    install -d -m 0755 "$staging"
+    if [[ -n "$(ls -A "$staging")" ]]; then
+        echo "Unexpected contents in $staging" >&2
+        exit 1
+    fi
+    touch "$staging/.apitable-bootstrap"
+    bootstrap_dir="$staging/data"
+    install -d -o "$GOSU_USER" -g "$GOSU_USER" "$bootstrap_dir"
+    init_mode=--initialize
+    [[ -n "$root_password" ]] || init_mode=--initialize-insecure
+    gosu "$GOSU_USER" mysqld "$init_mode" --datadir="$bootstrap_dir"
+elif [[ ! -d "$mysql_dir/mysql" ]]; then
+    echo "Incomplete MySQL system tables in $mysql_dir. Retaining the existing files for recovery." >&2
+    exit 1
+fi
+
+# This server is reachable only through a private socket during bootstrap.
+socket=/var/run/mysqld/apitable-bootstrap.sock
+pid_file=/var/run/mysqld/apitable-bootstrap.pid
+rm -f "$socket" "$socket.lock" "$pid_file"
+gosu "$GOSU_USER" mysqld --daemonize --skip-grant-tables --skip-networking \
+    --datadir="$bootstrap_dir" --socket="$socket" --pid-file="$pid_file"
+trap 'if [[ -s "$pid_file" ]]; then kill -TERM "$(cat "$pid_file")" 2>/dev/null || true; fi' EXIT
+mysql_args=(--protocol=socket --socket="$socket" --user=root)
+
+if [[ "$bootstrap_dir" == "$mysql_dir" ]]; then
+    # An interrupted legacy bootstrap can have valid system tables. Check the
+    # schemas before configuring credentials on an existing volume.
+    if mysql "${mysql_args[@]}" --database="$database" -e 'SELECT 1' >/dev/null 2>&1; then
+        mysqladmin "${mysql_args[@]}" shutdown
+        touch "$mysql_dir/$complete"
+        exit 0
+    fi
+    schemas="$(mysql "${mysql_args[@]}" -Nse "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')")"
+    if [[ -n "$schemas" ]]; then
+        echo "Configured database $database is missing from an existing MySQL volume." >&2
+        exit 1
+    fi
+fi
+
+if [[ -n "$root_password" ]]; then
+    sql_password="${root_password//\'/\'\'}"
+    mysql "${mysql_args[@]}" <<SQL
+FLUSH PRIVILEGES;
+SET SESSION sql_mode = 'NO_BACKSLASH_ESCAPES';
+ALTER USER 'root'@'localhost' IDENTIFIED BY '$sql_password';
+GRANT ALL ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
+CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '$sql_password';
+ALTER USER 'root'@'%' IDENTIFIED BY '$sql_password';
+GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION;
+SQL
+fi
+
+export MYSQL_PWD="$root_password"
 rm -f /apitable/.appdata-stamp
-
-gosu "${GOSU_USER}" mysqld --initialize
-
-gosu "${GOSU_USER}" mysqld --daemonize --skip-grant-tables --skip-networking
-
-if [[ -n "${MYSQL_ROOT_PASSWORD}" ]]; then
-    mysql -u root -h localhost -e "FLUSH PRIVILEGES; ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}'; GRANT ALL ON *.* TO 'root'@'localhost' WITH GRANT OPTION; CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}'; GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+if [[ -n "$database" ]]; then
+    sql_database="${database//\`/\`\`}"
+    mysql "${mysql_args[@]}" -e "CREATE DATABASE IF NOT EXISTS \`${sql_database}\`"
 fi
-
-if [[ -n "${MYSQL_DATABASE}" ]]; then
-    mysql -u root -h localhost -p"${MYSQL_ROOT_PASSWORD}" -e "CREATE DATABASE ${MYSQL_DATABASE};"
+mysqladmin "${mysql_args[@]}" shutdown
+touch "$bootstrap_dir/$complete"
+if [[ "$bootstrap_dir" != "$mysql_dir" ]]; then
+    mv -T -- "$bootstrap_dir" "$mysql_dir"
+    rm -f "$staging/.apitable-bootstrap"
+    rmdir "$staging"
 fi
-
-mysqladmin -u root -h localhost shutdown -p"${MYSQL_ROOT_PASSWORD}"
