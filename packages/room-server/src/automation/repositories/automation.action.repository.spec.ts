@@ -70,14 +70,14 @@ describe('AutomationActionRepository', () => {
   });
 
   it('rolls back rewiring when deleting the action fails', async() => {
-    await repository.save({
+    await repository.save(repository.create({
       actionId: 'nextActionId',
       robotId: theRobotId,
       actionTypeId: theActionTypeId,
       prevActionId: theActionId,
       input: {},
       createdBy: theUserId,
-    });
+    }));
     const service = new RobotActionService(repository);
     const failure = jest.spyOn(AutomationActionRepository.prototype, 'deleteActionByActionId').mockRejectedValueOnce(new Error('write failed'));
     try {
