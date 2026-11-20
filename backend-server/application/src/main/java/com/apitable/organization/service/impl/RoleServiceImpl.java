@@ -52,8 +52,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -316,6 +318,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, RoleEntity> impleme
         // group roles' members by role.
         Map<Long, List<RoleMemberInfoDTO>> roleIdToRoleMembers = allRoleMembers.stream()
             .collect(groupingBy(RoleMemberInfoDTO::getRoleId, toList()));
+        Map<Set<Long>, List<Long>> membersByTeams = new HashMap<>();
         roles.forEach(role -> {
             if (!roleIdToRoleMembers.containsKey(role.getRoleId())) {
                 return;
@@ -330,7 +333,8 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, RoleEntity> impleme
             int memberCount;
             if (unitTypeToUnitRefIds.containsKey(UnitType.TEAM.getType())) {
                 List<Long> teamIds = unitTypeToUnitRefIds.get(UnitType.TEAM.getType());
-                List<Long> teamMemberIds = iTeamService.getMemberIdsByTeamIds(teamIds);
+                List<Long> teamMemberIds = membersByTeams.computeIfAbsent(new HashSet<>(teamIds),
+                    ignored -> iTeamService.getMemberIdsByTeamIds(teamIds));
                 memberCount = CollUtil.unionDistinct(memberIds, teamMemberIds).size();
             } else {
                 memberCount = memberIds.size();
