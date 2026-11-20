@@ -7,7 +7,38 @@ import {
 import {
   getCellValue, getCurrentView, getGroupFields, getSearchKeyword, getStringifyCellValue, sortRowsBySortInfo,
 } from 'modules/database/store/selectors/resource/datasheet';
-import { FieldType } from 'types/field_types';
+import { FieldType, IField } from 'types/field_types';
+
+const MAX_GROUP_COMPARISONS = 1024;
+type CellValue = ReturnType<typeof getCellValue>;
+
+function createGroupComparator(field: IField, state: IReduxState) {
+  const instance = Field.bindContext(field, state);
+  const comparisons = new Map<CellValue, Map<CellValue, number>>();
+  let size = 0;
+
+  return (left: CellValue, right: CellValue) => {
+    if (typeof left === 'object' || typeof right === 'object') {
+      return instance.compare(left, right);
+    }
+    let byRight = comparisons.get(left);
+    const cached = byRight?.get(right);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const result = instance.compare(left, right);
+    if (size < MAX_GROUP_COMPARISONS) {
+      if (!byRight) {
+        byRight = new Map();
+        comparisons.set(left, byRight);
+      }
+      byRight.set(right, result);
+      size += 1;
+    }
+    return result;
+  };
+}
 
 export class ViewDerivateBase {
   viewFilterDerivate: ViewFilterDerivate;
@@ -37,7 +68,7 @@ export class ViewDerivateBase {
       }
       return acc;
     }, [] as Boolean[]);
-    const fieldInstanceMap = {};
+    const comparators: Record<string, ReturnType<typeof createGroupComparator>> = Object.create(null);
 
     // rows sorted by group
     return rows.sort((row1, row2) => {
@@ -45,14 +76,10 @@ export class ViewDerivateBase {
         if (prev !== 0) {
           return prev;
         }
-        let fieldInstance = fieldInstanceMap[field.id];
-        if (!fieldInstance) {
-          fieldInstance = Field.bindContext(field, state);
-          fieldInstanceMap[field.id] = fieldInstance;
-        }
+        const compare = comparators[field.id] ?? (comparators[field.id] = createGroupComparator(field, state));
         const cv1 = getCellValue(state, snapshot, row1.recordId, field.id);
         const cv2 = getCellValue(state, snapshot, row2.recordId, field.id);
-        const res = fieldInstance.compare(cv1, cv2);
+        const res = compare(cv1, cv2);
         const sign = descOrders[index] ? -1 : 1;
 
         return res * sign;
