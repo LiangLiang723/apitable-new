@@ -1,5 +1,19 @@
 # APITable CHANGELOG
 
+## [v1.17.9](https://github.com/LiangLiang723/apitable-new/releases/tag/v1.17.9) (2026-11-20)
+
+### 修复
+
+* 🐛 恢复首次启动中断后的 MySQL 建库，保护已有数据卷。
+* 🐛 修复 Room 事务、数据库连接回收和协同编辑 Redis 锁的错误处理。
+* 🐛 恢复记录活动的默认参数和分页游标，修正分组排序及 Widget SDK 插入位置与失败返回。
+
+### 性能与验证
+
+* ⚡️ Fusion API 仅转换和签名返回页，主字段查重减少 MySQL 到 Room 的数据传输。
+* ⚡️ 减少重复值筛选的数组复制，复用同一请求中的团队成员查询。
+* 👷 修复组件变更检测，恢复 Datasheet 测试和 OT 快照断言。候选镜像经过首次初始化中断、重启、旧卷升级及 SQL 恢复检查后发布。
+
 ## [v1.17.8](https://github.com/apitable/apitable/releases/tag/v1.17.8) (2026-10-27)
 
 修复 v1.17.7 无法启动的问题。
