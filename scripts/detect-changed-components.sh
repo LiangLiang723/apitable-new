@@ -52,7 +52,7 @@ ROOT_INPUTS=(
 component_inputs() {
   case "$1" in
     backend-server)
-      echo "backend-server packaging/Dockerfile.backend-server docker-bake.hcl"
+      echo "backend-server packaging/Dockerfile.backend-server docker-bake.hcl .dockerignore"
       ;;
     room-server)
       # Dockerfile.node-base and docker-bake.hcl carry the build and runtime
@@ -152,8 +152,14 @@ changed=()
 for component in "${ALL_COMPONENTS[@]}"; do
   inputs="$(component_inputs "${component}")"
   # shellcheck disable=SC2086
-  if git diff --name-only "${PREV_TAG}" "${CURRENT_REF}" -- ${inputs} | grep -q .; then
+  if git diff --quiet "refs/tags/${PREV_TAG}" "${CURRENT_REF}" -- ${inputs}; then
+    continue
+  elif [[ $? -eq 1 ]]; then
     changed+=("${component}")
+  else
+    echo "Source inputs of ${component} could not be compared, rebuilding everything." >&2
+    emit_result "${PREV_TAG}" "${ALL_COMPONENTS[@]}"
+    exit 0
   fi
 done
 
