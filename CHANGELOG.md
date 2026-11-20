@@ -1,6 +1,6 @@
 # APITable CHANGELOG
 
-## [v1.17.11](https://github.com/LiangLiang723/apitable-new/releases/tag/v1.17.11) (2026-11-20)
+## [v1.17.12](https://github.com/LiangLiang723/apitable-new/releases/tag/v1.17.12) (2026-11-20)
 
 ### 修复
 
