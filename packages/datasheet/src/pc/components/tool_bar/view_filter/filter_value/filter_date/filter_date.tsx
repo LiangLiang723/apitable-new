@@ -20,7 +20,6 @@ import { useClickOutside } from '@huse/click-outside';
 import classNames from 'classnames';
 import dayjs, { Dayjs } from 'dayjs';
 import { toString } from 'lodash';
-import debounce from 'lodash/debounce';
 import * as React from 'react';
 import { useContext, useEffect, useRef } from 'react';
 import { WrapperTooltip } from '@apitable/components';
@@ -43,7 +42,7 @@ import { LocalFormat } from './local_format';
 const { RangePicker } = DatePicker;
 
 export const FilterDate: React.FC<React.PropsWithChildren<IFilterDateProps>> = (props) => {
-  const { changeFilter, condition, disabled = false, field, conditionIndex, onChange } = props;
+  const { changeFilter, condition, disabled = false, field, conditionIndex, onChange, onDeferredChange } = props;
   const datasheetId = useAppSelector((state) => Selectors.getActiveDatasheetId(state))!;
 
   const { screenIsAtMost } = useResponsive();
@@ -131,12 +130,8 @@ export const FilterDate: React.FC<React.PropsWithChildren<IFilterDateProps>> = (
     onChange([defaultValue[0], `${startDate}-${endDate}`]);
   };
 
-  const debounceCommandNumberFn = debounce((value: number) => {
-    onChange(typeof value === 'number' ? [defaultValue[0], value] : null);
-  }, 500);
-
   const commandNumberFn = (value: string) => {
-    debounceCommandNumberFn(Number(value));
+    onDeferredChange([defaultValue[0], Number(value)]);
   };
 
   const editorHeight = isMobile ? 48 : 40;

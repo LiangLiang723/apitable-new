@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { useDebounceFn } from 'ahooks';
 import * as React from 'react';
 import { useContext, useEffect, useRef } from 'react';
 import { useThemeColors } from '@apitable/components';
@@ -41,12 +40,9 @@ export const FilterRating: React.FC<React.PropsWithChildren<Omit<IFilterNumberPr
     // eslint-disable-next-line
   }, []);
 
-  const { run: commandNumberFn } = useDebounceFn(
-    (value: number | null) => {
-      onChange(value ? [value.toString()] : '');
-    },
-    { wait: 500 },
-  );
+  const commandNumberFn = (value: number | null) => {
+    onChange(value ? [value.toString()] : '');
+  };
 
   return (
     <div className={styles.ratingContainer}>

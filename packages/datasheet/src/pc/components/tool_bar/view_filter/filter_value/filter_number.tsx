@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import debounce from 'lodash/debounce';
 import * as React from 'react';
 import { useContext, useEffect, useRef } from 'react';
 import { useThemeColors } from '@apitable/components';
@@ -43,12 +42,8 @@ export const FilterNumber: React.FC<React.PropsWithChildren<Omit<IFilterNumberPr
     // eslint-disable-next-line
   }, []);
 
-  const debounceCommandNumberFn = debounce((value: string) => {
-    onChange(value ? [value] : null);
-  }, 500);
-
   function commandNumberFn(value: string) {
-    debounceCommandNumberFn(value);
+    onChange(value ? [value] : null);
   }
 
   function getFieldTypeByProperty(field: IField) {

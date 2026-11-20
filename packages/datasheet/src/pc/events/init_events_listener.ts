@@ -59,8 +59,13 @@ const makeVEvent = (datasheetId: string, fieldId: string, recordId: string) => {
   };
 };
 
-const debounceRefreshSnapshot = debounce((datasheetId) => {
-  dispatch(StoreActions.refreshSnapshot(datasheetId));
+const pendingSnapshotRefreshes = new Set<string>();
+const refreshSnapshots = debounce(() => {
+  const datasheetIds = [...pendingSnapshotRefreshes];
+  pendingSnapshotRefreshes.clear();
+  for (const datasheetId of datasheetIds) {
+    dispatch(StoreActions.refreshSnapshot(datasheetId));
+  }
 }, 500);
 
 const removeAndUpdateCacheIfNeed = (datasheetId: string, fieldId?: string, recordId?: string) => {
@@ -97,7 +102,8 @@ const removeAndUpdateCacheIfNeed = (datasheetId: string, fieldId?: string, recor
       // console.log('setCellCache', datasheetId, fieldId!, recordId!, nextCache);
       remotePayload.push(nextCache!);
     }
-    debounceRefreshSnapshot(datasheetId);
+    pendingSnapshotRefreshes.add(datasheetId);
+    refreshSnapshots();
     comlinkStore?.proxy?.removeCache(remotePayload);
   }
 };

@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { useDebounceFn } from 'ahooks';
+import { useDebounceFn, useUnmount } from 'ahooks';
 import produce from 'immer';
-import { get, isEqual } from 'lodash';
+import { isEqual } from 'lodash';
 import * as React from 'react';
 import { useContext, useMemo, useState } from 'react';
 import { TextInput, WrapperTooltip } from '@apitable/components';
@@ -48,24 +48,28 @@ export const FilterValue: React.FC<React.PropsWithChildren<IFilterValueProps>> =
         : '';
   const { isViewLock } = useContext(ViewFilterContext);
 
-  const { run: debounceInput } = useDebounceFn(
-    (inputValue: any) => {
-      changeFilter &&
-        changeFilter((value) => {
-          return produce(value, (draft) => {
-            const condition = draft.conditions[conditionIndex] as any;
-            draft.conditions[conditionIndex] = {
-              ...condition,
-              // Type inconsistency (e.g. magic lookup switching type), change to fix.
-              fieldType: props.field.type,
-              value: inputValue ? [inputValue] : null,
-            } as any;
-            return draft;
-          });
-        });
-    },
-    { wait: 500 },
-  );
+  const submitFilterValue = (input: typeof condition.value, target = condition) => {
+    if (isViewLock || disabled || props.field.id !== target.fieldId) return;
+    changeFilter?.((filter) => {
+      const index = filter.conditions.findIndex((current) => current.conditionId === target.conditionId);
+      const current = filter.conditions[index];
+      if (!current || current.fieldId !== target.fieldId || current.operator !== target.operator || current.fieldType !== target.fieldType) {
+        return filter;
+      }
+      if (editorType === EditorType.DateTime && Array.isArray(current.value) && Array.isArray(target.value) && current.value[0] !== target.value[0]) {
+        return filter;
+      }
+      const value = typeof input === 'boolean' ? input : input || null;
+      if (current.fieldType === props.field.type && isEqual(value, current.value)) return filter;
+      return produce(filter, (draft) => {
+        draft.conditions[index] = { ...current, fieldType: props.field.type, value } as typeof current;
+      });
+    });
+  };
+
+  useUnmount(() => flushFilterValue());
+  const { run: debounceFilterValue, flush: flushFilterValue } = useDebounceFn(submitFilterValue, { wait: 500 });
+  const queueFilterValue = (value: typeof condition.value) => debounceFilterValue(value, condition);
 
   useMemo(() => {
     setValue(condition.value ? condition.value[0] : '');
@@ -91,30 +95,7 @@ export const FilterValue: React.FC<React.PropsWithChildren<IFilterValueProps>> =
   const inputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setValue(value);
-    debounceInput(value);
-  };
-
-  const submitFilterValue = (selectValue: any) => {
-    // The filter component of the toolbar is go here.
-    changeFilter &&
-      changeFilter((value) => {
-        // Check that if the selectValue is the same as the old value, do not update the store.
-        const noValueChange = isEqual(selectValue, get(value, `conditions.${conditionIndex}.value`));
-        if (noValueChange) return value;
-        return produce(value, (draft) => {
-          if (typeof selectValue !== 'boolean') {
-            selectValue = selectValue ? selectValue : null;
-          }
-          const condition = draft.conditions[conditionIndex];
-          draft.conditions[conditionIndex] = {
-            ...condition,
-            // Type inconsistency (e.g. magic lookup switching type), change to fix.
-            fieldType: props.field.type,
-            value: selectValue,
-          } as any;
-          return draft;
-        });
-      });
+    queueFilterValue(value ? [value] : null);
   };
 
   function Editor(editorType: EditorType) {
@@ -150,13 +131,14 @@ export const FilterValue: React.FC<React.PropsWithChildren<IFilterValueProps>> =
             condition={condition}
             changeFilter={changeFilter}
             onChange={submitFilterValue}
+            onDeferredChange={queueFilterValue}
             conditionIndex={conditionIndex}
           />
         );
       case EditorType.Boolean:
-        return <FilterCheckbox disabled={disabled} field={field} condition={condition} onChange={submitFilterValue} />;
+        return <FilterCheckbox disabled={disabled} field={field} condition={condition} onChange={queueFilterValue} />;
       case EditorType.Rating:
-        return <FilterRating field={field} disabled={disabled} condition={condition} onChange={submitFilterValue} />;
+        return <FilterRating field={field} disabled={disabled} condition={condition} onChange={queueFilterValue} />;
       case EditorType.Member:
         return (
           <FilterMember
@@ -170,7 +152,7 @@ export const FilterValue: React.FC<React.PropsWithChildren<IFilterValueProps>> =
       case EditorType.Number:
       case EditorType.Currency:
       case EditorType.Percent:
-        return <FilterNumber disabled={disabled} field={field} condition={condition} onChange={submitFilterValue} />;
+        return <FilterNumber disabled={disabled} field={field} condition={condition} onChange={queueFilterValue} />;
       case EditorType.None:
         return <div />;
       default:

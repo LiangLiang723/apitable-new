@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import debounce from 'lodash/debounce';
 import * as React from 'react';
 import { useContext, useEffect, useRef } from 'react';
 import { IDateTimeField, Selectors } from '@apitable/core';
@@ -39,13 +38,6 @@ export const FilterCheckbox: React.FC<React.PropsWithChildren<Omit<IFilterCheckb
     // eslint-disable-next-line
   }, []);
 
-  const debounceCommandNumberFn = debounce((value: boolean) => {
-    onChange(value);
-  }, 500);
-
-  function commandNumberFn(value: boolean) {
-    debounceCommandNumberFn(value);
-  }
 
   return (
     <div className={styles.checkboxContainer}>
@@ -58,7 +50,7 @@ export const FilterCheckbox: React.FC<React.PropsWithChildren<Omit<IFilterCheckb
         datasheetId={datasheetId}
         height={35}
         field={field as IDateTimeField}
-        commandFn={commandNumberFn}
+        commandFn={onChange}
       />
     </div>
   );

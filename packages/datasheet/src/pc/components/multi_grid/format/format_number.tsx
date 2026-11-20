@@ -18,7 +18,6 @@
 
 import { Input } from 'antd';
 import { SelectValue } from 'antd/lib/select';
-import debounce from 'lodash/debounce';
 import { SetStateAction, useEffect, useMemo, useRef, Dispatch } from 'react';
 import * as React from 'react';
 // eslint-disable-next-line no-restricted-imports
@@ -175,18 +174,14 @@ export const FormateNumber: React.FC<React.PropsWithChildren<IFormateNumberProps
     });
   };
 
-  const debounceCommandNumberFn = debounce((value: string) => {
-    setCurrentField({
-      ...currentField,
-      property: {
-        ...currentField.property,
-        defaultValue: value as string,
-      } as any,
-    });
-  }, 500);
-
   function commandNumberFn(value: string) {
-    debounceCommandNumberFn(value);
+    setCurrentField((field) => ({
+      ...field,
+      property: {
+        ...field.property,
+        defaultValue: value,
+      } as any,
+    }));
   }
 
   const commonProps = {

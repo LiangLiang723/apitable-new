@@ -19,15 +19,14 @@
 import { useDebounceFn } from 'ahooks';
 import * as React from 'react';
 import { FC, useRef, useState } from 'react';
-import { IShowCaseData, Selectors } from '@apitable/core';
-import { BaseModal } from 'pc/components/common';
+import { IShowCaseData, Strings, t } from '@apitable/core';
+import { BaseModal, Message } from 'pc/components/common';
 // import classNames from 'classnames';
 import { ComponentDisplay, ScreenSize } from 'pc/components/common/component_display';
 import { Popup } from 'pc/components/common/mobile/popup';
 import { Network } from 'pc/components/network_status';
 import { SlateEditor, Deserializer, EditorValue, IEditorData, Serializer } from 'pc/components/slate_editor';
-import { useRequest, useCatalogTreeRequest, useImageUpload, useResponsive } from 'pc/hooks';
-import { useAppSelector } from 'pc/store/react-redux';
+import { useCatalogTreeRequest, useImageUpload, useResponsive } from 'pc/hooks';
 import styles from './style.module.less';
 
 export interface IDescriptionModalProps {
@@ -55,22 +54,36 @@ export const DescriptionModal: FC<React.PropsWithChildren<IDescriptionModalProps
   const { nodeInfo, updateDesc } = props;
   const [value, setValue] = useState<EditorValue | IEditorData>(polyfillData(nodeInfo.description));
   const [description, setDescription] = useState(nodeInfo.description);
+  const [closing, setClosing] = useState(false);
   const descHtml = useRef('');
-  const nodeId = useAppSelector((state) => Selectors.getNodeId(state))!;
+  const savedDescription = useRef(nodeInfo.description);
+  const saveQueue = useRef(Promise.resolve(true));
+  const closingRef = useRef(false);
   const { updateNodeDescriptionReq } = useCatalogTreeRequest();
   const { uploadImage } = useImageUpload();
-  const { run: updateNodeDescription } = useRequest(updateNodeDescriptionReq, { manual: true });
-  const { run: sendUpdateDesc } = useDebounceFn(
-    async (nodeId, desc) => {
-      await updateNodeDescription(nodeId, desc);
-    },
-    { wait: 500 },
-  );
+
+  const saveDescription = (desc: string) => {
+    const request = saveQueue.current.then(async () => {
+      if (savedDescription.current === desc) return true;
+      try {
+        const saved = await updateNodeDescriptionReq(nodeInfo.nodeId, desc);
+        if (saved) savedDescription.current = desc;
+        return saved;
+      } catch {
+        Message.error({ content: t(Strings.update_description_fail) });
+        return false;
+      }
+    });
+    saveQueue.current = request;
+    return request;
+  };
+  const { run: sendUpdateDesc, cancel: cancelUpdateDesc } = useDebounceFn(saveDescription, { wait: 500 });
 
   const { screenIsAtLeast } = useResponsive();
   const isPc = screenIsAtLeast(ScreenSize.md);
 
   const changeContent = (slateData: IEditorData) => {
+    if (closingRef.current) return;
     const html = Serializer.html(slateData.document);
     if (html === descHtml.current) return;
     descHtml.current = html;
@@ -83,11 +96,22 @@ export const DescriptionModal: FC<React.PropsWithChildren<IDescriptionModalProps
     const desc = JSON.stringify(dataStruct);
     setDescription(desc);
     if (nodeInfo.permissions.descriptionEditable) {
-      sendUpdateDesc(nodeId, desc);
+      sendUpdateDesc(desc);
     }
   };
 
-  const onClose = () => {
+  const onClose = async () => {
+    if (closingRef.current) return;
+    if (nodeInfo.permissions.descriptionEditable) {
+      closingRef.current = true;
+      setClosing(true);
+      cancelUpdateDesc();
+      if (!(await saveDescription(description))) {
+        closingRef.current = false;
+        setClosing(false);
+        return;
+      }
+    }
     updateDesc(description);
     props.onCancel();
   };
@@ -100,7 +124,7 @@ export const DescriptionModal: FC<React.PropsWithChildren<IDescriptionModalProps
         value={value}
         sectionSpacing="small"
         autoFocus
-        readOnly={!nodeInfo.permissions.descriptionEditable}
+        readOnly={!nodeInfo.permissions.descriptionEditable || closing}
         height={isPc ? '70vh' : 'calc(90vh - 94px)'}
       />
     </div>

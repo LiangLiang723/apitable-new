@@ -45,6 +45,7 @@ export interface IFilterBaseProps {
 }
 export interface IFilterDateProps extends IFilterBaseProps {
   onChange: (value: string | string[] | null) => void;
+  onDeferredChange: IFilterDateProps['onChange'];
   conditionIndex: number;
   changeFilter: (cb: ExecuteFilterFn) => void;
 }

@@ -41,6 +41,7 @@ import { ViewFilterContext } from 'pc/components/tool_bar/view_filter/view_filte
 import { useShowViewLockModal } from 'pc/components/view_lock/use_show_view_lock_modal';
 import { useResponsive } from 'pc/hooks';
 import { resourceService } from 'pc/resource_service';
+import { store } from 'pc/store';
 import { useAppSelector } from 'pc/store/react-redux';
 import { executeCommandWithMirror } from 'pc/utils/execute_command_with_mirror';
 import { SyncViewTip } from '../sync_view_tip';
@@ -62,6 +63,7 @@ const ViewFilterBase = (props: IViewFilter) => {
   const { screenIsAtMost } = useResponsive();
   const isMobile = screenIsAtMost(ScreenSize.md);
   const view = useAppSelector((state) => Selectors.getCurrentView(state))! as IGridViewProperty;
+  const { datasheetId, mirrorId } = useAppSelector((state) => state.pageParams);
   const columns = view.columns;
   const fieldMap = useAppSelector((state) => Selectors.getFieldMap(state, state.pageParams.datasheetId!))!;
   const activeViewFilter = useAppSelector((state) => Selectors.getFilterInfo(state))!;
@@ -112,10 +114,15 @@ const ViewFilterBase = (props: IViewFilter) => {
 
   const changeFilter = useCallback(
     (cb: ExecuteFilterFn) => {
-      const result = cb(activeViewFilter!);
-      filterCommand(result);
+      const state = store.getState();
+      if (isViewLock || state.pageParams.datasheetId !== datasheetId || state.pageParams.mirrorId !== mirrorId ||
+          Selectors.getCurrentView(state)?.id !== view.id) return;
+      const current = Selectors.getFilterInfo(state);
+      if (!current) return;
+      const result = cb(current);
+      if (result !== current) filterCommand(result);
     },
-    [activeViewFilter, filterCommand],
+    [datasheetId, mirrorId, view.id, isViewLock, filterCommand],
   );
 
   // Mark if a new filter has been added, scrolling directly to the bottom in the commandForAddViewFilter function is not valid.
