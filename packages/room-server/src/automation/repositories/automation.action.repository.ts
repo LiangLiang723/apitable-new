@@ -37,7 +37,7 @@ export class AutomationActionRepository extends Repository<AutomationActionEntit
     return this.save(newAction);
   }
 
-  async selectRobotRelByActionId(actionId: string): Promise<RobotRelDto> {
+  async selectRobotRelByActionId(actionId: string, forUpdate = false): Promise<RobotRelDto> {
     return await this.findOneOrFail({
       select: [
         'robotId',
@@ -46,7 +46,8 @@ export class AutomationActionRepository extends Repository<AutomationActionEntit
       where: {
         actionId,
         isDeleted: 0,
-      }
+      },
+      lock: forUpdate ? { mode: 'pessimistic_write' } : undefined,
     });
   }
 

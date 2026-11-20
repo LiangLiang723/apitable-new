@@ -19,6 +19,7 @@
 import { DeepPartial, getConnection } from 'typeorm';
 import { AutomationActionRepository } from './automation.action.repository';
 import { AutomationActionEntity } from '../entities/automation.action.entity';
+import { RobotActionService } from '../services/robot.action.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -66,6 +67,28 @@ describe('AutomationActionRepository', () => {
 
   it('should be defined', () => {
     expect(repository).toBeDefined();
+  });
+
+  it('rolls back rewiring when deleting the action fails', async() => {
+    await repository.save({
+      actionId: 'nextActionId',
+      robotId: theRobotId,
+      actionTypeId: theActionTypeId,
+      prevActionId: theActionId,
+      input: {},
+      createdBy: theUserId,
+    });
+    const service = new RobotActionService(repository);
+    const failure = jest.spyOn(AutomationActionRepository.prototype, 'deleteActionByActionId').mockRejectedValueOnce(new Error('write failed'));
+    try {
+      await expect(service.deleteRobotActionByActionId(theUserId, theActionId)).rejects.toThrow('write failed');
+      expect((await repository.selectRobotRelByActionId('nextActionId')).prevActionId).toBe(theActionId);
+      await expect(repository.selectRobotRelByActionId(theActionId)).resolves.toBeDefined();
+    } finally {
+      failure.mockRestore();
+    }
+    await expect(service.deleteRobotActionByActionId(theUserId, theActionId)).resolves.toBe(true);
+    expect((await repository.selectRobotRelByActionId('nextActionId')).prevActionId).toBeNull();
   });
 
   it('should be return robotId and preActionId', async() => {

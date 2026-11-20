@@ -449,12 +449,25 @@ describe('DatasheetFieldTreeSelectService', () => {
         manageable: true,
       },
     });
-    await datasheetFieldCascaderSnapshotService.updateCascaderSnapshot({}, '2023', {
+    const transactionRepo = {
+      update: jest.fn(),
+      save: jest.fn().mockRejectedValueOnce(new Error('replacement failed')),
+    };
+    (datasheetCascaderFieldRepository.manager.transaction as jest.Mock).mockImplementation(async callback => {
+      return callback({ getCustomRepository: () => transactionRepo });
+    });
+    const update = () => datasheetFieldCascaderSnapshotService.updateCascaderSnapshot({}, '2023', {
       spaceId: 'spaceId',
       datasheetId: 'datasheetId',
       fieldId: 'fieldId',
       linkedDatasheetId: 'datasheetId',
       linkedViewId: 'viewId',
     });
+    await expect(update()).rejects.toThrow('replacement failed');
+    await expect(update()).resolves.toBe(true);
+    expect(transactionRepo.update).toHaveBeenCalledTimes(2);
+    expect(transactionRepo.save).toHaveBeenCalledTimes(2);
+    expect(datasheetCascaderFieldRepository.update).not.toHaveBeenCalled();
+    expect(datasheetCascaderFieldRepository.save).not.toHaveBeenCalled();
   });
 });

@@ -37,17 +37,11 @@ export class RobotActionService {
    * @param actionId  the deleted action's id
    */
   async deleteRobotActionByActionId(userId: string, actionId: string): Promise<boolean> {
-    // Get the action's robot id, and it's previous action.
-    const robotRel = await this.automationActionRepository.selectRobotRelByActionId(actionId);
-    const robotId = robotRel.robotId;
-    // the prevActionId may be null
-    const prevActionId = robotRel.prevActionId;
-    await this.automationActionRepository.manager.transaction(async() => {
-      // Find the action whose prevActionId equals to actionId.
-      // If the action exist, set the action's prevActionId as prevActionId.
-      await this.automationActionRepository.updateRobotPrevActionIdByOldPrevActionId(userId, robotId, prevActionId, actionId);
-      // Update the action's deleted flag.
-      await this.automationActionRepository.deleteActionByActionId(userId, actionId);
+    await this.automationActionRepository.manager.transaction(async(manager) => {
+      const repository = manager.getCustomRepository(AutomationActionRepository);
+      const { robotId, prevActionId } = await repository.selectRobotRelByActionId(actionId, true);
+      await repository.updateRobotPrevActionIdByOldPrevActionId(userId, robotId, prevActionId, actionId);
+      await repository.deleteActionByActionId(userId, actionId);
     });
     return true;
   }

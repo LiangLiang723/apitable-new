@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { EntityRepository, getConnection, In, Repository } from 'typeorm';
+import { EntityRepository, In, Repository } from 'typeorm';
 import { UserBaseInfoDto } from '../dtos/user.dto';
 import { UserEntity } from '../entities/user.entity';
 
@@ -56,10 +56,9 @@ export class UserRepository extends Repository<UserEntity> {
    * @returns
    */
   async selectUserInfoBySpaceIdAndUuids(spaceId: string, uuids: string[]): Promise<any[]> {
-    const queryRunner = getConnection().createQueryRunner();
     const tableNamePrefix = this.manager.connection.options.entityPrefix;
     // todo(itou): replace dynamic sql
-    const users: any[] = await queryRunner.query(
+    return this.query(
       `
           SELECT
             vu.uuid userId,
@@ -82,8 +81,6 @@ export class UserRepository extends Repository<UserEntity> {
         `,
       [spaceId, uuids],
     );
-    await queryRunner.release();
-    return users;
   }
 
   /**

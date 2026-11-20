@@ -82,15 +82,16 @@ export class DatasheetFieldCascaderSnapshotService {
       datasheetId,
       fieldId,
     );
-    await this.datasheetCascaderFieldRepository.manager.transaction(async() => {
-      await this.datasheetCascaderFieldRepository.update({
+    await this.datasheetCascaderFieldRepository.manager.transaction(async(manager) => {
+      const repository = manager.getCustomRepository(DatasheetCascaderFieldRepository);
+      await repository.update({
         spaceId,
         datasheetId,
         fieldId,
       }, {
         isDeleted: true,
       });
-      await this.datasheetCascaderFieldRepository.save(cascaderSnapshot);
+      await repository.save(cascaderSnapshot);
     });
     return true;
   }

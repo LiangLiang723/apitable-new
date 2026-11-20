@@ -17,7 +17,7 @@
  */
 
 import { UnitTypeEnum } from 'shared/enums';
-import { EntityRepository, getConnection, In, Repository } from 'typeorm';
+import { EntityRepository, In, Repository } from 'typeorm';
 import { UnitBaseInfoDto } from '../dtos/unit.base.info.dto';
 import { UnitEntity } from '../entities/unit.entity';
 
@@ -41,11 +41,10 @@ export class UnitRepository extends Repository<UnitEntity> {
     return this.findOne({ select: ['id'], where: { unitRefId: refId, spaceId, isDeleted: false }});
   }
 
-  public async selectUnitInfosBySpaceIdAndUnitIds(spaceId: string, unitIds: string[]) {
-    const queryRunner = getConnection().createQueryRunner();
+  public async selectUnitInfosBySpaceIdAndUnitIds(spaceId: string, unitIds: string[]): Promise<any[]> {
     const tableNamePrefix = this.manager.connection.options.entityPrefix;
     // todo(itou): replace dynamic sql
-    const unitInfo: any[] = await queryRunner.query(
+    return this.query(
       `
           SELECT
             vu.id unitId,
@@ -69,8 +68,6 @@ export class UnitRepository extends Repository<UnitEntity> {
         `,
       [spaceId, unitIds],
     );
-    await queryRunner.release();
-    return unitInfo;
   }
 
   /**
