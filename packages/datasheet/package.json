@@ -9,7 +9,7 @@
     "next:build-again": "next build",
     "dev": "NODE_ENV=development node --max-old-space-size=10000 server.js",
     "build": "rm -rf ./web_build &&  NODE_OPTIONS=--max-old-space-size=10240 next build",
-    "test": "next test",
+    "test": "jest",
     "check:lint": "rm -rf ./web_build && tsc --noEmit && pnpm lint",
     "check": "tsc --noEmit",
     "check:watch": "tsc --noEmit --watch",

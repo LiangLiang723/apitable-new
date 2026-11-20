@@ -17,6 +17,9 @@
  */
 
 import { hexToRGB } from '../color_utils';
+
+// hexToRGB only uses channel arithmetic and can run without browser components.
+jest.mock('@apitable/components', () => ({}), { virtual: true });
 describe('hex to rgba', () => {
   test('should right to convert', function () {
     expect(hexToRGB('#f7f6fa')).toBe('rgba(247,246,250,1)');

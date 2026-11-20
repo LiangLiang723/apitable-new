@@ -19,6 +19,20 @@
 import { getReleaseVersion, getSpaceIdFormTemplate } from '../env';
 declare const window: any;
 
+const originalSsr = process.env.SSR;
+
+beforeAll(() => {
+  delete process.env.SSR;
+  Object.defineProperty(globalThis, 'window', { value: {}, configurable: true });
+});
+
+afterAll(() => {
+  Reflect.deleteProperty(globalThis, 'window');
+  if (originalSsr !== undefined) {
+    process.env.SSR = originalSsr;
+  }
+});
+
 describe('getSpaceIdFormTemplate', () => {
   afterEach(() => {
     delete window.__initialization_data__;
