@@ -38,7 +38,6 @@ export class ViewDerivateBase {
       return acc;
     }, [] as Boolean[]);
     const fieldInstanceMap = {};
-    const cacheSortRes = {};
 
     // rows sorted by group
     return rows.sort((row1, row2) => {
@@ -53,14 +52,7 @@ export class ViewDerivateBase {
         }
         const cv1 = getCellValue(state, snapshot, row1.recordId, field.id);
         const cv2 = getCellValue(state, snapshot, row2.recordId, field.id);
-        const key = `${cv1}${cv2}`;
-        let res = 0;
-        if (key in cacheSortRes) {
-          res = cacheSortRes[key];
-        } else {
-          res = fieldInstance.compare(cv1, cv2);
-          typeof cv1 !== 'object' && typeof cv2 !== 'object' && (cacheSortRes[key] = res);
-        }
+        const res = fieldInstance.compare(cv1, cv2);
         const sign = descOrders[index] ? -1 : 1;
 
         return res * sign;

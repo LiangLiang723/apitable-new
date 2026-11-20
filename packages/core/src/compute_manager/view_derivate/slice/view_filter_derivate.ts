@@ -20,7 +20,7 @@ export class ViewFilterDerivate {
    * it should be a separate function, and the following calculation is not rigorous, it needs to be rewritten.
    */
   findRepeatRowOrRecords(rows: (IViewRow | string)[], fieldId: string, isAnd?: boolean) {
-    const map = new Map();
+    const map = new Map<string, string[]>();
     const state = this.state;
     const snapshot = this.state.datasheetMap[this.datasheetId]!.datasheet!.snapshot;
     const field = snapshot.meta.fieldMap[fieldId]!;
@@ -64,22 +64,25 @@ export class ViewFilterDerivate {
           cellValue = fieldMethod.cellValueToString(cellValue, { hideUnit: true }) || '';
         }
         cellValue = cellValue?.toString().trim() || '';
-        if (!map.has(cellValue)) {
+        const ids = map.get(cellValue);
+        if (ids) {
+          ids.push(recordId);
+        } else {
           map.set(cellValue, [recordId]);
-          continue;
         }
-        map.set(cellValue, [...map.get(cellValue), recordId]);
       }
     }
     const result: string[] = [];
     map.forEach(value => {
       if (value.length > 1) {
-        result.push(...value);
+        for (const recordId of value) {
+          result.push(recordId);
+        }
       }
     });
     if (isAnd) {
-      const recordIdMap = new Map(result.map((value, key) => [value, key]));
-      return rows.filter(row => recordIdMap.has(typeof row === 'string' ? row : row.recordId));
+      const duplicateIds = new Set(result);
+      return rows.filter(row => duplicateIds.has(typeof row === 'string' ? row : row.recordId));
     }
     return result;
   }
@@ -106,12 +109,12 @@ export class ViewFilterDerivate {
     return fieldMethod.isMeetFilter(condition.operator, cellValue, condition.value);
   }
 
-  private doFilterOperations(condition: IFilterCondition, record: IRecord, repeatRows?: string[]) {
+  private doFilterOperations(condition: IFilterCondition, record: IRecord, repeatRows?: Set<string>) {
     /**
      * or condition to have repeatRows
      * or condition on the presence or absence of repeatRows
      */
-    if (repeatRows?.includes(record.id)) {
+    if (repeatRows?.has(record.id)) {
       return true;
     }
     // If the condition is isRepeat, and no duplicate records are hit, return false early
@@ -139,7 +142,7 @@ export class ViewFilterDerivate {
   /**
    * Check if a record meets the conditions in filterCondition
    */
-  private checkConditions(record: IRecord, filterInfo: IFilterInfo, repeatRows?: string[]) {
+  private checkConditions(record: IRecord, filterInfo: IFilterInfo, repeatRows?: Set<string>) {
     const conditions = filterInfo.conditions;
     if (!record) {
       return false;
@@ -158,33 +161,34 @@ export class ViewFilterDerivate {
   }
 
   getFilterRowsBase(props: { filterInfo: IFilterInfo | undefined; rows: IViewRow[]; recordMap: IRecordMap }) {
-    let filterInfo = props.filterInfo;
-    const recordMap = props.recordMap;
-    let rows = props.rows;
+    return this.filterRows(props.rows, props.recordMap, props.filterInfo);
+  }
+
+  private filterRows<T extends IViewRow | string>(rows: T[], recordMap: IRecordMap, filterInfo?: IFilterInfo): T[] {
     if (!filterInfo) {
       return rows;
     }
 
     const isRepeatCondition = filterInfo.conditions.find(condition => condition.operator === FOperator.IsRepeat);
     const isAnd = filterInfo.conjunction === FilterConjunction.And;
-    let repeatRows: string[] | undefined;
+    let repeatRows: Set<string> | undefined;
 
     if (isRepeatCondition) {
       if (isAnd) {
-        rows = this.findRepeatRowOrRecords(rows, isRepeatCondition.fieldId, true) as IViewRow[];
+        rows = this.findRepeatRowOrRecords(rows, isRepeatCondition.fieldId, true) as T[];
         const filteredConditions = filterInfo.conditions.filter(condition => condition.operator !== FOperator.IsRepeat);
         filterInfo = {
           ...filterInfo,
           conditions: filteredConditions,
         };
       } else {
-        repeatRows = this.findRepeatRowOrRecords(rows, isRepeatCondition.fieldId) as string[];
+        repeatRows = new Set(this.findRepeatRowOrRecords(rows, isRepeatCondition.fieldId) as string[]);
       }
     }
-    const result = rows.filter(row => {
-      return this.checkConditions(recordMap[row.recordId]!, filterInfo!, repeatRows);
+    return rows.filter(row => {
+      const recordId = typeof row === 'string' ? row : row.recordId;
+      return this.checkConditions(recordMap[recordId]!, filterInfo!, repeatRows);
     });
-    return result;
   }
 
   // TODO: mirrorFilter is no longer a direct source view filter.
@@ -226,34 +230,6 @@ export class ViewFilterDerivate {
     if (!linkFieldRecordIds || !snapshot) {
       return [];
     }
-    const recordMap = snapshot.recordMap;
-    let _filterInfo = getFilterInfoExceptInvalid(this.state, this.datasheetId, filterInfo);
-
-    if (!_filterInfo) {
-      return linkFieldRecordIds;
-    }
-
-    let _linkFieldRecordIds = linkFieldRecordIds;
-    const isRepeatCondition = _filterInfo.conditions.find(condition => condition.operator === FOperator.IsRepeat);
-    const isAnd = _filterInfo.conjunction === FilterConjunction.And;
-    let repeatRecords: string[] | undefined;
-    if (isRepeatCondition) {
-      if (isAnd) {
-        _linkFieldRecordIds = this.findRepeatRowOrRecords(linkFieldRecordIds, isRepeatCondition.fieldId, true) as ILinkIds;
-        const filteredConditions = _filterInfo.conditions.filter(condition => condition.operator !== FOperator.IsRepeat);
-        _filterInfo = {
-          ..._filterInfo,
-          conditions: filteredConditions,
-        };
-      } else {
-        repeatRecords = this.findRepeatRowOrRecords(linkFieldRecordIds, isRepeatCondition.fieldId) as string[];
-      }
-    }
-
-    const result = _linkFieldRecordIds.filter(linkFieldRecordId => {
-      const record = recordMap[linkFieldRecordId];
-      return this.checkConditions(record!, _filterInfo!, repeatRecords);
-    });
-    return result;
+    return this.filterRows(linkFieldRecordIds, snapshot.recordMap, getFilterInfoExceptInvalid(this.state, this.datasheetId, filterInfo));
   };
 }
