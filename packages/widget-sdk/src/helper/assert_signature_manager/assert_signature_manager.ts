@@ -91,6 +91,10 @@ export class AssertSignatureManager {
   subscribe(cb: CallBack) {
     this.subscribeSignatureSet.add(cb);
   }
+
+  unsubscribe(cb: CallBack) {
+    this.subscribeSignatureSet.delete(cb);
+  }
 }
 
 export const assertSignatureManager = new AssertSignatureManager();

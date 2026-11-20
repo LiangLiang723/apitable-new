@@ -1,4 +1,4 @@
-import debounce from 'lodash/debounce';
+import { useDebounceFn } from 'ahooks';
 import React, {forwardRef, FunctionComponent, ReactElement, useRef} from 'react';
 import styled, { css } from 'styled-components';
 import {IDropdownControl, ListDropdown} from './dropdown/list_dropdown';
@@ -50,7 +50,7 @@ export const SearchSelect: FunctionComponent<ISearchSelectProps>= forwardRef<IDr
 
   const [keyword, setKeyword] = React.useState('');
 
-  const setKeywordDebounce = debounce(setKeyword, 300);
+  const { run: setKeywordDebounce, cancel: cancelKeyword } = useDebounceFn(setKeyword, { wait: 300 });
 
   const afterFilterOptions = list.filter(item => optionsFilter(item, keyword));
 
@@ -65,6 +65,7 @@ export const SearchSelect: FunctionComponent<ISearchSelectProps>= forwardRef<IDr
     <ListDropdown
       ref={ref}
       onVisibleChange={() => {
+        cancelKeyword();
         setKeyword('');
       }}
       options={{

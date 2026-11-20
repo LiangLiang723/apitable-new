@@ -17,7 +17,7 @@
  */
 
 import { ChevronDownOutlined } from '@apitable/icons';
-import { useClickAway, useToggle } from 'ahooks';
+import { useClickAway, useDebounceFn, useToggle } from 'ahooks';
 import Color from 'color';
 import { SelectItem } from 'components/select/select_item';
 import { convertChildrenToData } from 'components/select/utils';
@@ -33,7 +33,6 @@ import { IOption, ISelectProps } from './interface';
 import {
   GlobalStyle, hightLightCls, OptionOutside, StyledArrowIcon, StyledListContainer, StyledSelectedContainer, StyledSelectTrigger
 } from './styled';
-import debounce from 'lodash/debounce';
 
 const _renderValue = (option: IOption) => {
   return option.label;
@@ -72,7 +71,7 @@ export const Select: FC<React.PropsWithChildren<ISelectProps>> & {
   const OFFSET = [0, 4];
   const selectedOption = options.filter(item => Boolean(item)).find(item => item!.value === value);
 
-  const setKeywordDebounce = debounce(setKeyword, 300);
+  const { run: setKeywordDebounce, cancel: cancelKeyword } = useDebounceFn(setKeyword, { wait: 300 });
 
   const inputOnChange = (_e: React.ChangeEvent, keyword: string) => {
     setKeywordDebounce(keyword);
@@ -89,8 +88,9 @@ export const Select: FC<React.PropsWithChildren<ISelectProps>> & {
   }, [value, toggleVisible, defaultVisible, isInit]);
 
   useEffect(() => {
+    cancelKeyword();
     setKeyword('');
-  }, [visible, value]);
+  }, [visible, value, cancelKeyword]);
 
   useEffect(() => {
     if (triggerRef.current) {

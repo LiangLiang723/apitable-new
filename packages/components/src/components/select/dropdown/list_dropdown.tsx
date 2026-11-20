@@ -59,24 +59,22 @@ export const ListDropdown = forwardRef<IDropdownControl, IDropdownProps>((props,
         return;
       }
       setOpenValue(isOpenState);
+      onVisibleChange?.(isOpenState);
     },
-    [setOpenValue, disabled]
+    [disabled, onVisibleChange]
   );
 
   const toggle = useCallback(() => {
     setOpen(!isOpen);
-    onVisibleChange?.(!isOpen);
-  }, [isOpen, onVisibleChange, setOpen]);
+  }, [isOpen, setOpen]);
 
   const open = useCallback(() => {
     setOpen(true);
-    onVisibleChange?.(true);
-  }, [onVisibleChange, setOpen]);
+  }, [setOpen]);
 
   const close = useCallback(() => {
     setOpen(false);
-    onVisibleChange?.(false);
-  }, [onVisibleChange, setOpen]);
+  }, [setOpen]);
 
   const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(options?.selectedIndex ?? null);

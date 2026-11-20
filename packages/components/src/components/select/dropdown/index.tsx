@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { ChevronDownOutlined } from '@apitable/icons';
-import { useToggle } from 'ahooks';
+import { useDebounceFn, useToggle } from 'ahooks';
 import Color from 'color';
 import Highlighter from 'react-highlight-words';
 import { SelectItem } from 'components/select/select_item';
@@ -37,7 +37,6 @@ import {
   StyledSelectedContainer,
   StyledSelectTrigger,
 } from '../styled';
-import debounce from 'lodash/debounce';
 import { IDropdownProps, IOverLayProps } from '../../dropdown/float_ui';
 import styled from 'styled-components';
 import { ListDropdown, SelectContext } from './list_dropdown';
@@ -108,7 +107,7 @@ export const DropdownSelect: FC<
   }, [children, _options]);
   const selectedOption = options.filter((item) => Boolean(item)).find((item) => item!.value === value);
 
-  const setKeywordDebounce = debounce(setKeyword, 300);
+  const { run: setKeywordDebounce, cancel: cancelKeyword } = useDebounceFn(setKeyword, { wait: 300 });
 
   const inputOnChange = (_e: React.ChangeEvent, keyword: string) => {
     setKeywordDebounce(keyword);
@@ -125,8 +124,9 @@ export const DropdownSelect: FC<
   }, [value, toggleVisible, defaultVisible, isInit]);
 
   useEffect(() => {
+    cancelKeyword();
     setKeyword('');
-  }, [visible, value]);
+  }, [visible, value, cancelKeyword]);
 
   const optionsFilter = (item: IOption | null) => {
     if (!item) {

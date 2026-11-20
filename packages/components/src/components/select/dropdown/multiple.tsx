@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { CheckOutlined, ChevronDownOutlined } from '@apitable/icons';
-import { useToggle } from 'ahooks';
+import { useDebounceFn, useToggle } from 'ahooks';
 import Color from 'color';
 import Highlighter from 'react-highlight-words';
 import React, { FC, memo, useEffect, useMemo, useRef, useState } from 'react';
@@ -32,7 +32,6 @@ import {
   StyledSelectedContainer,
   StyledSelectTrigger,
 } from '../styled';
-import debounce from 'lodash/debounce';
 import styled from 'styled-components';
 import { ListDropdown, SelectContext } from './list_dropdown';
 import { useListItem } from '@floating-ui/react';
@@ -101,7 +100,7 @@ const MultipleSelectComp: FC<
   }, [children, _options]);
   const selectedOption = options.filter((item) => Boolean(item)).filter((item) => value.includes(item!.value));
 
-  const setKeywordDebounce = debounce(setKeyword, 300);
+  const { run: setKeywordDebounce, cancel: cancelKeyword } = useDebounceFn(setKeyword, { wait: 300 });
 
   const inputOnChange = (_e: React.ChangeEvent, keyword: string) => {
     setKeywordDebounce(keyword);
@@ -116,8 +115,9 @@ const MultipleSelectComp: FC<
   }, [toggleVisible, defaultVisible, isInit, setVisible]);
 
   useEffect(() => {
+    cancelKeyword();
     setKeyword('');
-  }, [visible, value]);
+  }, [visible, value, cancelKeyword]);
 
   const optionsFilter = (item: IOption | null) => {
     if (!item) {
