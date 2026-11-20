@@ -1,6 +1,6 @@
 {
   "name": "@apitable/core",
-  "version": "1.17.12",
+  "version": "1.17.13",
   "description": "datasheet core",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
