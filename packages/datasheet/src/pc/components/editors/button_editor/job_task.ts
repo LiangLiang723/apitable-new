@@ -53,7 +53,7 @@ export const useButtonJobTask = () => {
       const { jobId, task } = taskQueue[0];
       runningRef.current = true;
       const start = new Date();
-      task()
+      Promise.resolve().then(task)
         .then((resp) => {
           setTaskQueue((prevQueue) => prevQueue.slice(1));
           const current = new Date();
@@ -117,14 +117,10 @@ export const useButtonJobTask = () => {
         }),
       );
 
-      if (taskQueue.find((item) => item.jobId === key)) {
-        return;
-      }
-
-      setTaskQueue((prevQueue) => [...prevQueue, { jobId: key, task }]);
+      setTaskQueue((prevQueue) => (prevQueue.some((item) => item.jobId === key) ? prevQueue : [...prevQueue, { jobId: key, task }]));
       refreshTick();
     },
-    [setAutomationTaskMap, refreshTick, taskQueue],
+    [setAutomationTaskMap, refreshTick],
   );
 
   useEffect(() => {
@@ -140,5 +136,5 @@ export const useButtonJobTask = () => {
   };
 };
 
-const [JobTaskProvider, useJobTaskContext] = constate(useButtonJobTask);
-export { JobTaskProvider, useJobTaskContext };
+const [JobTaskProvider, useHandleTaskStart] = constate(useButtonJobTask, ({ handleTaskStart }) => handleTaskStart);
+export { JobTaskProvider, useHandleTaskStart };

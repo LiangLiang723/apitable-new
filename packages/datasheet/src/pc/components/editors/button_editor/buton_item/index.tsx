@@ -1,4 +1,4 @@
-import { useAtomValue, useSetAtom } from 'jotai';
+import { useSetAtom } from 'jotai';
 import { isNil } from 'lodash';
 import dynamic from 'next/dynamic';
 import * as React from 'react';
@@ -6,15 +6,16 @@ import { FunctionComponent } from 'react';
 import styled, { css } from 'styled-components';
 import { ResponseDataAutomationVO } from '@apitable/api-client';
 import { Box, ITheme, LinkButton, Message, Typography } from '@apitable/components';
-import { ButtonActionType, getColorValue, IButtonField, IRecord, IReduxState, Selectors, Strings, t } from '@apitable/core';
+import { ButtonActionType, getColorValue, IButtonField, IRecord, IReduxState, Selectors, Strings, t, wait } from '@apitable/core';
 import { automationHistoryAtom, automationStateAtom } from 'pc/components/automation/controller';
 import { runAutomationButton, runAutomationUrl } from 'pc/components/editors/button_editor';
 import { getRobotDetail } from 'pc/components/editors/button_editor/api';
-import { useJobTaskContext } from 'pc/components/editors/button_editor/job_task';
+import { useHandleTaskStart } from 'pc/components/editors/button_editor/job_task';
 import { AutomationScenario, IRobotContext } from 'pc/components/robot/interface';
 import { useCssColors } from 'pc/components/robot/robot_detail/trigger/use_css_colors';
+import { store } from 'pc/store';
 import { useAppSelector } from 'pc/store/react-redux';
-import { automationTaskMap, AutomationTaskStatus } from '../automation_task_map';
+import { AutomationTaskStatus, useAutomationTaskStatus } from '../automation_task_map';
 
 const ButtonItem = dynamic(() => import('pc/components/editors/button_editor/item'), { ssr: false });
 
@@ -28,26 +29,10 @@ const ERROR_CODE_TRIGGER_NOT_EXISTS_1107 = 1107;
 const ERROR_CODE_TRIGGER_INVALID_1108 = 1108;
 const CONST_AUTOMATION_ERROR = [444, 445, ERROR_CODE_NOT_ACTIVATED_1106, ERROR_CODE_TRIGGER_NOT_EXISTS_1107, ERROR_CODE_TRIGGER_INVALID_1108];
 
-const CONST_TIME_LIMIT=2500;
+const CONST_TIME_LIMIT = 2500;
 
 export function executeWithMinimumTime<T>(businessPromise: Promise<T>): Promise<T> {
-  const start = Date.now();
-
-  return new Promise<T>((resolve) => {
-    const execute = () => {
-      const elapsedTime = Date.now() - start;
-
-      if (elapsedTime >= CONST_TIME_LIMIT) {
-        businessPromise.then((result) => {
-          resolve(result);
-        });
-      } else {
-        setTimeout(execute, CONST_TIME_LIMIT - elapsedTime);
-      }
-    };
-
-    execute();
-  });
+  return Promise.all([businessPromise, wait(CONST_TIME_LIMIT)]).then(([result]) => result);
 }
 
 export const handleStart = (
@@ -152,19 +137,13 @@ export const ButtonFieldItem: FunctionComponent<{ field: IButtonField; height?: 
 }) => {
   const setAutomationStateAtom = useSetAtom(automationStateAtom);
 
-  const state = useAppSelector((state) => state);
-
   const datasheetId = useAppSelector(Selectors.getActiveDatasheetId);
-
-  const automationTaskMapData = useAtomValue(automationTaskMap);
+  const taskStatus = useAutomationTaskStatus(recordId, field.id);
 
   const colors = useCssColors();
 
   const setAutomationHistoryPanel = useSetAtom(automationHistoryAtom);
-  const key = `${recordId}-${field.id}`;
-  const taskStatus: AutomationTaskStatus = automationTaskMapData.get(key) ?? 'initial';
-
-  const { handleTaskStart } = useJobTaskContext();
+  const handleTaskStart = useHandleTaskStart();
 
   return (
     <ButtonItem
@@ -181,7 +160,7 @@ export const ButtonFieldItem: FunctionComponent<{ field: IButtonField; height?: 
         handleStart(
           datasheetId,
           record,
-          state,
+          store.getState(),
           recordId,
           taskStatus,
           field,

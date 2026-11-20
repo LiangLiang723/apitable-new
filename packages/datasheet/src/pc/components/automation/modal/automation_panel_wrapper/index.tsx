@@ -1,125 +1,87 @@
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { debounce } from 'lodash';
+import { useMemoizedFn } from 'ahooks';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { useRouter } from 'next/router';
 import * as React from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { ConfigConstant, Events, Player, Strings, t } from '@apitable/core';
+import { useEffect, useRef } from 'react';
+import { Strings, t } from '@apitable/core';
 import { AutomationPanel } from 'pc/components/automation';
 import {
   automationActionsAtom,
-  automationCacheAtom, automationCurrentTriggerId,
+  automationCacheAtom,
   automationLocalMap,
-  automationPanelAtom, automationStateAtom,
-  automationTriggersAtom, IAutomationPanel, PanelName
+  automationPanelAtom,
+  automationTriggersAtom,
 } from 'pc/components/automation/controller';
-import { getFieldId } from 'pc/components/automation/controller/hooks/get_field_id';
 import { checkIfModified } from 'pc/components/automation/modal/step_input_compare';
 import { Modal as ConfirmModal } from 'pc/components/common';
-import { IRobotAction, IRobotTrigger } from 'pc/components/robot/interface';
-import { useSideBarVisible } from 'pc/hooks';
-import { TriggerCommands } from '../../../../../modules/shared/apphook/trigger_commands';
 
-const CONST_ENABLE_PREVENT = true;
-const CONST_KEY_AUTOM_TRAGET_PAGE = 'CONST_KEY_AUTOM_TRAGET_PAGE';
-const CONST_KEY_AUTOM_TRAGET_VISIBLE = 'CONST_KEY_AUTOM_TRAGET_VISIBLE';
-export const AutomationPanelWrapper: React.FC<React.PropsWithChildren<{
-    automationId: string;
-}>> = React.memo(({ automationId }) => {
+// Returning to the editor can remount it before the user confirms leaving.
+let allowedNavigation: { url: string } | undefined;
 
+export const AutomationPanelWrapper = React.memo(({ automationId }: { automationId: string }) => {
   const setLocalState = useSetAtom(automationLocalMap);
-  const [panel] = useAtom(automationPanelAtom);
-
-  const [, setCache] = useAtom(automationCacheAtom);
-
-  const [automationState, setAutomationState] = useAtom(automationStateAtom);
-  const isClosedRef = React.useRef(false);
-
+  const panel = useAtomValue(automationPanelAtom);
+  const setCache = useSetAtom(automationCacheAtom);
   const triggers = useAtomValue(automationTriggersAtom);
   const actions = useAtomValue(automationActionsAtom);
-
   const localMap = useAtomValue(automationLocalMap);
-
-  const { setSideBarVisible } = useSideBarVisible();
   const router = useRouter();
+  const detachPending = useRef<() => void>();
 
-  const [panelState, setAutomationPanel] = useAtom(automationPanelAtom);
-  const setItem = useSetAtom(automationCurrentTriggerId);
-
-  const [lcoalPanel, setPanel] =useState<IAutomationPanel|undefined>(undefined);
-
-  const handle = async (url) => {
-    if(!CONST_ENABLE_PREVENT) {
-      return ;
+  const navigate = async (url: string, method: 'push' | 'replace') => {
+    const navigation = { url };
+    allowedNavigation = navigation;
+    try {
+      return await router[method](url);
+    } finally {
+      if (allowedNavigation === navigation) allowedNavigation = undefined;
     }
-    if(router.asPath === url) {
-      return;
-    }
+  };
 
-    setCache({
-      id: automationId,
-      map: localMap,
-      panel: panel
-    });
+  const handleNavigation = useMemoizedFn((url: string) => {
+    if (router.asPath === url || allowedNavigation?.url === url) return;
+    detachPending.current?.();
+    setCache({ id: automationId, map: localMap, panel });
+    if (!checkIfModified({ triggers, actions }, localMap)) return;
 
-    const gotUrl =sessionStorage.getItem(CONST_KEY_AUTOM_TRAGET_PAGE);
-    sessionStorage.removeItem(CONST_KEY_AUTOM_TRAGET_PAGE);
-    if(gotUrl === url) {
-      return;
-    }
-
-    if (!checkIfModified({
-      triggers,
-      actions
-    }, localMap)) {
-      return;
-    }
-
-    router.events.emit('routeChangeError');
-    if (localStorage.getItem(CONST_KEY_AUTOM_TRAGET_VISIBLE) !== 'true') {
-      localStorage.setItem(CONST_KEY_AUTOM_TRAGET_VISIBLE, 'true');
-      router.back();
-      const confirmPromise = await new Promise<boolean>((resolve) => {
+    const origin = router.asPath;
+    const detach = () => {
+      router.events.off('routeChangeComplete', onComplete);
+      router.events.off('routeChangeError', onError);
+      detachPending.current = undefined;
+    };
+    const onComplete = (destination: string) => {
+      if (destination !== url) return;
+      detach();
+      navigate(origin, 'replace').then((restored) => {
+        if (!restored) return;
         ConfirmModal.confirm({
           title: t(Strings.automation_not_save_warning_title),
           content: t(Strings.automation_not_save_warning_description),
           cancelText: t(Strings.cancel),
           okText: t(Strings.confirm),
           onOk: () => {
-            setCache({
-
-            });
-            isClosedRef.current = true;
-            localStorage.setItem(CONST_KEY_AUTOM_TRAGET_VISIBLE, 'false');
-            router.push(url);
-            setLocalState(
-              new Map<string, IRobotTrigger | IRobotAction>()
-            );
-            sessionStorage.setItem(CONST_KEY_AUTOM_TRAGET_PAGE, url);
-            resolve(true);
-          },
-          onCancel: () => {
-            localStorage.setItem(CONST_KEY_AUTOM_TRAGET_VISIBLE, 'false');
-            resolve(false);
+            setCache({});
+            setLocalState(new Map());
+            return navigate(destination, 'push').then(() => undefined);
           },
           type: 'warning',
         });
-      });
-      return confirmPromise;
-    }
-    return;
-  };
-
-  const debounced = debounce(handle, 200);
+      }).catch(() => {});
+    };
+    const onError = (_error: unknown, destination: string) => {
+      if (destination === url) detach();
+    };
+    // The page can unmount before Next emits the terminal event for this navigation.
+    detachPending.current = detach;
+    router.events.on('routeChangeComplete', onComplete);
+    router.events.on('routeChangeError', onError);
+  });
 
   useEffect(() => {
-    router.events.on('routeChangeStart', debounced);
-    return () => {
-      router.events.off('routeChangeStart', debounced);
-    };
+    router.events.on('routeChangeStart', handleNavigation);
+    return () => router.events.off('routeChangeStart', handleNavigation);
+  }, [handleNavigation, router.events]);
 
-  }, [debounced, handle, router.events]);
-
-  return (
-    <AutomationPanel resourceId={automationId} panel={lcoalPanel}/>
-  );
+  return <AutomationPanel resourceId={automationId} />;
 });

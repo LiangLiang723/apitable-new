@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import { useLockFn } from 'ahooks';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { debounce } from 'lodash';
 import * as React from 'react';
 import { useCallback, useEffect, useMemo } from 'react';
 import styled, { css } from 'styled-components';
@@ -152,7 +152,7 @@ export const RobotTriggerCreateForm = ({ robotId, triggerTypes, preTriggerId }: 
     setAutomationPanel,
   ]);
 
-  const debouncedCreateTrigger = debounce(createRobotTrigger, 1000);
+  const createTriggerOnce = useLockFn(createRobotTrigger);
 
   const { IS_ENTERPRISE } = getEnvVariables();
   if (!triggerTypes) {
@@ -166,7 +166,7 @@ export const RobotTriggerCreateForm = ({ robotId, triggerTypes, preTriggerId }: 
     }
 
     if (triggerTypeId) {
-      debouncedCreateTrigger(triggerTypeId);
+      void createTriggerOnce(triggerTypeId);
     }
   };
 

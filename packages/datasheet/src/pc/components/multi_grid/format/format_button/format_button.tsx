@@ -2,7 +2,6 @@ import type { InputRef } from 'antd';
 import { Input, message } from 'antd';
 import produce from 'immer';
 import { useSetAtom } from 'jotai';
-import { debounce } from 'lodash';
 import { useRouter } from 'next/router';
 import { useRef, Dispatch, SetStateAction, useMemo, useState, useCallback, MutableRefObject } from 'react';
 import styled from 'styled-components';
@@ -230,9 +229,10 @@ export const FormatButton: React.FC<React.PropsWithChildren<IFormateButtonProps>
       type: 10,
       unitId: isDatasheetPrivate ? userUnitId : undefined
     });
-    const { data, message, success } = res.data;
-    if(!success) {
-      message.error(message);
+    const { data, message: errorMessage, success } = res.data;
+    if (!success) {
+      message.error(errorMessage);
+      return;
     }
     const automationId = data?.nodeId;
 
@@ -264,7 +264,6 @@ export const FormatButton: React.FC<React.PropsWithChildren<IFormateButtonProps>
     });
   }, [currentField, datasheetId, datasheetParentId, handleAddTrigger, handleModify, router, setAutomationSource, userUnitId]);
 
-  const handleClickDebounce = debounce(handleClick, 300);
   const handleAutomationChange = useCallback(async ({ automationId }: IOnChangeParams) => {
     if (!automationId) {
       return;
@@ -299,9 +298,7 @@ export const FormatButton: React.FC<React.PropsWithChildren<IFormateButtonProps>
     });
   }, [currentField, datasheetId, handleAddTrigger, setCurrentField]);
 
-  const loadingNewRef: MutableRefObject<boolean> = useRef(false);
-  const loadingCreateRef: MutableRefObject<boolean> = useRef(false);
-  const handleAutomationChangeDebounced = debounce(handleAutomationChange, 300);
+  const savingAutomationRef: MutableRefObject<boolean> = useRef(false);
   return (
     <>
       {bingAutomationVisible && (
@@ -311,14 +308,12 @@ export const FormatButton: React.FC<React.PropsWithChildren<IFormateButtonProps>
               <Box
                 paddingLeft={'16px'}
                 onClick={async () => {
+                  if (savingAutomationRef.current) return;
+                  savingAutomationRef.current = true;
                   try {
-                    if(loadingNewRef.current) {
-                      return;
-                    }
-                    loadingNewRef.current =true;
-                    await handleClickDebounce();
+                    await handleClick();
                   } finally {
-                    loadingNewRef.current =false;
+                    savingAutomationRef.current = false;
                   }
                 }
                 }
@@ -342,14 +337,12 @@ export const FormatButton: React.FC<React.PropsWithChildren<IFormateButtonProps>
           }}
           permissionRequired={'editable'}
           onChange={async (e) => {
+            if (savingAutomationRef.current) return;
+            savingAutomationRef.current = true;
             try {
-              if(loadingCreateRef.current) {
-                return;
-              }
-              loadingCreateRef.current=true;
-              await handleAutomationChangeDebounced(e);
+              await handleAutomationChange(e);
             } finally {
-              loadingCreateRef.current=false;
+              savingAutomationRef.current = false;
             }
           }}
           nodeTypes={[ConfigConstant.NodeType.AUTOMATION, ConfigConstant.NodeType.FOLDER]}

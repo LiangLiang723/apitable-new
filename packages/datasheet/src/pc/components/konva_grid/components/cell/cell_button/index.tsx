@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { useAtom, useSetAtom } from 'jotai';
+import { useDebounceFn } from 'ahooks';
+import { useSetAtom } from 'jotai';
 import { KonvaEventObject } from 'konva/lib/Node';
-import { debounce } from 'lodash';
 import dynamic from 'next/dynamic';
 import * as React from 'react';
 import { useCallback, useState } from 'react';
@@ -27,9 +27,9 @@ import { ButtonStyleType, getColorValue, IButtonField, KONVA_DATASHEET_ID, Selec
 import { CheckFilled } from '@apitable/icons';
 import { AutomationConstant } from 'pc/components/automation/config';
 import { automationHistoryAtom, automationStateAtom } from 'pc/components/automation/controller';
-import { automationTaskMap, AutomationTaskStatus } from 'pc/components/editors/button_editor/automation_task_map';
+import { useAutomationTaskStatus } from 'pc/components/editors/button_editor/automation_task_map';
 import { ButtonFieldItem, handleStart } from 'pc/components/editors/button_editor/buton_item';
-import { useJobTaskContext } from 'pc/components/editors/button_editor/job_task';
+import { useHandleTaskStart } from 'pc/components/editors/button_editor/job_task';
 import { generateTargetName } from 'pc/components/gantt_view';
 import { autoSizerCanvas, Icon, Rect, Text } from 'pc/components/konva_components';
 import {
@@ -42,6 +42,7 @@ import {
   GRID_OPTION_ITEM_PADDING,
 } from 'pc/components/konva_grid';
 import { setColor } from 'pc/components/multi_grid/format';
+import { store } from 'pc/store';
 import { useAppSelector } from 'pc/store/react-redux';
 import { KeyCode, stopPropagation } from 'pc/utils';
 import { ICellProps } from '../cell_value';
@@ -85,17 +86,11 @@ export const CellButton: React.FC<React.PropsWithChildren<IButtonCellProps>> = (
     mouseStyle: 'pointer',
   });
 
-  const state = useAppSelector((state) => state);
-
   const datasheetId = useAppSelector(Selectors.getActiveDatasheetId);
   const record = useAppSelector((state) => Selectors.getRecord(state, recordId, datasheetId));
 
   const GRID_CELL_VALUE_PADDING = 0;
-  const [automationTaskMapData, setAutomationTaskMap] = useAtom(automationTaskMap);
-
-  const key = `${recordId}-${field.id}`;
-
-  const taskStatus: AutomationTaskStatus = automationTaskMapData.get(key) ?? 'initial';
+  const taskStatus = useAutomationTaskStatus(recordId, fieldId);
 
   const cacheTheme = useAppSelector(Selectors.getTheme);
   const colors = useThemeColors();
@@ -147,7 +142,7 @@ export const CellButton: React.FC<React.PropsWithChildren<IButtonCellProps>> = (
     }
   }
 
-  const { handleTaskStart } = useJobTaskContext();
+  const handleTaskStart = useHandleTaskStart();
 
   const onStart = useCallback(() => {
     if (!datasheetId) {
@@ -157,12 +152,10 @@ export const CellButton: React.FC<React.PropsWithChildren<IButtonCellProps>> = (
       return;
     }
 
-    handleStart(datasheetId, record, state, recordId, taskStatus, field, colors, handleTaskStart, setAutomationStateAtom, setAutomationHistoryPanel);
-  }, [colors, datasheetId, field, handleTaskStart, record, recordId, setAutomationHistoryPanel, setAutomationStateAtom, state, taskStatus]);
+    handleStart(datasheetId, record, store.getState(), recordId, taskStatus, field, colors, handleTaskStart, setAutomationStateAtom, setAutomationHistoryPanel);
+  }, [colors, datasheetId, field, handleTaskStart, record, recordId, setAutomationHistoryPanel, setAutomationStateAtom, taskStatus]);
 
-  const onClickStart = debounce(() => {
-    onStart();
-  }, 300);
+  const { run: onClickStart } = useDebounceFn(onStart, { wait: 300, leading: true, trailing: false });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.metaKey) return;

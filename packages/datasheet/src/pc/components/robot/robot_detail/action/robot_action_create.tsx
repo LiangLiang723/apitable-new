@@ -30,7 +30,7 @@ import { IActionType, INodeOutputSchema, IRobotAction } from '../../interface';
 import { NewItem } from '../../robot_list/new_item';
 import { EditType } from '../trigger/robot_trigger';
 import itemStyle from '../trigger/select_styles.module.less';
-import { debounce } from 'lodash';
+import { useLockFn } from 'ahooks';
 
 export const getNextAction = (actionList: IRobotAction[], preActionId ?: string) => {
   const actionIndex = actionList.findIndex(action => action.actionId === preActionId);
@@ -93,7 +93,7 @@ export const CreateNewAction = ({ robotId, actionTypes, prevActionId, disabled =
     return res.data;
   }, [automationState?.resourceId, nodeOutputSchemaList, prevActionId, refresh, robotId, setAutomationPanel]);
 
-  const debouncedCreateAction = debounce(createNewAction, 1000);
+  const createActionOnce = useLockFn(createNewAction);
 
   return (
     <SearchSelect
@@ -112,7 +112,7 @@ export const CreateNewAction = ({ robotId, actionTypes, prevActionId, disabled =
         value: item.actionTypeId,
         prefixIcon: <img src={integrateCdnHost(item.service.logo)} width={20} alt={''} style={{ marginRight: 4 }} />
       }))} onChange={(item) => {
-      debouncedCreateAction({
+      void createActionOnce({
           robotId,
           actionTypeId: String(item.value),
           prevActionId
