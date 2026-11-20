@@ -34,7 +34,7 @@ interface IOptionFieldEditorProps extends IBaseEditorProps {
 }
 
 const OptionFieldEditorBase: React.ForwardRefRenderFunction<IEditor, IOptionFieldEditorProps> = (props, ref) => {
-  const { field, disabled, onSave, onChange: propsOnChange, cellValue } = props;
+  const { field, disabled, onSave, cellValue } = props;
   const isSingleSelect = field.type === FieldType.SingleSelect;
   const defaultValue = isSingleSelect ? '' : [];
   const [value, setValue] = useState<CheckboxValueType[] | undefined>(cellValue as CheckboxValueType[]);
@@ -62,13 +62,11 @@ const OptionFieldEditorBase: React.ForwardRefRenderFunction<IEditor, IOptionFiel
       return;
     }
     const tempVal = isSingleSelect ? e.target.value : e;
-    propsOnChange && propsOnChange(tempVal);
     setValue(tempVal);
     onSave && onSave(tempVal);
   };
 
   const clearSingleSelect = () => {
-    propsOnChange && propsOnChange(null);
     setValue(undefined);
     onSave && onSave(null);
   };

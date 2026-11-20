@@ -20,7 +20,7 @@ import * as Sentry from '@sentry/nextjs';
 import { useDebounceFn, useMount, useUnmount } from 'ahooks';
 import classnames from 'classnames';
 import produce from 'immer';
-import { debounce, isArray } from 'lodash';
+import { isArray } from 'lodash';
 import _map from 'lodash/map';
 import { AnimationItem } from 'lottie-web/index';
 import Head from 'next/head';
@@ -43,6 +43,7 @@ import {
   FormApi,
   getNewId,
   IDPrefix,
+  ICellValue,
   IField,
   IFieldMap,
   IFormState,
@@ -222,7 +223,6 @@ export const FormContainer: React.FC<
   const currentView = formRelMeta.views.filter((view) => view.id === viewId)[0];
   const fieldMap = useMemo(() => formRelMeta.fieldMap || {}, [formRelMeta.fieldMap]);
   const prevFieldMap = useRef(fieldMap);
-  const unmounted = useRef(false);
   const query = string2Query();
   const colors = useThemeColors();
   const theme = useAppSelector(Selectors.getTheme);
@@ -272,6 +272,7 @@ export const FormContainer: React.FC<
     }
     return _editable;
   }, [shareId, _editable, shareInfo, fillDisabled]);
+  const readOnlySharedForm = Boolean(shareId && !editable && hasSubmitPermission);
 
   const isEmpty = useMemo(() => {
     const dataList = Object.values(formData).filter((v) => {
@@ -504,7 +505,6 @@ export const FormContainer: React.FC<
     setFormData({});
     setFormErrors({});
     setShowWorkdoc(false);
-    patchRecord({ id: recordId, data: {}, commentCount: 0 });
     Message.success({ content: t(Strings.form_submit_success) });
     if (shareId) {
       setContentType(IFormContentType.Welcome);
@@ -534,11 +534,6 @@ export const FormContainer: React.FC<
       </i>
     </>
   );
-
-  const clearCache = () => {
-    ExpCache.clearAll();
-    CacheManager.clearDsCache(datasheetId);
-  };
 
   useEffect(() => {
     const formContainer = document.querySelector('.vikaFormContainer');
@@ -594,7 +589,7 @@ export const FormContainer: React.FC<
         duration: undefined,
       });
     }
-    if (!editable && hasSubmitPermission && shareId) {
+    if (readOnlySharedForm) {
       Message.warning({ content: t(Strings.form_only_read_tip), duration: 0 });
     } else {
       const formFieldContainer = getStorage(storageName);
@@ -602,7 +597,6 @@ export const FormContainer: React.FC<
       const queryData = query2formData(query, fieldMap, fieldPermissionMap);
       const cacheData = validValue(formFieldContainer?.[id], fieldMap);
       setFormData({ ...cacheData, ...queryData });
-      patchRecord({ id: recordId, data: { ...cacheData, ...queryData }, commentCount: 0 });
     }
     setMount(true);
   });
@@ -629,10 +623,8 @@ export const FormContainer: React.FC<
   };
 
   useUnmount(() => {
-    unmounted.current = true;
+    flushFormToStorage();
     removeTmpSnapshot();
-    const formFieldContainer = getStorage(storageName);
-    setFormData(formFieldContainer?.[id] || {});
   });
 
   const lottieRef = useRef<any>();
@@ -658,27 +650,23 @@ export const FormContainer: React.FC<
     }
   }, [loading]);
 
-  const patchRecord = debounce((record: IRecord) => {
-    if (unmounted.current) return;
-    const preSnapshot = Selectors.getSnapshot(store.getState(), sourceInfo.datasheetId);
-    if (!preSnapshot) {
-      return;
-    }
-    const newSnapshot = produce(preSnapshot, (draft) => {
-      const view = draft.meta.views.find((view) => view.id === viewId);
-      if (view) {
-        if (!view.rows.find((row) => row.recordId === recordId) && !recordId.endsWith('_temp')) {
-          view.rows.push({ recordId });
-        }
-        draft.recordMap[recordId] = record;
+  const { run: patchRecord } = useDebounceFn(
+    (record: IRecord) => {
+      const preSnapshot = Selectors.getSnapshot(store.getState(), datasheetId);
+      if (!preSnapshot?.meta.views.some((view) => view.id === viewId)) {
+        return;
       }
-      return draft;
-    });
-    clearCache();
-    dispatch(StoreActions.updateSnapshot(datasheetId, newSnapshot));
-  }, 300);
+      const newSnapshot = produce(preSnapshot, (draft) => {
+        draft.recordMap[record.id] = record;
+      });
+      ExpCache.clearAll();
+      CacheManager.clearDsCache(datasheetId);
+      dispatch(StoreActions.updateSnapshot(datasheetId, newSnapshot));
+    },
+    { wait: 300 },
+  );
 
-  const { run: setFormToStorage } = useDebounceFn(
+  const { run: setFormToStorage, flush: flushFormToStorage } = useDebounceFn(
     (formData) => {
       const formFieldContainer = getStorage(storageName);
       setStorage(
@@ -694,8 +682,16 @@ export const FormContainer: React.FC<
   );
 
   useEffect(() => {
+    window.addEventListener('pagehide', flushFormToStorage);
+    return () => window.removeEventListener('pagehide', flushFormToStorage);
+  }, [flushFormToStorage]);
+
+  useEffect(() => {
     setFormToStorage(formData);
-  }, [formData, setFormToStorage]);
+    if (mount && !readOnlySharedForm) {
+      patchRecord({ id: recordId, data: formData, commentCount: 0 });
+    }
+  }, [formData, mount, patchRecord, readOnlySharedForm, recordId, setFormToStorage]);
 
   useEffect(() => {
     const diffFields = [] as string[];
@@ -713,12 +709,13 @@ export const FormContainer: React.FC<
       }
     }
     if (diffFields.length) {
-      const nextFormData = { ...formData };
-      for (const fieldId of diffFields) {
-        delete nextFormData[fieldId];
-      }
-      setFormData(nextFormData);
-      patchRecord({ id: recordId, data: nextFormData, commentCount: 0 });
+      setFormData((prev) => {
+        const nextFormData = { ...prev };
+        for (const fieldId of diffFields) {
+          delete nextFormData[fieldId];
+        }
+        return nextFormData;
+      });
     }
     if (hasChange) {
       Message.info({ content: t(Strings.view_form_field_changed_tip) });
@@ -727,16 +724,23 @@ export const FormContainer: React.FC<
     // eslint-disable-next-line
   }, [fieldMap]);
 
-  const _setFormData = useCallback(
-    (fieldId: any, value: any) => {
-      setFormData((prev) => {
-        const data = { ...prev, [fieldId]: value };
-        patchRecord({ id: recordId, data } as IRecord);
-        return data;
-      });
-      setFormErrors({ ...formErrors, [fieldId]: '' });
-    },
-    [formErrors, patchRecord, recordId],
+  const updateFieldValue = useCallback((fieldId: string, value: ICellValue) => {
+    setFormData((prev) => (prev[fieldId] === value ? prev : { ...prev, [fieldId]: value }));
+    setFormErrors((prev) => (prev[fieldId] ? { ...prev, [fieldId]: '' } : prev));
+  }, []);
+
+  const formContext = useMemo(
+    () => ({
+      mount,
+      formProps,
+      showWorkdoc,
+      setShowWorkdoc,
+      setFormData: updateFieldValue,
+      sharedNvcData,
+      needCaptcha: needSharedCaptcha,
+      triggerSharedVerification: needSharedCaptcha ? triggerSharedVerification : undefined,
+    }),
+    [mount, formProps, showWorkdoc, updateFieldValue, sharedNvcData, needSharedCaptcha, triggerSharedVerification],
   );
 
   const brandFooter = brandVisible ? (
@@ -762,26 +766,7 @@ export const FormContainer: React.FC<
   ) : null;
 
   return (
-    <FormContext.Provider
-      value={{
-        mount,
-        formProps,
-        formData,
-        formErrors,
-        showWorkdoc,
-        setShowWorkdoc,
-        setFormData: _setFormData,
-        setFormErrors: (fieldId, errMsg) => {
-          setFormErrors({ ...formErrors, [fieldId]: errMsg });
-        },
-        setFormToStorage: (fieldId, value) => {
-          setFormToStorage({ ...formData, [fieldId]: value });
-        },
-        sharedNvcData,
-        needCaptcha: needSharedCaptcha,
-        triggerSharedVerification: needSharedCaptcha ? triggerSharedVerification : undefined,
-      }}
-    >
+    <FormContext.Provider value={formContext}>
       {/* Shared captcha element for all attachment fields */}
       {needSharedCaptcha && <SharedCaptchaElement />}
       <Head>
@@ -822,6 +807,8 @@ export const FormContainer: React.FC<
                       meta={formRelMeta}
                       editable={editable}
                       recordId={recordId}
+                      formData={formData}
+                      formErrors={formErrors}
                     />
                   </div>
 

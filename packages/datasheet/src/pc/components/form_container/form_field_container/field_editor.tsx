@@ -86,7 +86,7 @@ export interface IFormFieldProps {
 export const FieldEditorBase: React.ForwardRefRenderFunction<IEditor, IFormFieldProps> = (props, ref) => {
   const { commonProps: baseProps, isFocus, onClose, cellValue, onMouseDown } = props;
   const { field, editable, recordId } = baseProps;
-  const { formProps, setFormData, setFormErrors, setFormToStorage, mount } = useContext(FormContext);
+  const { formProps, setFormData, mount } = useContext(FormContext);
   const attachmentRef = useRef<IAttachmentValue[]>([]);
   const shareId = useAppSelector((state) => state.pageParams.shareId);
   const { screenIsAtMost } = useResponsive();
@@ -170,13 +170,7 @@ export const FieldEditorBase: React.ForwardRefRenderFunction<IEditor, IFormField
     return attachmentRef.current as IAttachmentValue[];
   };
 
-  const handleFieldChange = (value: string) => {
-    setFormErrors(field.id, '');
-    setFormToStorage && setFormToStorage(field.id, value);
-    onSave(value);
-  };
-
-  const commonProps = { ...baseProps, onSave, onChange: handleFieldChange };
+  const commonProps = { ...baseProps, onSave, onChange: onSave };
 
   switch (field.type) {
     case FieldType.Number:

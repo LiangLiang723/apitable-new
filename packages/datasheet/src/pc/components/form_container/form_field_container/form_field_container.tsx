@@ -16,12 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { useState, FC, useRef, useEffect, useContext, memo } from 'react';
+import { useState, FC, useRef, useEffect, useCallback, memo } from 'react';
 import { TransitionGroup, CSSTransition } from 'react-transition-group';
-import { Field, IMeta, IViewColumn, FieldType } from '@apitable/core';
+import { Field, IMeta, IViewColumn, FieldType, ICellValue } from '@apitable/core';
 
 import { getParentNodeByClass } from 'pc/utils';
-import { FormContext } from '../form_context';
 import { FormField } from './form_field';
 import { FormFieldUI } from './form_field_ui';
 
@@ -38,15 +37,17 @@ interface IFormFieldContainerProps {
   filteredColumns: IViewColumnWithIndex[];
   fieldUI?: any;
   recordId: string;
+  formData?: Record<string, ICellValue>;
+  formErrors?: Record<string, string>;
 }
 
 export const FormFieldContainer: FC<React.PropsWithChildren<IFormFieldContainerProps>> = memo((props) => {
-  const { datasheetId, meta, editable, fieldUI, filteredColumns, recordId, viewId } = props;
+  const { datasheetId, meta, editable, fieldUI, filteredColumns, recordId, viewId, formData, formErrors } = props;
   const { fieldMap } = meta;
 
   const clickWithinField = useRef<boolean>();
   const [focusId, setFocusId] = useState<string | null>(null);
-  const { formData, formErrors } = useContext(FormContext);
+  const closeField = useCallback(() => setFocusId(null), []);
   const DefaultFieldUI = fieldUI || FormFieldUI;
 
   useEffect(() => {
@@ -86,7 +87,7 @@ export const FormFieldContainer: FC<React.PropsWithChildren<IFormFieldContainerP
           const isComputedField = field && Field.bindModel(field).isComputed;
           const isFocus = focusId === fieldId;
           const { name, required, desc, type } = field || {};
-          const errorMsg = formErrors && formErrors[fieldId];
+          const errorMsg = formErrors?.[fieldId];
 
           return (
             <CSSTransition key={fieldId} timeout={500} classNames="form-field-ui-transition">
@@ -129,10 +130,10 @@ export const FormFieldContainer: FC<React.PropsWithChildren<IFormFieldContainerP
                     <FormField
                       field={field}
                       recordId={recordId}
-                      formData={formData}
+                      cellValue={formData?.[fieldId] ?? null}
                       datasheetId={datasheetId}
                       isFocus={isFocus}
-                      onClose={() => setFocusId(null)}
+                      onClose={closeField}
                       editable={editable}
                     />
                   </div>

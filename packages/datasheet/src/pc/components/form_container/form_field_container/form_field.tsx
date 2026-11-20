@@ -20,8 +20,9 @@ import { useUnmount, useMount } from 'ahooks';
 import classNames from 'classnames';
 import { useCallback, useEffect, useRef, useContext } from 'react';
 import * as React from 'react';
+import { shallowEqual } from 'react-redux';
 import { useThemeColors } from '@apitable/components';
-import { FieldType, IField, ILookUpField, Selectors, Strings, t } from '@apitable/core';
+import { FieldType, ICellValue, IField, ILookUpField, Selectors, Strings, t } from '@apitable/core';
 import { Message } from 'pc/components/common';
 import { ScreenSize } from 'pc/components/common/component_display';
 import { IEditor } from 'pc/components/editors/interface';
@@ -38,7 +39,7 @@ interface IFormFieldProps {
   field: IField;
   recordId: string;
   editable: boolean;
-  formData?: { [key: string]: any };
+  cellValue: ICellValue;
   isFocus?: boolean;
   setFocusId?: (fieldId: string | null) => void;
   onClose?: (...args: any) => void;
@@ -59,19 +60,14 @@ const needTriggerStartEditField = [FieldType.Number, FieldType.Percent, FieldTyp
 
 const compactField = [FieldType.SingleSelect, FieldType.MultiSelect, FieldType.Cascader];
 
-export const FormField: React.FC<React.PropsWithChildren<IFormFieldProps>> = (props) => {
+export const FormField = React.memo((props: IFormFieldProps) => {
   const colors = useThemeColors();
   const shareId = useAppSelector((state) => state.pageParams.shareId);
-  const { datasheetId, field, isFocus = false, setFocusId, onClose, editable, recordId } = props;
+  const { datasheetId, field, isFocus = false, setFocusId, onClose, editable, recordId, cellValue } = props;
   const previousFocus = usePrevious(isFocus);
   const editorRef = useRef<(IFieldEditRef & HTMLDivElement) | null>(null) as any as React.MutableRefObject<IEditor>;
-  const { formData, formProps } = useContext(FormContext);
+  const { formProps } = useContext(FormContext);
   const fieldId = field.id;
-  // TODO(kailang) Next sprint supports form defaults
-  // const hasSetField = has(formData, fieldId);
-  // const defaultValue = Field.bindModel(field).defaultValue();
-  // const cellValue = hasSetField ? (formData[fieldId] ?? null) : defaultValue;
-  const cellValue = formData ? formData[fieldId] ?? null : null;
   const isLogin = useAppSelector((state) => state.user.isLogin);
   const { screenIsAtMost } = useResponsive();
   const isMobile = screenIsAtMost(ScreenSize.md);
@@ -158,7 +154,7 @@ export const FormField: React.FC<React.PropsWithChildren<IFormFieldProps>> = (pr
       entityField,
       lookupCellValue,
     };
-  });
+  }, shallowEqual);
 
   const entityFieldType = (entityField && entityField.type) || field.type;
 
@@ -209,4 +205,4 @@ export const FormField: React.FC<React.PropsWithChildren<IFormFieldProps>> = (pr
       <FieldEditor ref={editorRef} isFocus={isFocus} onClose={onClose} cellValue={cellValue} commonProps={commonProps} onMouseDown={onMouseDown} />
     </div>
   );
-};
+});
